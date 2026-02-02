@@ -95,7 +95,7 @@ const RanchoApp = {
       });
   },
 
-  // --- MENSALIDADES (ATUALIZADO COM CHECKBOXES) ---
+  // --- MENSALIDADES ---
   async abrirMensalidade(cavaloId, nomeCavalo) {
     this.vibrar();
     document.getElementById("mensalidadeCavaloId").value = cavaloId;
@@ -103,7 +103,7 @@ const RanchoApp = {
       `Mensalidade: ${nomeCavalo}`;
     document.getElementById("formMensalidade").reset();
 
-    // Reset dos checkboxes (padrão)
+    // Reset checkboxes
     if (document.getElementById("checkBaia"))
       document.getElementById("checkBaia").checked = true;
     if (document.getElementById("checkAlimentacao"))
@@ -113,7 +113,7 @@ const RanchoApp = {
     if (document.getElementById("checkTreino"))
       document.getElementById("checkTreino").checked = false;
 
-    // Correção do campo data
+    // Ajuste campo data (oculto)
     const campoData = document.getElementById("mensalidadeData");
     if (campoData) {
       const divPai = campoData.closest(".col-6");
@@ -141,7 +141,7 @@ const RanchoApp = {
     const btn = e.submitter;
     this.setLoading(btn, true, "Salvando...");
 
-    // NOVO: Coleta os itens marcados
+    // Coleta itens do checkbox
     const itensSelecionados = [];
     if (document.getElementById("checkBaia").checked)
       itensSelecionados.push("Baia");
@@ -159,7 +159,7 @@ const RanchoApp = {
       valor: this.limparMoeda(
         document.getElementById("mensalidadeValor").value,
       ),
-      itens: itensSelecionados.join(", "), // Envia como string
+      itens: itensSelecionados.join(", "),
     };
 
     try {
@@ -212,7 +212,6 @@ const RanchoApp = {
           ? '<span class="badge bg-success">PAGO</span>'
           : '<span class="badge bg-danger">PENDENTE</span>';
 
-        // NOVO: Exibe os itens embaixo
         const itensTexto = m.itens
           ? `<div class="text-muted small" style="font-size: 0.75rem"><i class="fa-solid fa-check-double me-1"></i> ${m.itens}</div>`
           : "";
@@ -1042,61 +1041,53 @@ const RanchoApp = {
     });
   },
 
-  // --- NOVA FUNÇÃO ZAP DETALHADO ---
+  // --- ZAP SIMPLIFICADO E SEM EMOJIS ---
   async compartilharFaturaZap(propId, nomeProp, totalTexto, telefone) {
     this.mostrarNotificacao("Gerando texto...", "sucesso");
     const periodo = document.getElementById("labelMesAnoProp").textContent;
     const mes = this.dataFiltroProp.getMonth() + 1;
     const ano = this.dataFiltroProp.getFullYear();
 
-    let msg = `Olá *${nomeProp}*! 🤠\nSegue o fechamento de *${periodo}*:\n\n`;
-    let temItens = false;
+    let msg = `Ola *${nomeProp}*.\nSegue o fechamento de *${periodo}*:\n\n`;
 
     try {
-      // Busca cavalos do dono
+      // 1. Busca Cavalos
       const allCavalos = await ApiService.fetchData("/api/gestao/cavalos");
       const meusCavalos = allCavalos.filter((c) => c.proprietario_id == propId);
 
+      // 2. Agrupa total por cavalo
       for (const cavalo of meusCavalos) {
         const dados = await ApiService.fetchData(
           `/api/gestao/custos/resumo/${cavalo.id}?mes=${mes}&ano=${ano}`,
         );
+        let subtotalCavalo = 0;
         if (dados.custos && dados.custos.length > 0) {
-          msg += `*🐴 ${cavalo.nome}*\n`;
-          dados.custos.forEach((c) => {
-            const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            });
-            const icone = c.is_mensalidade ? "🗓️" : "▪️";
-            const status = c.pago ? " (Pago ✅)" : "";
-            msg += `${icone} ${c.descricao}: ${valorF}${status}\n`;
-            temItens = true;
+          dados.custos.forEach((c) => (subtotalCavalo += parseFloat(c.valor)));
+        }
+        if (subtotalCavalo > 0) {
+          const valF = subtotalCavalo.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
           });
-          msg += `\n`;
+          msg += `*${cavalo.nome}*: ${valF}\n`;
         }
       }
 
-      // Busca custos diretos
+      // 3. Lista despesas avulsas individualmente (para explicar o que são)
       const diretos = await ApiService.fetchData(
         `/api/gestao/custos/diretos/${propId}?mes=${mes}&ano=${ano}`,
       );
       if (diretos && diretos.length > 0) {
-        msg += `*🛠 Despesas Avulsas*\n`;
         diretos.forEach((c) => {
           const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
           });
-          const status = c.pago ? " (Pago ✅)" : "";
-          msg += `▪️ ${c.descricao}: ${valorF}${status}\n`;
-          temItens = true;
+          msg += `${c.descricao} (Avulso): ${valorF}\n`;
         });
-        msg += `\n`;
       }
 
-      if (!temItens) msg += "_(Nenhum lançamento neste mês)_\n\n";
-      msg += `*TOTAL A PAGAR: ${totalTexto}*`;
+      msg += `\n*TOTAL: ${totalTexto}*`;
 
       const cleanTel = telefone.replace(/\D/g, "");
       const url = `https://wa.me/55${cleanTel}?text=${encodeURIComponent(msg)}`;
