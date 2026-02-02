@@ -103,7 +103,6 @@ const RanchoApp = {
       `Mensalidade: ${nomeCavalo}`;
     document.getElementById("formMensalidade").reset();
 
-    // Reset checkboxes
     if (document.getElementById("checkBaia"))
       document.getElementById("checkBaia").checked = true;
     if (document.getElementById("checkAlimentacao"))
@@ -213,7 +212,6 @@ const RanchoApp = {
           ? `<div class="text-muted small mt-1"><i class="fa-solid fa-list-check me-1"></i> ${m.itens}</div>`
           : "";
 
-        // PADRONIZAÇÃO: Botão de excluir agora é 'btn-action icon-red'
         tbody.innerHTML += `
             <tr>
                 <td>
@@ -505,6 +503,8 @@ const RanchoApp = {
       });
     }
   },
+
+  // --- CLIENTES (ATUALIZADO COM TOTAL) ---
   async carregarTabelaProprietarios() {
     try {
       const props = await ApiService.fetchData("/api/gestao/proprietarios");
@@ -514,21 +514,64 @@ const RanchoApp = {
       document.getElementById("totalProprietarios").textContent = props
         ? props.length
         : 0;
+
       if (!props || props.length === 0) {
         tbody.innerHTML =
           '<tr><td colspan="3" class="text-center text-muted p-4">Nenhum cliente.</td></tr>';
         return;
       }
-      props.forEach((p) => {
-        const nCavalos = cavalos.filter(
-          (c) => c.proprietario_id == p.id,
-        ).length;
-        const txt = nCavalos === 1 ? "1 animal" : `${nCavalos} animais`;
 
-        let avatarHtml = `<div class="avatar-circle avatar-dono">${p.nome.charAt(0).toUpperCase()}</div>`;
+      // Preparação dos dados financeiros
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth() + 1;
+      const anoAtual = hoje.getFullYear();
 
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
+      // Mapeia e gera as linhas
+      const linhas = await Promise.all(
+        props.map(async (p) => {
+          const meusCavalos = cavalos.filter((c) => c.proprietario_id == p.id);
+          const txt =
+            meusCavalos.length === 1
+              ? "1 animal"
+              : `${meusCavalos.length} animais`;
+
+          // --- CÁLCULO FINANCEIRO ---
+          let totalDivida = 0;
+
+          // 1. Soma dos custos de cada cavalo
+          for (const cavalo of meusCavalos) {
+            const resumo = await ApiService.fetchData(
+              `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
+            );
+            // Soma tudo que não foi pago
+            if (resumo.custos) {
+              resumo.custos.forEach((custo) => {
+                if (!custo.pago) totalDivida += parseFloat(custo.valor);
+              });
+            }
+          }
+
+          // 2. Soma dos custos diretos (avulsos)
+          const diretos = await ApiService.fetchData(
+            `/api/gestao/custos/diretos/${p.id}?mes=${mesAtual}&ano=${anoAtual}`,
+          );
+          if (diretos) {
+            diretos.forEach((custo) => {
+              if (!custo.pago) totalDivida += parseFloat(custo.valor);
+            });
+          }
+
+          const totalFormatado = totalDivida.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+          const corValor = totalDivida > 0 ? "text-danger" : "text-success";
+          const txtValor = totalDivida > 0 ? totalFormatado : "Pago";
+
+          let avatarHtml = `<div class="avatar-circle avatar-dono">${p.nome.charAt(0).toUpperCase()}</div>`;
+
+          return `
+            <tr>
             <td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
                 <div class="d-flex align-items-center gap-2">
                     ${avatarHtml}
@@ -539,18 +582,26 @@ const RanchoApp = {
                 </div>
             </td>
             <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td>
+            
             <td class="text-end">
-                <a href="${p.telefone ? `https://wa.me/55${p.telefone.replace(/\D/g, "")}` : "#"}" target="_blank" class="btn-action btn-light text-success me-1 text-decoration-none d-inline-flex align-items-center justify-content-center" title="WhatsApp"><i class="fa-brands fa-whatsapp fs-5"></i></a>
-                <button class="btn-action icon-brown me-1 btn-edit" title="Editar"><i class="fa-solid fa-pen"></i></button>
-            </td>`;
-        tr.querySelector(".btn-edit").onclick = (e) => {
-          e.stopPropagation();
-          this.abrirModalGerenciarProprietarios(p.id, p.nome, p.telefone);
-        };
-        tbody.appendChild(tr);
-      });
-    } catch (err) {}
+                <div class="d-flex align-items-center justify-content-end gap-2">
+                    <span class="${corValor} fw-bold me-2" style="font-size: 1rem;">${txtValor}</span>
+                    <button class="btn-action icon-brown me-1 btn-edit" title="Editar" onclick="event.stopPropagation(); RanchoApp.abrirModalGerenciarProprietarios(${p.id}, '${p.nome}', '${p.telefone}')">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                </div>
+            </td>
+            </tr>`;
+        }),
+      );
+
+      // Injeta todas as linhas
+      tbody.innerHTML = linhas.join("");
+    } catch (err) {
+      console.error("Erro prop", err);
+    }
   },
+
   abrirModalGerenciarProprietarios(id = null, nome = "", telefone = "") {
     this.vibrar();
     document.getElementById("formProprietario").reset();
@@ -663,7 +714,6 @@ const RanchoApp = {
             botoesAcao = `<span class="badge bg-danger border"><i class="fa-solid fa-clock me-1"></i> PENDENTE</span>`;
           }
         } else {
-          // PADRONIZAÇÃO: Botões de ação redondos e coloridos
           botoesAcao = `
             <button class="btn-action icon-brown me-1" onclick="RanchoApp.prepararEdicaoCusto(${c.id}, '${c.descricao.replace(/'/g, "\\'")}', '${c.categoria}', ${c.valor})"><i class="fa-solid fa-pen"></i></button>
             <button class="btn-action icon-red" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button>
@@ -995,7 +1045,6 @@ const RanchoApp = {
         });
         let actions = "";
 
-        // PADRONIZAÇÃO: Botões de ação redondos e coloridos também aqui
         if (item.tipo === "direto" && !item.pago)
           actions += `<button class="btn-action icon-brown ms-1" onclick="RanchoApp.prepararEdicaoCustoProp(${item.id}, '${item.nome.replace(/'/g, "\\'")}', ${item.custo})"><i class="fa-solid fa-pen"></i></button>`;
 
