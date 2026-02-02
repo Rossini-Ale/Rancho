@@ -113,7 +113,6 @@ const RanchoApp = {
     if (document.getElementById("checkTreino"))
       document.getElementById("checkTreino").checked = false;
 
-    // Ajuste campo data (oculto)
     const campoData = document.getElementById("mensalidadeData");
     if (campoData) {
       const divPai = campoData.closest(".col-6");
@@ -141,7 +140,6 @@ const RanchoApp = {
     const btn = e.submitter;
     this.setLoading(btn, true, "Salvando...");
 
-    // Coleta itens do checkbox
     const itensSelecionados = [];
     if (document.getElementById("checkBaia").checked)
       itensSelecionados.push("Baia");
@@ -207,25 +205,29 @@ const RanchoApp = {
           style: "currency",
           currency: "BRL",
         });
-
         const statusBadge = m.pago
-          ? '<span class="badge bg-success">PAGO</span>'
-          : '<span class="badge bg-danger">PENDENTE</span>';
+          ? '<span class="badge bg-success border"><i class="fa-solid fa-check me-1"></i> PAGO</span>'
+          : '<span class="badge bg-danger border"><i class="fa-solid fa-clock me-1"></i> PENDENTE</span>';
 
         const itensTexto = m.itens
-          ? `<div class="text-muted small" style="font-size: 0.75rem"><i class="fa-solid fa-check-double me-1"></i> ${m.itens}</div>`
+          ? `<div class="text-muted small mt-1"><i class="fa-solid fa-list-check me-1"></i> ${m.itens}</div>`
           : "";
 
+        // PADRONIZAÇÃO: Botão de excluir agora é 'btn-action icon-red'
         tbody.innerHTML += `
             <tr>
                 <td>
                     <div class="fw-bold text-dark">${nomesMeses[m.mes]} / ${m.ano}</div>
                     ${itensTexto}
-                    <div class="small mt-1">${statusBadge}</div>
+                    <div class="mt-1">${statusBadge}</div>
                 </td>
                 <td class="text-end">
-                    <span class="fw-bold text-secondary">${valorF}</span>
-                    <button class="btn btn-sm text-danger ms-3" onclick="RanchoApp.excluirMensalidade(${m.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button>
+                    <div class="d-flex align-items-center justify-content-end">
+                        <span class="fw-bold text-secondary me-3">${valorF}</span>
+                        <button class="btn-action icon-red" onclick="RanchoApp.excluirMensalidade(${m.id}, ${cavaloId})" title="Excluir">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>`;
       });
@@ -275,14 +277,24 @@ const RanchoApp = {
           const tr = document.createElement("tr");
           tr.innerHTML = `
                 <td class="nome-clicavel" onclick="RanchoApp.abrirModalEditar(${cavalo.id}, '${ns}', '${(cavalo.lugar || "").replace(/'/g, "\\'")}', '${cavalo.proprietario_id || ""}', '${(cavalo.observacoes || "").replace(/'/g, "\\'")}')">
-                    <div class="d-flex align-items-center">${avatarHtml}
-                    <div><div class="fw-bold text-dark" style="font-size: 1.05rem;">${cavalo.nome}</div><div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> ${cavalo.lugar || "N/D"}</div></div></div>
+                    <div class="d-flex align-items-center gap-2">
+                        ${avatarHtml}
+                        <div>
+                            <div class="fw-bold text-dark" style="font-size: 1.05rem;">${cavalo.nome}</div>
+                            <div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> ${cavalo.lugar || "N/D"}</div>
+                        </div>
+                    </div>
                 </td>
                 <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-user me-1"></i> ${cavalo.nome_proprietario || "Sem dono"}</td>
-                <td class="text-nowrap"><div class="d-flex flex-column align-items-end align-items-md-start"><span class="d-md-none small text-muted">Mês Atual</span><span class="text-danger fw-bold">${totalFormatado}</span></div></td>
+                <td class="text-nowrap">
+                    <div class="d-flex flex-column align-items-end align-items-md-start">
+                        <span class="d-md-none small text-muted">Mês Atual</span>
+                        <span class="text-danger fw-bold">${totalFormatado}</span>
+                    </div>
+                </td>
                 <td class="text-end">
-                    <button class="btn-action btn-light text-primary me-1 btn-mensalidade" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${cavalo.id},'${ns}')" title="Mensalidades"><i class="fa-solid fa-calendar-plus"></i></button>
-                    <button class="btn-action icon-gold me-1 btn-custos" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${cavalo.id},'${ns}')"><i class="fa-solid fa-coins"></i></button>
+                    <button class="btn-action btn-light text-primary me-1" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${cavalo.id},'${ns}')" title="Mensalidades"><i class="fa-solid fa-calendar-plus"></i></button>
+                    <button class="btn-action icon-gold me-1" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${cavalo.id},'${ns}')" title="Custos"><i class="fa-solid fa-coins"></i></button>
                 </td>`;
           tbody.appendChild(tr);
         }
@@ -512,8 +524,25 @@ const RanchoApp = {
           (c) => c.proprietario_id == p.id,
         ).length;
         const txt = nCavalos === 1 ? "1 animal" : `${nCavalos} animais`;
+
+        let avatarHtml = `<div class="avatar-circle avatar-dono">${p.nome.charAt(0).toUpperCase()}</div>`;
+
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')"><div class="d-flex align-items-center"><div class="avatar-circle avatar-dono">${p.nome.charAt(0).toUpperCase()}</div><div><div class="fw-bold text-dark">${p.nome}</div><div class="text-primary small fw-bold mt-1"><i class="fa-solid fa-horse-head me-1"></i> ${txt}</div></div></div></td><td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td><td class="text-end"><a href="${p.telefone ? `https://wa.me/55${p.telefone.replace(/\D/g, "")}` : "#"}" target="_blank" class="btn-action btn-light text-success me-1 text-decoration-none d-inline-flex align-items-center justify-content-center"><i class="fa-brands fa-whatsapp fs-5"></i></a><button class="btn-action icon-brown me-1 btn-edit"><i class="fa-solid fa-pen"></i></button></td>`;
+        tr.innerHTML = `
+            <td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
+                <div class="d-flex align-items-center gap-2">
+                    ${avatarHtml}
+                    <div>
+                        <div class="fw-bold text-dark">${p.nome}</div>
+                        <div class="text-primary small fw-bold mt-1"><i class="fa-solid fa-horse-head me-1"></i> ${txt}</div>
+                    </div>
+                </div>
+            </td>
+            <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td>
+            <td class="text-end">
+                <a href="${p.telefone ? `https://wa.me/55${p.telefone.replace(/\D/g, "")}` : "#"}" target="_blank" class="btn-action btn-light text-success me-1 text-decoration-none d-inline-flex align-items-center justify-content-center" title="WhatsApp"><i class="fa-brands fa-whatsapp fs-5"></i></a>
+                <button class="btn-action icon-brown me-1 btn-edit" title="Editar"><i class="fa-solid fa-pen"></i></button>
+            </td>`;
         tr.querySelector(".btn-edit").onclick = (e) => {
           e.stopPropagation();
           this.abrirModalGerenciarProprietarios(p.id, p.nome, p.telefone);
@@ -626,24 +655,39 @@ const RanchoApp = {
           currency: "BRL",
         });
 
-        // LÓGICA ATUALIZADA: Badge de Status para mensalidade
         let botoesAcao = "";
         if (c.is_mensalidade) {
-          // Se for mensalidade, mostra badge verde ou vermelho
           if (c.pago) {
             botoesAcao = `<span class="badge bg-success border"><i class="fa-solid fa-check me-1"></i> PAGO</span>`;
           } else {
             botoesAcao = `<span class="badge bg-danger border"><i class="fa-solid fa-clock me-1"></i> PENDENTE</span>`;
           }
         } else {
-          // Se for custo normal, botões de edição
+          // PADRONIZAÇÃO: Botões de ação redondos e coloridos
           botoesAcao = `
             <button class="btn-action icon-brown me-1" onclick="RanchoApp.prepararEdicaoCusto(${c.id}, '${c.descricao.replace(/'/g, "\\'")}', '${c.categoria}', ${c.valor})"><i class="fa-solid fa-pen"></i></button>
-            <button class="btn-action icon-red btn-del-custo" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button>
+            <button class="btn-action icon-red" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button>
             `;
         }
 
-        tbody.innerHTML += `<tr><td><div class="d-flex align-items-center"><div class="date-badge"><span class="date-day">${dia}</span><span>${mesNome}</span></div><div><div class="fw-bold text-dark">${c.descricao}</div><div class="text-muted small">${c.categoria}</div></div></div></td><td class="text-end"><div class="d-flex align-items-center justify-content-end gap-1"><span class="text-danger fw-bold me-2">${valorF}</span>${botoesAcao}</div></td></tr>`;
+        tbody.innerHTML += `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="date-badge"><span class="date-day">${dia}</span><span>${mesNome}</span></div>
+                        <div>
+                            <div class="fw-bold text-dark">${c.descricao}</div>
+                            <div class="text-muted small">${c.categoria}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="text-end">
+                    <div class="d-flex align-items-center justify-content-end gap-1">
+                        <span class="text-danger fw-bold me-2">${valorF}</span>
+                        ${botoesAcao}
+                    </div>
+                </td>
+            </tr>`;
       });
       document.getElementById("totalGastoModal").textContent = parseFloat(
         dados.total_gasto,
@@ -918,7 +962,7 @@ const RanchoApp = {
               custo: parseFloat(i.valor),
               id: i.id,
               pago: i.pago,
-              is_mensalidade: i.is_mensalidade, // IMPORTANTE
+              is_mensalidade: i.is_mensalidade,
             }))
           : [];
       });
@@ -950,21 +994,23 @@ const RanchoApp = {
           currency: "BRL",
         });
         let actions = "";
+
+        // PADRONIZAÇÃO: Botões de ação redondos e coloridos também aqui
         if (item.tipo === "direto" && !item.pago)
-          actions += `<button class="btn btn-sm text-warning ms-1" onclick="RanchoApp.prepararEdicaoCustoProp(${item.id}, '${item.nome.replace(/'/g, "\\'")}', ${item.custo})"><i class="fa-solid fa-pen"></i></button>`;
+          actions += `<button class="btn-action icon-brown ms-1" onclick="RanchoApp.prepararEdicaoCustoProp(${item.id}, '${item.nome.replace(/'/g, "\\'")}', ${item.custo})"><i class="fa-solid fa-pen"></i></button>`;
+
         let statusIcon = "";
         if (item.pago) {
           statusIcon =
             '<i class="fa-solid fa-check-circle text-success me-2"></i>';
         } else {
           pendente += item.custo;
-          // Só permite excluir se for custo direto (mensalidade tem que ir no menu do cavalo)
           if (item.tipo === "direto") {
-            actions += `<button class="btn btn-sm text-danger ms-1" onclick="RanchoApp.excluirCustoDireto(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
+            actions += `<button class="btn-action icon-red ms-1" onclick="RanchoApp.excluirCustoDireto(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
           }
         }
 
-        html += `<tr><td><div class="${item.pago ? "text-success fw-bold" : "text-dark"}">${statusIcon}${item.nome}</div></td><td class="text-end"><span>${valorF}</span>${actions}</td></tr>`;
+        html += `<tr><td><div class="${item.pago ? "text-success fw-bold" : "text-dark"} d-flex align-items-center">${statusIcon}${item.nome}</div></td><td class="text-end"><span>${valorF}</span>${actions}</td></tr>`;
       });
       tbody.innerHTML = html;
       if (pendente > 0) {
@@ -996,7 +1042,6 @@ const RanchoApp = {
             cleanTel,
           );
         } catch (e) {
-          // Fallback caso dê erro no detalhado
           window.open(`https://wa.me/55${cleanTel}`, "_blank");
         }
       };
@@ -1041,7 +1086,6 @@ const RanchoApp = {
     });
   },
 
-  // --- ZAP SIMPLIFICADO E SEM EMOJIS ---
   async compartilharFaturaZap(propId, nomeProp, totalTexto, telefone) {
     this.mostrarNotificacao("Gerando texto...", "sucesso");
     const periodo = document.getElementById("labelMesAnoProp").textContent;
@@ -1098,7 +1142,6 @@ const RanchoApp = {
     }
   },
 
-  // --- PDF ---
   async _gerarDocPDFDados(propId, nomeProp, periodo, mes, ano) {
     if (!window.jspdf) return null;
     const { jsPDF } = window.jspdf;
