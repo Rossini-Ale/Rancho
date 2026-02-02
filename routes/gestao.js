@@ -150,8 +150,9 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
         descricao: "Mensalidade (Fixo)",
         categoria: "Mensalidade",
         valor: m.valor,
-        data_despesa: m.data_pagamento, // Usa data do pagamento para ordenar
-        is_mensalidade: true, // Flag para o front saber que é fixo
+        data_despesa: m.data_pagamento,
+        is_mensalidade: true,
+        pago: m.pago, // <--- AGORA PASSAMOS O STATUS REAL
       });
     }
 
@@ -197,14 +198,33 @@ router.get("/custos/diretos/:propId", async (req, res) => {
   res.json(rows);
 });
 
-// Importante: Rota Específica ANTES da Genérica (:id)
+// === BAIXAR MÊS (AGORA INCLUI MENSALIDADES) ===
 router.put("/custos/baixar-mes", async (req, res) => {
   const { proprietario_id, mes, ano } = req.body;
-  await pool.query(
-    "UPDATE Custos SET pago=1 WHERE usuario_id=? AND proprietario_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=?",
-    [req.user.id, proprietario_id, mes, ano],
-  );
-  res.json({ message: "Baixado" });
+  try {
+    // 1. Atualiza Custos (como antes)
+    await pool.query(
+      "UPDATE Custos SET pago=1 WHERE usuario_id=? AND proprietario_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=?",
+      [req.user.id, proprietario_id, mes, ano],
+    );
+
+    // 2. Atualiza Mensalidades (NOVO)
+    // Faz um JOIN para pegar as mensalidades dos cavalos deste dono
+    const sqlMensalidades = `
+      UPDATE Mensalidades m
+      INNER JOIN Cavalos c ON m.cavalo_id = c.id
+      SET m.pago = 1
+      WHERE c.proprietario_id = ? 
+        AND m.mes = ? 
+        AND m.ano = ? 
+        AND m.usuario_id = ?
+    `;
+    await pool.query(sqlMensalidades, [proprietario_id, mes, ano, req.user.id]);
+
+    res.json({ message: "Baixado" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.put("/custos/:id", async (req, res) => {
@@ -225,25 +245,29 @@ router.delete("/custos/:id", async (req, res) => {
 });
 
 // =======================
-// MENSALIDADES (NOVO)
+// MENSALIDADES (ATUALIZADO)
 // =======================
 
 router.post("/mensalidades", async (req, res) => {
   try {
-    const { cavalo_id, mes, ano, valor, data_pagamento } = req.body;
-    // Evita duplicidade simples
+    const { cavalo_id, mes, ano, valor } = req.body; // Removemos data_pagamento da entrada obrigatória
+
+    // Evita duplicidade
     const [exists] = await pool.query(
       "SELECT id FROM Mensalidades WHERE cavalo_id=? AND mes=? AND ano=? AND usuario_id=?",
       [cavalo_id, mes, ano, req.user.id],
     );
     if (exists.length > 0)
-      return res.status(409).json({ message: "Mês já pago." });
+      return res
+        .status(409)
+        .json({ message: "Mensalidade já lançada para este mês." });
 
+    // Insere com pago=0 e data_pagamento = NOW() apenas para registro de data de criação
     await pool.query(
-      "INSERT INTO Mensalidades (cavalo_id, mes, ano, valor, data_pagamento, usuario_id) VALUES (?, ?, ?, ?, ?, ?)",
-      [cavalo_id, mes, ano, valor, data_pagamento, req.user.id],
+      "INSERT INTO Mensalidades (cavalo_id, mes, ano, valor, data_pagamento, usuario_id, pago) VALUES (?, ?, ?, ?, NOW(), ?, 0)",
+      [cavalo_id, mes, ano, valor, req.user.id],
     );
-    res.status(201).json({ message: "Salvo" });
+    res.status(201).json({ message: "Lançado como Pendente" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

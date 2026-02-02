@@ -95,7 +95,7 @@ const RanchoApp = {
       });
   },
 
-  // --- MENSALIDADES (NOVA LÓGICA) ---
+  // --- MENSALIDADES (LÓGICA ATUALIZADA - PENDENTE/PAGO) ---
   async abrirMensalidade(cavaloId, nomeCavalo) {
     this.vibrar();
     document.getElementById("mensalidadeCavaloId").value = cavaloId;
@@ -103,9 +103,20 @@ const RanchoApp = {
       `Mensalidade: ${nomeCavalo}`;
     document.getElementById("formMensalidade").reset();
 
-    document.getElementById("mensalidadeData").valueAsDate = new Date();
+    // Data removida da UI, usamos mês/ano para referência
+    // Escondemos o campo de data se ele ainda existir no HTML, ou ignoramos
+    const campoData = document.getElementById("mensalidadeData");
+    if (campoData) campoData.closest(".col-6").style.display = "none";
+
     document.getElementById("mensalidadeMes").value = new Date().getMonth() + 1;
     document.getElementById("mensalidadeAno").value = new Date().getFullYear();
+
+    // Atualiza texto do botão
+    const btnSubmit = document
+      .getElementById("formMensalidade")
+      .querySelector("button[type=submit]");
+    btnSubmit.innerHTML =
+      '<i class="fa-solid fa-plus me-2"></i> Adicionar à Fatura';
 
     this.bsModalMensalidade.show();
     this.carregarMensalidades(cavaloId);
@@ -114,13 +125,12 @@ const RanchoApp = {
   async salvarMensalidade(e) {
     e.preventDefault();
     const btn = e.submitter;
-    this.setLoading(btn, true, "Confirmar");
+    this.setLoading(btn, true, "Salvando...");
 
     const body = {
       cavalo_id: document.getElementById("mensalidadeCavaloId").value,
       mes: document.getElementById("mensalidadeMes").value,
       ano: document.getElementById("mensalidadeAno").value,
-      data_pagamento: document.getElementById("mensalidadeData").value,
       valor: this.limparMoeda(
         document.getElementById("mensalidadeValor").value,
       ),
@@ -128,17 +138,17 @@ const RanchoApp = {
 
     try {
       await ApiService.postData("/api/gestao/mensalidades", body);
-      this.mostrarNotificacao("Pagamento registrado!");
+      this.mostrarNotificacao("Mensalidade adicionada!");
       this.carregarMensalidades(body.cavalo_id);
     } catch (err) {
       if (err.message.includes("409"))
-        this.mostrarNotificacao("Este mês já está pago!", "erro");
+        this.mostrarNotificacao("Já existe mensalidade neste mês.", "erro");
       else this.mostrarNotificacao("Erro ao salvar", "erro");
     } finally {
       this.setLoading(
         btn,
         false,
-        '<i class="fa-solid fa-check me-2"></i> Confirmar Pagamento',
+        '<i class="fa-solid fa-plus me-2"></i> Adicionar à Fatura',
       );
     }
   },
@@ -171,17 +181,32 @@ const RanchoApp = {
           style: "currency",
           currency: "BRL",
         });
-        const dataPag = new Date(m.data_pagamento).toLocaleDateString("pt-BR");
-        tbody.innerHTML += `<tr><td><div class="fw-bold text-dark">${nomesMeses[m.mes]} / ${m.ano}</div><div class="small text-muted">Pago em: ${dataPag}</div></td><td class="text-end"><span class="text-success fw-bold">${valorF}</span><button class="btn btn-sm text-danger ms-3" onclick="RanchoApp.excluirMensalidade(${m.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+
+        // Status badge
+        const statusBadge = m.pago
+          ? '<span class="badge bg-success">PAGO</span>'
+          : '<span class="badge bg-danger">PENDENTE</span>';
+
+        tbody.innerHTML += `
+            <tr>
+                <td>
+                    <div class="fw-bold text-dark">${nomesMeses[m.mes]} / ${m.ano}</div>
+                    <div class="small mt-1">${statusBadge}</div>
+                </td>
+                <td class="text-end">
+                    <span class="fw-bold text-secondary">${valorF}</span>
+                    <button class="btn btn-sm text-danger ms-3" onclick="RanchoApp.excluirMensalidade(${m.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>`;
       });
     } else {
       tbody.innerHTML =
-        '<tr><td colspan="2" class="text-center text-muted p-3">Nenhum pagamento.</td></tr>';
+        '<tr><td colspan="2" class="text-center text-muted p-3">Nenhuma mensalidade lançada.</td></tr>';
     }
   },
 
   excluirMensalidade(id, cavaloId) {
-    this.abrirConfirmacao("Excluir", "Remover pagamento?", async () => {
+    this.abrirConfirmacao("Excluir", "Remover cobrança?", async () => {
       try {
         await ApiService.deleteData(`/api/gestao/mensalidades/${id}`);
         this.carregarMensalidades(cavaloId);
@@ -227,7 +252,7 @@ const RanchoApp = {
                 <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-user me-1"></i> ${cavalo.nome_proprietario || "Sem dono"}</td>
                 <td class="text-nowrap"><div class="d-flex flex-column align-items-end align-items-md-start"><span class="d-md-none small text-muted">Mês Atual</span><span class="text-danger fw-bold">${totalFormatado}</span></div></td>
                 <td class="text-end">
-                    <button class="btn-action btn-light text-primary me-1 btn-mensalidade" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${cavalo.id},'${ns}')" title="Mensalidades"><i class="fa-solid fa-calendar-check"></i></button>
+                    <button class="btn-action btn-light text-primary me-1 btn-mensalidade" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${cavalo.id},'${ns}')" title="Mensalidades"><i class="fa-solid fa-calendar-plus"></i></button>
                     <button class="btn-action icon-gold me-1 btn-custos" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${cavalo.id},'${ns}')"><i class="fa-solid fa-coins"></i></button>
                 </td>`;
           tbody.appendChild(tr);
@@ -572,15 +597,21 @@ const RanchoApp = {
           currency: "BRL",
         });
 
-        // LÓGICA NOVA: Botões diferentes se for mensalidade
+        // LÓGICA ATUALIZADA: Badge de Status para mensalidade
         let botoesAcao = "";
         if (c.is_mensalidade) {
-          botoesAcao = `<span class="badge bg-light text-secondary border p-2"><i class="fa-solid fa-lock me-1"></i> Fixo</span>`;
+          // Se for mensalidade, mostra badge verde ou vermelho
+          if (c.pago) {
+            botoesAcao = `<span class="badge bg-success border"><i class="fa-solid fa-check me-1"></i> PAGO</span>`;
+          } else {
+            botoesAcao = `<span class="badge bg-danger border"><i class="fa-solid fa-clock me-1"></i> PENDENTE</span>`;
+          }
         } else {
+          // Se for custo normal, botões de edição
           botoesAcao = `
             <button class="btn-action icon-brown me-1" onclick="RanchoApp.prepararEdicaoCusto(${c.id}, '${c.descricao.replace(/'/g, "\\'")}', '${c.categoria}', ${c.valor})"><i class="fa-solid fa-pen"></i></button>
             <button class="btn-action icon-red btn-del-custo" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button>
-          `;
+            `;
         }
 
         tbody.innerHTML += `<tr><td><div class="d-flex align-items-center"><div class="date-badge"><span class="date-day">${dia}</span><span>${mesNome}</span></div><div><div class="fw-bold text-dark">${c.descricao}</div><div class="text-muted small">${c.categoria}</div></div></div></td><td class="text-end"><div class="d-flex align-items-center justify-content-end gap-1"><span class="text-danger fw-bold me-2">${valorF}</span>${botoesAcao}</div></td></tr>`;
@@ -896,9 +927,14 @@ const RanchoApp = {
             '<i class="fa-solid fa-check-circle text-success me-2"></i>';
         } else {
           pendente += item.custo;
-          actions += `<button class="btn btn-sm text-danger ms-1" onclick="RanchoApp.excluirCustoDireto(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
+          // Mostra botão de excluir apenas se NÃO for mensalidade vinda do cavalo (pois ela tem modal próprio)
+          // Na verdade, a lista mistura tudo. Vamos permitir excluir custo direto, mas não mensalidade aqui.
+          // O item da mensalidade vem como tipo "cavalo" e descrição "Mensalidade (Fixo)".
+          if (item.tipo === "direto") {
+            actions += `<button class="btn btn-sm text-danger ms-1" onclick="RanchoApp.excluirCustoDireto(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
+          }
         }
-        if (item.tipo === "cavalo") actions = "";
+
         html += `<tr><td><div class="${item.pago ? "text-success fw-bold" : "text-dark"}">${statusIcon}${item.nome}</div></td><td class="text-end"><span>${valorF}</span>${actions}</td></tr>`;
       });
       tbody.innerHTML = html;
