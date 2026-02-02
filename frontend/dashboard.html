@@ -181,8 +181,8 @@
           <div class="modal-body">
             <form id="formConfig">
               <div class="mb-3">
-                <label class="fw-bold small text-muted">NOME DO RANCHO</label
-                ><input
+                <label class="fw-bold small text-muted">NOME DO RANCHO</label>
+                <input
                   type="text"
                   class="form-control"
                   id="configNomeRancho"
@@ -222,8 +222,8 @@
               <form id="formProprietario">
                 <input type="hidden" id="propId" />
                 <div class="mb-3">
-                  <label class="fw-bold small text-muted">NOME</label
-                  ><input
+                  <label class="fw-bold small text-muted">NOME</label>
+                  <input
                     type="text"
                     class="form-control form-control-lg fw-bold"
                     id="propNome"
@@ -232,8 +232,8 @@
                   />
                 </div>
                 <div class="mb-3">
-                  <label class="fw-bold small text-muted">TELEFONE</label
-                  ><input
+                  <label class="fw-bold small text-muted">TELEFONE</label>
+                  <input
                     type="tel"
                     class="form-control"
                     id="propTelefone"
@@ -258,8 +258,9 @@
                       class="btn btn-light"
                       data-bs-dismiss="modal"
                     >
-                      Cancelar</button
-                    ><button type="submit" class="btn btn-primary fw-bold px-4">
+                      Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">
                       Salvar
                     </button>
                   </div>
@@ -289,9 +290,10 @@
           <div class="modal-body p-4">
             <form id="formCavalo">
               <input type="hidden" id="cavaloId" />
+
               <div class="mb-3">
-                <label class="fw-bold small text-muted">NOME DO ANIMAL</label
-                ><input
+                <label class="fw-bold small text-muted">NOME DO ANIMAL</label>
+                <input
                   type="text"
                   class="form-control form-control-lg fw-bold"
                   id="cavaloNome"
@@ -299,28 +301,31 @@
                   style="color: var(--cor-primaria)"
                 />
               </div>
+
               <div class="row mb-3">
                 <div class="col-6">
-                  <label class="fw-bold small text-muted">BAIA/LOCAL</label
-                  ><input type="text" class="form-control" id="cavaloLugar" />
+                  <label class="fw-bold small text-muted">BAIA/LOCAL</label>
+                  <input type="text" class="form-control" id="cavaloLugar" />
                 </div>
                 <div class="col-6">
-                  <label class="fw-bold small text-muted">DONO</label
-                  ><select
+                  <label class="fw-bold small text-muted">DONO</label>
+                  <select
                     class="form-select"
                     id="cavaloProprietario"
                     required
                   ></select>
                 </div>
               </div>
+
               <div class="mb-3">
-                <label class="fw-bold small text-muted">OBSERVAÇÕES</label
-                ><textarea
+                <label class="fw-bold small text-muted">OBSERVAÇÕES</label>
+                <textarea
                   class="form-control"
                   id="cavaloObs"
                   rows="3"
                 ></textarea>
               </div>
+
               <div
                 class="d-flex justify-content-between align-items-center pt-3 border-top mt-3"
               >
@@ -338,8 +343,9 @@
                     class="btn btn-light"
                     data-bs-dismiss="modal"
                   >
-                    Cancelar</button
-                  ><button type="submit" class="btn btn-primary fw-bold px-4">
+                    Cancelar
+                  </button>
+                  <button type="submit" class="btn btn-primary fw-bold px-4">
                     Salvar
                   </button>
                 </div>
@@ -388,8 +394,8 @@
                     <option value="" selected disabled>Tipo</option>
                     <option value="Ração">Ração</option>
                     <option value="Ferragem">Ferragem</option>
-                    <option value="Veterinário">Veterinário</option>
                     <option value="Medicamento">Medicamento</option>
+                    <option value="Veterinário">Veterinário</option>
                     <option value="Transporte">Transporte</option>
                     <option value="Outros">Outros</option>
                   </select>
@@ -415,7 +421,9 @@
                 </div>
               </form>
             </div>
+
             <input type="hidden" id="finCavaloId" />
+
             <div
               class="d-flex align-items-center justify-content-between px-3 py-2"
             >
@@ -424,13 +432,15 @@
                   class="btn btn-link text-decoration-none text-secondary p-0"
                   onclick="RanchoApp.mudarMes(-1)"
                 >
-                  <i class="fa-solid fa-chevron-left"></i></button
-                ><span
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <span
                   class="fw-bold text-primary small"
                   id="labelMesAno"
                   style="min-width: 100px; text-align: center"
                   >JANEIRO 2026</span
-                ><button
+                >
+                <button
                   class="btn btn-link text-decoration-none text-secondary p-0"
                   onclick="RanchoApp.mudarMes(1)"
                 >
@@ -444,6 +454,7 @@
                 <i class="fa-solid fa-file-pdf me-1"></i> PDF
               </button>
             </div>
+
             <div class="px-3 pb-2" id="areaGrafico" style="display: none">
               <div
                 class="bg-white rounded-4 shadow-sm p-3 mb-2 d-flex justify-content-center"
@@ -453,6 +464,7 @@
                 </div>
               </div>
             </div>
+
             <div class="px-3 pb-3">
               <div class="bg-white rounded-4 shadow-sm overflow-hidden">
                 <table class="table mb-0">
@@ -460,6 +472,7 @@
                 </table>
               </div>
             </div>
+
             <div class="p-3 bg-white border-top text-center">
               <div class="text-muted small text-uppercase">Total do Mês</div>
               <div class="text-danger fw-bold fs-2" id="totalGastoModal">
@@ -471,14 +484,17 @@
       </div>
     </div>
 
-    <div class="modal fade" id="modalMedicamentos" tabindex="-1">
+    <div class="modal fade" id="modalMensalidade" tabindex="-1">
       <div
         class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down"
       >
-        <div class="modal-content" id="modalMedContent">
+        <div class="modal-content" style="background-color: #e3f2fd">
           <div class="modal-header border-0">
-            <h5 class="modal-title fw-bold text-success" id="tituloModalMed">
-              Saúde / Medicamentos
+            <h5
+              class="modal-title fw-bold text-primary"
+              id="tituloModalMensalidade"
+            >
+              Mensalidades
             </h5>
             <button
               type="button"
@@ -488,52 +504,68 @@
           </div>
           <div class="modal-body p-0">
             <div class="bg-white p-3 shadow-sm mb-3">
-              <h6 class="small text-muted fw-bold mb-2">NOVA APLICAÇÃO</h6>
-              <form id="formMedicamento">
-                <input type="hidden" id="medCavaloId" />
-                <div class="mb-2">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="medNome"
-                    placeholder="Nome do Medicamento"
-                    required
-                  />
-                </div>
+              <h6 class="small text-muted fw-bold mb-2">REGISTRAR PAGAMENTO</h6>
+              <form id="formMensalidade">
+                <input type="hidden" id="mensalidadeCavaloId" />
                 <div class="row g-2 mb-2">
-                  <div class="col-7">
+                  <div class="col-6">
+                    <select class="form-select" id="mensalidadeMes" required>
+                      <option value="" disabled selected>Mês</option>
+                      <option value="1">Janeiro</option>
+                      <option value="2">Fevereiro</option>
+                      <option value="3">Março</option>
+                      <option value="4">Abril</option>
+                      <option value="5">Maio</option>
+                      <option value="6">Junho</option>
+                      <option value="7">Julho</option>
+                      <option value="8">Agosto</option>
+                      <option value="9">Setembro</option>
+                      <option value="10">Outubro</option>
+                      <option value="11">Novembro</option>
+                      <option value="12">Dezembro</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <select class="form-select" id="mensalidadeAno" required>
+                      <option value="2025">2025</option>
+                      <option value="2026" selected>2026</option>
+                      <option value="2027">2027</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
                     <input
                       type="date"
                       class="form-control"
-                      id="medData"
+                      id="mensalidadeData"
                       required
                     />
                   </div>
-                  <div class="col-5">
+                  <div class="col-6">
                     <input
                       type="text"
                       inputmode="decimal"
                       class="form-control"
-                      id="medValor"
-                      placeholder="Custo (R$)"
+                      id="mensalidadeValor"
+                      placeholder="Valor (R$)"
+                      required
                     />
                   </div>
                 </div>
                 <div class="d-grid">
-                  <button type="submit" class="btn btn-success fw-bold">
-                    <i class="fa-solid fa-syringe me-2"></i> Aplicar & Lançar
-                    Custo
+                  <button type="submit" class="btn btn-primary fw-bold">
+                    <i class="fa-solid fa-check me-2"></i> Confirmar Pagamento
                   </button>
                 </div>
               </form>
             </div>
+
             <div class="px-3 pb-3">
               <h6 class="small text-muted fw-bold ms-1 mb-2">
-                HISTÓRICO DE APLICAÇÕES
+                HISTÓRICO DE PAGAMENTOS
               </h6>
               <div class="bg-white rounded-4 shadow-sm overflow-hidden">
                 <table class="table mb-0 align-middle">
-                  <tbody id="tabelaMedBody"></tbody>
+                  <tbody id="tabelaMensalidadeBody"></tbody>
                 </table>
               </div>
             </div>
@@ -601,12 +633,14 @@
                 class="btn btn-link text-decoration-none text-secondary"
                 onclick="RanchoApp.mudarMesProp(-1)"
               >
-                <i class="fa-solid fa-chevron-left"></i></button
-              ><span
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <span
                 class="fw-bold text-primary small text-uppercase"
                 id="labelMesAnoProp"
                 >JANEIRO 2026</span
-              ><button
+              >
+              <button
                 class="btn btn-link text-decoration-none text-secondary"
                 onclick="RanchoApp.mudarMesProp(1)"
               >
@@ -639,13 +673,15 @@
                 onclick="RanchoApp.baixarFaturaMes()"
               >
                 <i class="fa-solid fa-check-circle me-2 fs-5"></i> Confirmar
-                Recebimento</button
-              ><button
+                Recebimento
+              </button>
+              <button
                 class="btn btn-success py-2 fw-bold rounded-4"
                 id="btnZapCobranca"
               >
-                <i class="fa-brands fa-whatsapp me-2"></i> Enviar Cobrança</button
-              ><button
+                <i class="fa-brands fa-whatsapp me-2"></i> Enviar Cobrança
+              </button>
+              <button
                 class="btn btn-outline-dark py-2 rounded-4"
                 onclick="RanchoApp.gerarPDFProprietario()"
               >
@@ -682,8 +718,9 @@
               class="btn btn-light rounded-pill px-4"
               data-bs-dismiss="modal"
             >
-              Cancelar</button
-            ><button
+              Cancelar
+            </button>
+            <button
               type="button"
               id="btnConfirmarAcao"
               class="btn btn-danger rounded-pill px-4 fw-bold"

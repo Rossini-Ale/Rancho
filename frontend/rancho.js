@@ -1,10 +1,10 @@
 const RanchoApp = {
-  // --- VARIÁVEIS DE ESTADO ---
+  // Variáveis
   bsModalProp: null,
   bsModalCavalo: null,
   bsModalFin: null,
   bsModalConfig: null,
-  bsModalMed: null,
+  bsModalMensalidade: null,
   bsModalDetalhesProp: null,
   bsToast: null,
   bsModalConfirm: null,
@@ -16,9 +16,7 @@ const RanchoApp = {
   abaAtual: "cavalos",
   proprietarioAtualId: null,
 
-  // --- INICIALIZAÇÃO ---
   async init() {
-    // Inicializa Modais do Bootstrap
     this.bsModalProp = new bootstrap.Modal(
       document.getElementById("modalProprietario"),
     );
@@ -31,9 +29,9 @@ const RanchoApp = {
     this.bsModalConfig = new bootstrap.Modal(
       document.getElementById("modalConfig"),
     );
-    this.bsModalMed = new bootstrap.Modal(
-      document.getElementById("modalMedicamentos"),
-    );
+    this.bsModalMensalidade = new bootstrap.Modal(
+      document.getElementById("modalMensalidade"),
+    ); // NOVO
     this.bsModalDetalhesProp = new bootstrap.Modal(
       document.getElementById("modalDetalhesProprietario"),
     );
@@ -41,15 +39,12 @@ const RanchoApp = {
       document.getElementById("modalConfirmacao"),
     );
 
-    // Inicializa Toast de Notificação
     const toastEl = document.getElementById("liveToast");
     if (toastEl) this.bsToast = new bootstrap.Toast(toastEl);
 
-    // Configura PWA e Listeners
     this.setupPWA();
     this.setupListeners();
 
-    // Carrega Dados Iniciais
     await this.carregarConfiguracoes();
     await this.carregarProprietariosSelect();
     await this.carregarTabelaCavalos();
@@ -57,17 +52,16 @@ const RanchoApp = {
   },
 
   setupListeners() {
-    // Máscaras de Input
     const telInput = document.getElementById("propTelefone");
     if (telInput)
       telInput.addEventListener("input", (e) => this.mascaraTelefone(e));
 
-    ["custoValor", "medValor", "custoPropValor"].forEach((id) => {
+    // Máscaras de Moeda
+    ["custoValor", "mensalidadeValor", "custoPropValor"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", (e) => this.mascaraMoeda(e));
     });
 
-    // Submissão de Formulários
     document
       .getElementById("formProprietario")
       .addEventListener("submit", (e) => this.salvarProprietario(e));
@@ -78,8 +72,8 @@ const RanchoApp = {
       .getElementById("formConfig")
       .addEventListener("submit", (e) => this.salvarConfig(e));
     document
-      .getElementById("formMedicamento")
-      .addEventListener("submit", (e) => this.salvarMedicamento(e));
+      .getElementById("formMensalidade")
+      .addEventListener("submit", (e) => this.salvarMensalidade(e)); // NOVO
     document
       .getElementById("formCusto")
       .addEventListener("submit", (e) => this.salvarCusto(e));
@@ -87,14 +81,12 @@ const RanchoApp = {
       .getElementById("formCustoProp")
       .addEventListener("submit", (e) => this.salvarCustoProp(e));
 
-    // Busca e Logout
     document
       .getElementById("inputBusca")
       .addEventListener("keyup", (e) => this.filtrarTabela(e.target.value));
     document
       .getElementById("logoutButton")
       .addEventListener("click", async () => {
-        this.vibrar();
         try {
           await fetch("/api/auth/logout", { method: "POST" });
         } catch (e) {}
@@ -103,68 +95,207 @@ const RanchoApp = {
       });
   },
 
-  // --- HELPERS (UX & FORMATAÇÃO) ---
-  vibrar(ms = 50) {
-    if (navigator.vibrate) navigator.vibrate(ms);
+  // --- MENSALIDADES (NOVA LÓGICA) ---
+  async abrirMensalidade(cavaloId, nomeCavalo) {
+    this.vibrar();
+    document.getElementById("mensalidadeCavaloId").value = cavaloId;
+    document.getElementById("tituloModalMensalidade").textContent =
+      `Mensalidade: ${nomeCavalo}`;
+    document.getElementById("formMensalidade").reset();
+
+    document.getElementById("mensalidadeData").valueAsDate = new Date();
+    document.getElementById("mensalidadeMes").value = new Date().getMonth() + 1;
+    document.getElementById("mensalidadeAno").value = new Date().getFullYear();
+
+    this.bsModalMensalidade.show();
+    this.carregarMensalidades(cavaloId);
   },
 
-  mascaraTelefone(e) {
-    let v = e.target.value.replace(/\D/g, "");
-    v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
-    v = v.replace(/(\d)(\d{4})$/, "$1-$2");
-    e.target.value = v;
-  },
+  async salvarMensalidade(e) {
+    e.preventDefault();
+    const btn = e.submitter;
+    this.setLoading(btn, true, "Confirmar");
 
-  mascaraMoeda(e) {
-    let value = e.target.value.replace(/\D/g, "");
-    value = (Number(value) / 100).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-    e.target.value = value;
-  },
+    const body = {
+      cavalo_id: document.getElementById("mensalidadeCavaloId").value,
+      mes: document.getElementById("mensalidadeMes").value,
+      ano: document.getElementById("mensalidadeAno").value,
+      data_pagamento: document.getElementById("mensalidadeData").value,
+      valor: this.limparMoeda(
+        document.getElementById("mensalidadeValor").value,
+      ),
+    };
 
-  limparMoeda(valorStr) {
-    if (!valorStr) return 0;
-    return parseFloat(valorStr.replace(/[^\d,]/g, "").replace(",", "."));
-  },
-
-  setLoading(btn, isLoading, textOriginal) {
-    if (isLoading) {
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${textOriginal}`;
-    } else {
-      btn.disabled = false;
-      btn.innerHTML = textOriginal;
+    try {
+      await ApiService.postData("/api/gestao/mensalidades", body);
+      this.mostrarNotificacao("Pagamento registrado!");
+      this.carregarMensalidades(body.cavalo_id);
+    } catch (err) {
+      if (err.message.includes("409"))
+        this.mostrarNotificacao("Este mês já está pago!", "erro");
+      else this.mostrarNotificacao("Erro ao salvar", "erro");
+    } finally {
+      this.setLoading(
+        btn,
+        false,
+        '<i class="fa-solid fa-check me-2"></i> Confirmar Pagamento',
+      );
     }
   },
 
+  async carregarMensalidades(cavaloId) {
+    const lista = await ApiService.fetchData(
+      `/api/gestao/mensalidades/${cavaloId}`,
+    );
+    const tbody = document.getElementById("tabelaMensalidadeBody");
+    tbody.innerHTML = "";
+    const nomesMeses = [
+      "",
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
+
+    if (lista && lista.length) {
+      lista.forEach((m) => {
+        const valorF = parseFloat(m.valor).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+        const dataPag = new Date(m.data_pagamento).toLocaleDateString("pt-BR");
+        tbody.innerHTML += `<tr><td><div class="fw-bold text-dark">${nomesMeses[m.mes]} / ${m.ano}</div><div class="small text-muted">Pago em: ${dataPag}</div></td><td class="text-end"><span class="text-success fw-bold">${valorF}</span><button class="btn btn-sm text-danger ms-3" onclick="RanchoApp.excluirMensalidade(${m.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+      });
+    } else {
+      tbody.innerHTML =
+        '<tr><td colspan="2" class="text-center text-muted p-3">Nenhum pagamento.</td></tr>';
+    }
+  },
+
+  excluirMensalidade(id, cavaloId) {
+    this.abrirConfirmacao("Excluir", "Remover pagamento?", async () => {
+      try {
+        await ApiService.deleteData(`/api/gestao/mensalidades/${id}`);
+        this.carregarMensalidades(cavaloId);
+        this.mostrarNotificacao("Removido.");
+      } catch (e) {
+        this.mostrarNotificacao("Erro", "erro");
+      }
+    });
+  },
+
+  // --- CAVALOS (ATUALIZADO COM BOTÃO DE CALENDÁRIO) ---
+  async carregarTabelaCavalos() {
+    try {
+      const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
+      const tbody = document.getElementById("listaCavalosBody");
+      tbody.innerHTML = "";
+      document.getElementById("totalCavalos").textContent = cavalos
+        ? cavalos.length
+        : 0;
+
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth() + 1;
+      const anoAtual = hoje.getFullYear();
+
+      if (cavalos && cavalos.length > 0) {
+        for (const cavalo of cavalos) {
+          const dadosFin = await ApiService.fetchData(
+            `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
+          );
+          const totalFormatado = parseFloat(
+            dadosFin.total_gasto || 0,
+          ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+          const ns = cavalo.nome.replace(/'/g, "\\'");
+
+          let avatarHtml = `<div class="avatar-circle avatar-cavalo">${cavalo.nome.charAt(0).toUpperCase()}</div>`;
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+                <td class="nome-clicavel" onclick="RanchoApp.abrirModalEditar(${cavalo.id}, '${ns}', '${(cavalo.lugar || "").replace(/'/g, "\\'")}', '${cavalo.proprietario_id || ""}', '${(cavalo.observacoes || "").replace(/'/g, "\\'")}')">
+                    <div class="d-flex align-items-center">${avatarHtml}
+                    <div><div class="fw-bold text-dark" style="font-size: 1.05rem;">${cavalo.nome}</div><div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> ${cavalo.lugar || "N/D"}</div></div></div>
+                </td>
+                <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-user me-1"></i> ${cavalo.nome_proprietario || "Sem dono"}</td>
+                <td class="text-nowrap"><div class="d-flex flex-column align-items-end align-items-md-start"><span class="d-md-none small text-muted">Mês Atual</span><span class="text-danger fw-bold">${totalFormatado}</span></div></td>
+                <td class="text-end">
+                    <button class="btn-action btn-light text-primary me-1 btn-mensalidade" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${cavalo.id},'${ns}')" title="Mensalidades"><i class="fa-solid fa-calendar-check"></i></button>
+                    <button class="btn-action icon-gold me-1 btn-custos" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${cavalo.id},'${ns}')"><i class="fa-solid fa-coins"></i></button>
+                </td>`;
+          tbody.appendChild(tr);
+        }
+      } else {
+        tbody.innerHTML =
+          '<tr><td colspan="4" class="text-center text-muted p-4">Nenhum animal cadastrado.</td></tr>';
+      }
+    } catch (error) {
+      console.error("Erro cavalos", error);
+    }
+  },
+
+  // --- DEMAIS FUNÇÕES (MANTIDAS) ---
+  vibrar(ms = 50) {
+    if (navigator.vibrate) navigator.vibrate(ms);
+  },
+  mascaraTelefone(e) {
+    let v = e.target.value
+      .replace(/\D/g, "")
+      .replace(/^(\d{2})(\d)/g, "($1) $2")
+      .replace(/(\d)(\d{4})$/, "$1-$2");
+    e.target.value = v;
+  },
+  mascaraMoeda(e) {
+    let v = e.target.value.replace(/\D/g, "");
+    v = (Number(v) / 100).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    e.target.value = v;
+  },
+  limparMoeda(v) {
+    if (!v) return 0;
+    return parseFloat(v.replace(/[^\d,]/g, "").replace(",", "."));
+  },
+  setLoading(btn, l, t) {
+    if (l) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${t}`;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = t;
+    }
+  },
   mostrarNotificacao(msg, tipo = "sucesso") {
     const tm = document.getElementById("toastMessage");
     const te = document.getElementById("liveToast");
     tm.innerHTML = msg;
-    const classe = tipo === "erro" ? "text-bg-danger" : "text-bg-success";
-    te.className = `toast align-items-center border-0 ${classe}`;
+    te.className = `toast align-items-center border-0 ${tipo === "erro" ? "text-bg-danger" : "text-bg-success"}`;
     if (this.bsToast) this.bsToast.show();
     if (tipo === "erro") this.vibrar([50, 50, 50]);
     else this.vibrar(100);
   },
-
-  abrirConfirmacao(titulo, mensagem, callback) {
+  abrirConfirmacao(t, m, cb) {
     this.vibrar();
-    document.getElementById("tituloConfirmacao").textContent = titulo;
-    document.getElementById("msgConfirmacao").textContent = mensagem;
+    document.getElementById("tituloConfirmacao").textContent = t;
+    document.getElementById("msgConfirmacao").textContent = m;
     const btn = document.getElementById("btnConfirmarAcao");
-    const novoBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(novoBtn, btn);
-    novoBtn.onclick = () => {
+    const nb = btn.cloneNode(true);
+    btn.parentNode.replaceChild(nb, btn);
+    nb.onclick = () => {
       this.bsModalConfirm.hide();
       this.vibrar();
-      callback();
+      cb();
     };
     this.bsModalConfirm.show();
   },
-
   setupPWA() {
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
@@ -176,77 +307,64 @@ const RanchoApp = {
       }
     });
   },
-
   async instalarApp() {
     if (this.deferredPrompt) {
       this.deferredPrompt.prompt();
-      const choice = await this.deferredPrompt.userChoice;
-      if (choice.outcome === "accepted")
+      const c = await this.deferredPrompt.userChoice;
+      if (c.outcome === "accepted")
         document.getElementById("btnInstalarApp").classList.add("d-none");
       this.deferredPrompt = null;
     }
   },
-
-  // --- NAVEGAÇÃO ---
-  mudarAba(aba) {
+  mudarAba(a) {
     this.vibrar(30);
-    this.abaAtual = aba;
-    const btnCavalos = document.getElementById("btnTabCavalos");
-    const btnProps = document.getElementById("btnTabProprietarios");
-    const divCavalos = document.getElementById("tabCavalos");
-    const divProps = document.getElementById("tabProprietarios");
-
-    if (aba === "cavalos") {
-      btnCavalos.className =
-        "btn btn-primary rounded-pill px-4 fw-bold flex-grow-1";
-      btnProps.className =
+    this.abaAtual = a;
+    const bc = document.getElementById("btnTabCavalos");
+    const bp = document.getElementById("btnTabProprietarios");
+    const dc = document.getElementById("tabCavalos");
+    const dp = document.getElementById("tabProprietarios");
+    if (a === "cavalos") {
+      bc.className = "btn btn-primary rounded-pill px-4 fw-bold flex-grow-1";
+      bp.className =
         "btn btn-light bg-white border text-secondary rounded-pill px-4 fw-bold flex-grow-1";
-      divCavalos.classList.remove("d-none");
-      divProps.classList.add("d-none");
+      dc.classList.remove("d-none");
+      dp.classList.add("d-none");
     } else {
-      btnProps.className =
-        "btn btn-primary rounded-pill px-4 fw-bold flex-grow-1";
-      btnCavalos.className =
+      bp.className = "btn btn-primary rounded-pill px-4 fw-bold flex-grow-1";
+      bc.className =
         "btn btn-light bg-white border text-secondary rounded-pill px-4 fw-bold flex-grow-1";
-      divProps.classList.remove("d-none");
-      divCavalos.classList.add("d-none");
+      dp.classList.remove("d-none");
+      dc.classList.add("d-none");
     }
     document.getElementById("inputBusca").value = "";
     this.filtrarTabela("");
   },
-
-  filtrarTabela(termo) {
-    const selector =
+  filtrarTabela(t) {
+    const s =
       this.abaAtual === "cavalos"
         ? "#listaCavalosBody tr"
         : "#listaProprietariosMainBody tr";
-    const linhas = document.querySelectorAll(selector);
-    const t = termo.toLowerCase();
-    linhas.forEach((linha) => {
-      linha.style.display = linha.textContent.toLowerCase().includes(t)
+    document.querySelectorAll(s).forEach((r) => {
+      r.style.display = r.textContent.toLowerCase().includes(t.toLowerCase())
         ? ""
         : "none";
     });
   },
-
-  // --- CONFIGURAÇÕES ---
   async carregarConfiguracoes() {
     try {
-      const res = await ApiService.fetchData("/api/gestao/config");
-      if (res && res.nome_rancho) {
-        document.getElementById("brandName").textContent = res.nome_rancho;
-        document.title = res.nome_rancho;
+      const r = await ApiService.fetchData("/api/gestao/config");
+      if (r && r.nome_rancho) {
+        document.getElementById("brandName").textContent = r.nome_rancho;
+        document.title = r.nome_rancho;
       }
     } catch (e) {}
   },
-
   abrirModalConfig() {
     this.vibrar();
     document.getElementById("configNomeRancho").value =
       document.getElementById("brandName").textContent;
     this.bsModalConfig.show();
   },
-
   async salvarConfig(e) {
     e.preventDefault();
     const btn = document.getElementById("btnSalvarConfig");
@@ -264,64 +382,6 @@ const RanchoApp = {
       this.setLoading(btn, false, "Salvar");
     }
   },
-
-  // --- CAVALOS ---
-  async carregarTabelaCavalos() {
-    try {
-      const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
-      const tbody = document.getElementById("listaCavalosBody");
-      tbody.innerHTML = "";
-      document.getElementById("totalCavalos").textContent = cavalos
-        ? cavalos.length
-        : 0;
-
-      // --- CORREÇÃO: Pegar Data Atual ---
-      const hoje = new Date();
-      const mesAtual = hoje.getMonth() + 1;
-      const anoAtual = hoje.getFullYear();
-
-      if (cavalos && cavalos.length > 0) {
-        for (const cavalo of cavalos) {
-          // --- CORREÇÃO: Enviar ?mes=X&ano=Y na URL ---
-          const dadosFin = await ApiService.fetchData(
-            `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
-          );
-
-          const totalFormatado = parseFloat(
-            dadosFin.total_gasto || 0,
-          ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-          const nomeSafe = cavalo.nome.replace(/'/g, "\\'");
-          const lugarSafe = (cavalo.lugar || "").replace(/'/g, "\\'");
-          const obsSafe = (cavalo.observacoes || "").replace(/'/g, "\\'");
-
-          let avatarHtml = `<div class="avatar-circle avatar-cavalo">${cavalo.nome.charAt(0).toUpperCase()}</div>`;
-
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-                <td class="nome-clicavel" onclick="RanchoApp.abrirModalEditar(${cavalo.id}, '${nomeSafe}', '${lugarSafe}', '${cavalo.proprietario_id || ""}', '${obsSafe}')">
-                    <div class="d-flex align-items-center">${avatarHtml}
-                    <div>
-                        <div class="fw-bold text-dark" style="font-size: 1.05rem;">${cavalo.nome}</div>
-                        <div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> ${cavalo.lugar || "N/D"}</div>
-                    </div></div>
-                </td>
-                <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-user me-1"></i> ${cavalo.nome_proprietario || "Sem dono"}</td>
-                <td class="text-nowrap"><div class="d-flex flex-column align-items-end align-items-md-start"><span class="d-md-none small text-muted">Mês Atual</span><span class="text-danger fw-bold">${totalFormatado}</span></div></td>
-                <td class="text-end">
-                    <button class="btn-action btn-light text-success me-1 btn-med" onclick="event.stopPropagation();RanchoApp.abrirMedicamentos(${cavalo.id},'${nomeSafe}')"><i class="fa-solid fa-syringe"></i></button>
-                    <button class="btn-action icon-gold me-1 btn-custos" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${cavalo.id},'${nomeSafe}')"><i class="fa-solid fa-coins"></i></button>
-                </td>`;
-          tbody.appendChild(tr);
-        }
-      } else {
-        tbody.innerHTML =
-          '<tr><td colspan="4" class="text-center text-muted p-4">Nenhum animal cadastrado.</td></tr>';
-      }
-    } catch (error) {
-      console.error("Erro cavalos", error);
-    }
-  },
-
   abrirModalNovoCavalo() {
     this.vibrar();
     document.getElementById("formCavalo").reset();
@@ -330,38 +390,31 @@ const RanchoApp = {
     document.getElementById("btnExcluirCavalo").classList.add("d-none");
     this.bsModalCavalo.show();
   },
-
-  abrirModalEditar(id, nome, lugar, propId, obs) {
+  abrirModalEditar(id, n, l, p, o) {
     this.vibrar();
     document.getElementById("cavaloId").value = id;
-    document.getElementById("cavaloNome").value = nome;
-    document.getElementById("cavaloLugar").value = lugar;
-    document.getElementById("cavaloProprietario").value = propId;
-    document.getElementById("cavaloObs").value = obs;
-    document.getElementById("tituloModalCavalo").textContent =
-      `Editar: ${nome}`;
+    document.getElementById("cavaloNome").value = n;
+    document.getElementById("cavaloLugar").value = l;
+    document.getElementById("cavaloProprietario").value = p;
+    document.getElementById("cavaloObs").value = o;
+    document.getElementById("tituloModalCavalo").textContent = `Editar: ${n}`;
     document.getElementById("btnExcluirCavalo").classList.remove("d-none");
     this.bsModalCavalo.show();
   },
-
   async salvarCavalo(e) {
     e.preventDefault();
     const btn = e.submitter;
     this.setLoading(btn, true, "Salvar");
-
     const body = {
       nome: document.getElementById("cavaloNome").value,
       lugar: document.getElementById("cavaloLugar").value,
       proprietario_id: document.getElementById("cavaloProprietario").value,
       observacoes: document.getElementById("cavaloObs").value,
     };
-
     const id = document.getElementById("cavaloId").value;
-
     try {
       if (id) await ApiService.putData(`/api/gestao/cavalos/${id}`, body);
       else await ApiService.postData("/api/gestao/cavalos", body);
-
       this.bsModalCavalo.hide();
       this.carregarTabelaCavalos();
       this.mostrarNotificacao("Ficha salva!");
@@ -371,7 +424,6 @@ const RanchoApp = {
       this.setLoading(btn, false, "Salvar");
     }
   },
-
   excluirCavaloAtual() {
     const id = document.getElementById("cavaloId").value;
     if (id) {
@@ -387,8 +439,6 @@ const RanchoApp = {
       });
     }
   },
-
-  // --- PROPRIETÁRIOS ---
   async carregarTabelaProprietarios() {
     try {
       const props = await ApiService.fetchData("/api/gestao/proprietarios");
@@ -398,35 +448,18 @@ const RanchoApp = {
       document.getElementById("totalProprietarios").textContent = props
         ? props.length
         : 0;
-
       if (!props || props.length === 0) {
         tbody.innerHTML =
-          '<tr><td colspan="3" class="text-center text-muted p-4">Nenhum cliente cadastrado.</td></tr>';
+          '<tr><td colspan="3" class="text-center text-muted p-4">Nenhum cliente.</td></tr>';
         return;
       }
-
       props.forEach((p) => {
         const nCavalos = cavalos.filter(
           (c) => c.proprietario_id == p.id,
         ).length;
         const txt = nCavalos === 1 ? "1 animal" : `${nCavalos} animais`;
-
         const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
-                <div class="d-flex align-items-center">
-                    <div class="avatar-circle avatar-dono">${p.nome.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <div class="fw-bold text-dark">${p.nome}</div>
-                        <div class="text-primary small fw-bold mt-1"><i class="fa-solid fa-horse-head me-1"></i> ${txt}</div>
-                    </div>
-                </div>
-            </td>
-            <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td>
-            <td class="text-end">
-                <a href="${p.telefone ? `https://wa.me/55${p.telefone.replace(/\D/g, "")}` : "#"}" target="_blank" class="btn-action btn-light text-success me-1 text-decoration-none d-inline-flex align-items-center justify-content-center"><i class="fa-brands fa-whatsapp fs-5"></i></a>
-                <button class="btn-action icon-brown me-1 btn-edit"><i class="fa-solid fa-pen"></i></button>
-            </td>`;
+        tr.innerHTML = `<td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')"><div class="d-flex align-items-center"><div class="avatar-circle avatar-dono">${p.nome.charAt(0).toUpperCase()}</div><div><div class="fw-bold text-dark">${p.nome}</div><div class="text-primary small fw-bold mt-1"><i class="fa-solid fa-horse-head me-1"></i> ${txt}</div></div></div></td><td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td><td class="text-end"><a href="${p.telefone ? `https://wa.me/55${p.telefone.replace(/\D/g, "")}` : "#"}" target="_blank" class="btn-action btn-light text-success me-1 text-decoration-none d-inline-flex align-items-center justify-content-center"><i class="fa-brands fa-whatsapp fs-5"></i></a><button class="btn-action icon-brown me-1 btn-edit"><i class="fa-solid fa-pen"></i></button></td>`;
         tr.querySelector(".btn-edit").onclick = (e) => {
           e.stopPropagation();
           this.abrirModalGerenciarProprietarios(p.id, p.nome, p.telefone);
@@ -435,7 +468,6 @@ const RanchoApp = {
       });
     } catch (err) {}
   },
-
   abrirModalGerenciarProprietarios(id = null, nome = "", telefone = "") {
     this.vibrar();
     document.getElementById("formProprietario").reset();
@@ -452,7 +484,6 @@ const RanchoApp = {
     }
     this.bsModalProp.show();
   },
-
   async salvarProprietario(e) {
     e.preventDefault();
     const btn = e.submitter;
@@ -475,7 +506,6 @@ const RanchoApp = {
       this.setLoading(btn, false, "Salvar");
     }
   },
-
   excluirProprietarioAtual() {
     const id = document.getElementById("propId").value;
     if (id) {
@@ -492,7 +522,6 @@ const RanchoApp = {
       });
     }
   },
-
   async carregarProprietariosSelect() {
     try {
       const props = await ApiService.fetchData("/api/gestao/proprietarios");
@@ -505,8 +534,6 @@ const RanchoApp = {
         );
     } catch (e) {}
   },
-
-  // --- FINANCEIRO (CAVALO) ---
   async abrirFinanceiro(cavaloId, nomeCavalo) {
     this.vibrar();
     document.getElementById("finCavaloId").value = cavaloId;
@@ -524,7 +551,6 @@ const RanchoApp = {
     this.bsModalFin.show();
     this.carregarListaCustos(cavaloId);
   },
-
   async carregarListaCustos(cavaloId) {
     const mes = this.dataFiltro.getMonth() + 1;
     const ano = this.dataFiltro.getFullYear();
@@ -533,9 +559,7 @@ const RanchoApp = {
     );
     const tbody = document.getElementById("tabelaCustosBody");
     tbody.innerHTML = "";
-
     this.renderizarGrafico(dados && dados.custos ? dados.custos : []);
-
     if (dados && dados.custos && dados.custos.length > 0) {
       dados.custos.forEach((c) => {
         const dia = new Date(c.data_despesa).getDate();
@@ -547,19 +571,17 @@ const RanchoApp = {
           style: "currency",
           currency: "BRL",
         });
-        const descSafe = c.descricao.replace(/'/g, "\\'");
-        tbody.innerHTML += `<tr><td><div class="d-flex align-items-center"><div class="date-badge"><span class="date-day">${dia}</span><span>${mesNome}</span></div><div><div class="fw-bold text-dark">${c.descricao}</div><div class="text-muted small">${c.categoria}</div></div></div></td><td class="text-end"><div class="d-flex align-items-center justify-content-end gap-1"><span class="text-danger fw-bold me-2">${valorF}</span><button class="btn-action icon-brown me-1" onclick="RanchoApp.prepararEdicaoCusto(${c.id}, '${descSafe}', '${c.categoria}', ${c.valor})"><i class="fa-solid fa-pen"></i></button><button class="btn-action icon-red btn-del-custo" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button></div></td></tr>`;
+        tbody.innerHTML += `<tr><td><div class="d-flex align-items-center"><div class="date-badge"><span class="date-day">${dia}</span><span>${mesNome}</span></div><div><div class="fw-bold text-dark">${c.descricao}</div><div class="text-muted small">${c.categoria}</div></div></div></td><td class="text-end"><div class="d-flex align-items-center justify-content-end gap-1"><span class="text-danger fw-bold me-2">${valorF}</span><button class="btn-action icon-brown me-1" onclick="RanchoApp.prepararEdicaoCusto(${c.id}, '${c.descricao.replace(/'/g, "\\'")}', '${c.categoria}', ${c.valor})"><i class="fa-solid fa-pen"></i></button><button class="btn-action icon-red btn-del-custo" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button></div></td></tr>`;
       });
       document.getElementById("totalGastoModal").textContent = parseFloat(
         dados.total_gasto,
       ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     } else {
       tbody.innerHTML =
-        '<tr><td colspan="2" class="text-center text-muted p-3">Nenhum custo neste mês.</td></tr>';
+        '<tr><td colspan="2" class="text-center text-muted p-3">Nenhum custo.</td></tr>';
       document.getElementById("totalGastoModal").textContent = "R$ 0,00";
     }
   },
-
   prepararEdicaoCusto(id, desc, cat, valor) {
     this.vibrar();
     document.getElementById("custoIdEdit").value = id;
@@ -573,7 +595,6 @@ const RanchoApp = {
     btn.classList.replace("btn-success", "btn-warning");
     document.getElementById("custoDesc").focus();
   },
-
   async salvarCusto(e) {
     e.preventDefault();
     const btn = e.submitter;
@@ -586,7 +607,6 @@ const RanchoApp = {
         ? '<i class="fa-solid fa-rotate"></i>'
         : '<i class="fa-solid fa-plus"></i>',
     );
-
     const cavaloId = document.getElementById("finCavaloId").value;
     const body = {
       cavalo_id: cavaloId,
@@ -596,12 +616,10 @@ const RanchoApp = {
       valor: this.limparMoeda(document.getElementById("custoValor").value),
       data_despesa: new Date().toISOString().split("T")[0],
     };
-
     try {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
       const cavalo = cavalos.find((c) => c.id == cavaloId);
       if (cavalo) body.proprietario_id = cavalo.proprietario_id;
-
       if (isEdit) {
         try {
           await ApiService.putData(`/api/gestao/custos/${custoId}`, body);
@@ -636,7 +654,6 @@ const RanchoApp = {
       );
     }
   },
-
   excluirCusto(id, cavaloId) {
     this.abrirConfirmacao("Excluir", "Apagar custo?", async () => {
       try {
@@ -649,20 +666,17 @@ const RanchoApp = {
       }
     });
   },
-
-  mudarMes(delta) {
+  mudarMes(d) {
     this.vibrar(20);
-    this.dataFiltro.setMonth(this.dataFiltro.getMonth() + delta);
+    this.dataFiltro.setMonth(this.dataFiltro.getMonth() + d);
     this.atualizarLabelMes();
     this.carregarListaCustos(document.getElementById("finCavaloId").value);
   },
-
   atualizarLabelMes() {
     document.getElementById("labelMesAno").textContent = this.dataFiltro
       .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
       .toUpperCase();
   },
-
   renderizarGrafico(custos) {
     const ctx = document.getElementById("graficoFinanceiro");
     const area = document.getElementById("areaGrafico");
@@ -709,8 +723,6 @@ const RanchoApp = {
       },
     });
   },
-
-  // --- CUSTOS AVULSOS ---
   prepararEdicaoCustoProp(id, desc, valor) {
     this.vibrar();
     document.getElementById("custoPropIdEdit").value = id;
@@ -723,7 +735,6 @@ const RanchoApp = {
     btn.classList.replace("btn-success", "btn-warning");
     document.getElementById("custoPropDesc").focus();
   },
-
   async salvarCustoProp(e) {
     e.preventDefault();
     const btn = e.submitter;
@@ -736,7 +747,6 @@ const RanchoApp = {
         ? '<i class="fa-solid fa-rotate"></i>'
         : '<i class="fa-solid fa-plus"></i>',
     );
-
     const body = {
       proprietario_id: this.proprietarioAtualId,
       cavalo_id: null,
@@ -745,7 +755,6 @@ const RanchoApp = {
       data_despesa: new Date().toISOString().split("T")[0],
       categoria: "Avulso",
     };
-
     try {
       if (isEdit) {
         try {
@@ -784,7 +793,6 @@ const RanchoApp = {
       );
     }
   },
-
   async abrirDetalhesProprietario(id, nome, telefone) {
     this.vibrar();
     this.proprietarioAtualId = id;
@@ -803,10 +811,9 @@ const RanchoApp = {
     this.bsModalDetalhesProp.show();
     this.carregarFaturaProprietario(id, nome, telefone);
   },
-
-  mudarMesProp(delta) {
+  mudarMesProp(d) {
     this.vibrar(20);
-    this.dataFiltroProp.setMonth(this.dataFiltroProp.getMonth() + delta);
+    this.dataFiltroProp.setMonth(this.dataFiltroProp.getMonth() + d);
     this.atualizarLabelMesProp();
     this.carregarFaturaProprietario(
       this.proprietarioAtualId,
@@ -814,13 +821,11 @@ const RanchoApp = {
       document.getElementById("subtituloDetalhesProp").textContent,
     );
   },
-
   atualizarLabelMesProp() {
     document.getElementById("labelMesAnoProp").textContent = this.dataFiltroProp
       .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
       .toUpperCase();
   },
-
   async carregarFaturaProprietario(propId, nomeProp, telefoneProp) {
     const tbody = document.getElementById("listaCavalosPropBody");
     tbody.innerHTML =
@@ -830,7 +835,6 @@ const RanchoApp = {
       const ano = this.dataFiltroProp.getFullYear();
       const allCavalos = await ApiService.fetchData("/api/gestao/cavalos");
       const meusCavalos = allCavalos.filter((c) => c.proprietario_id == propId);
-
       const pCavalos = meusCavalos.map(async (c) => {
         const d = await ApiService.fetchData(
           `/api/gestao/custos/resumo/${c.id}?mes=${mes}&ano=${ano}`,
@@ -855,10 +859,8 @@ const RanchoApp = {
         id: c.id,
         pago: c.pago,
       }));
-
       const res = await Promise.all(pCavalos);
       const lista = [...res.flat(), ...itensDiretos];
-
       if (!lista.length) {
         tbody.innerHTML =
           '<tr><td colspan="2" class="text-center text-muted p-4">Nenhum custo.</td></tr>';
@@ -866,7 +868,6 @@ const RanchoApp = {
         document.getElementById("btnBaixarFatura").classList.add("d-none");
         return;
       }
-
       let pendente = 0;
       let html = "";
       lista.forEach((item) => {
@@ -888,7 +889,6 @@ const RanchoApp = {
         if (item.tipo === "cavalo") actions = "";
         html += `<tr><td><div class="${item.pago ? "text-success fw-bold" : "text-dark"}">${statusIcon}${item.nome}</div></td><td class="text-end"><span>${valorF}</span>${actions}</td></tr>`;
       });
-
       tbody.innerHTML = html;
       if (pendente > 0) {
         document.getElementById("totalGeralProp").innerHTML =
@@ -899,12 +899,10 @@ const RanchoApp = {
           '<span class="text-success">Pago</span>';
         document.getElementById("btnBaixarFatura").classList.add("d-none");
       }
-
       const btnZap = document.getElementById("btnZapCobranca");
       const cleanTel = telefoneProp.replace(/\D/g, "");
       const novoBtnZap = btnZap.cloneNode(true);
       btnZap.parentNode.replaceChild(novoBtnZap, btnZap);
-
       novoBtnZap.onclick = async () => {
         try {
           const totalTexto =
@@ -926,7 +924,6 @@ const RanchoApp = {
       };
     } catch (err) {}
   },
-
   baixarFaturaMes() {
     this.abrirConfirmacao(
       "Baixar Fatura",
@@ -950,7 +947,6 @@ const RanchoApp = {
       },
     );
   },
-
   excluirCustoDireto(id) {
     this.abrirConfirmacao("Excluir", "Apagar custo?", async () => {
       try {
@@ -966,85 +962,11 @@ const RanchoApp = {
       }
     });
   },
-
-  // --- MEDICAMENTOS ---
-  async abrirMedicamentos(cavaloId, nomeCavalo) {
-    this.vibrar();
-    document.getElementById("medCavaloId").value = cavaloId;
-    document.getElementById("tituloModalMed").textContent =
-      `Saúde: ${nomeCavalo}`;
-    document.getElementById("formMedicamento").reset();
-    document.getElementById("medData").valueAsDate = new Date();
-    this.bsModalMed.show();
-    this.carregarMedicamentos(cavaloId);
-  },
-
-  async salvarMedicamento(e) {
-    e.preventDefault();
-    const btn = e.submitter;
-    this.setLoading(btn, true, "Salvar");
-    const valor = this.limparMoeda(document.getElementById("medValor").value);
-    const body = {
-      cavalo_id: document.getElementById("medCavaloId").value,
-      nome_medicamento: document.getElementById("medNome").value,
-      data_aplicacao: document.getElementById("medData").value,
-      valor: valor,
-      observacoes: "",
-    };
-    try {
-      await ApiService.postData("/api/gestao/medicamentos", body);
-      document.getElementById("formMedicamento").reset();
-      document.getElementById("medData").valueAsDate = new Date();
-      this.carregarMedicamentos(body.cavalo_id);
-      this.carregarTabelaCavalos();
-      this.mostrarNotificacao("Salvo!");
-    } catch (err) {
-      this.mostrarNotificacao("Erro", "erro");
-    } finally {
-      this.setLoading(btn, false, "Salvar");
-    }
-  },
-
-  async carregarMedicamentos(cavaloId) {
-    const meds = await ApiService.fetchData(
-      `/api/gestao/medicamentos/${cavaloId}`,
-    );
-    const tbody = document.getElementById("tabelaMedBody");
-    tbody.innerHTML = "";
-    if (meds && meds.length) {
-      meds.forEach((m) => {
-        const data = new Date(m.data_aplicacao).toLocaleDateString("pt-BR");
-        const val = parseFloat(m.valor).toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        });
-        tbody.innerHTML += `<tr><td><div class="fw-bold">${m.nome_medicamento}</div><div class="small">${data}</div></td><td class="text-end"><span class="text-success">${val}</span><button class="btn btn-sm text-danger ms-2" onclick="RanchoApp.excluirMedicamento(${m.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button></td></tr>`;
-      });
-    } else {
-      tbody.innerHTML =
-        '<tr><td colspan="2" class="text-center text-muted p-3">Nenhum registro.</td></tr>';
-    }
-  },
-
-  excluirMedicamento(id, cavaloId) {
-    this.abrirConfirmacao("Excluir", "Apagar registro?", async () => {
-      try {
-        await ApiService.deleteData(`/api/gestao/medicamentos/${id}`);
-        this.carregarMedicamentos(cavaloId);
-        this.mostrarNotificacao("Removido.");
-      } catch (e) {
-        this.mostrarNotificacao("Erro", "erro");
-      }
-    });
-  },
-
-  // --- PDF ---
   async _gerarDocPDFDados(propId, nomeProp, periodo, mes, ano) {
     if (!window.jspdf) return null;
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const nomeRancho = document.getElementById("brandName").textContent;
-
     doc.setTextColor(139, 69, 19);
     doc.setFontSize(18);
     doc.text(nomeRancho, 14, 20);
@@ -1053,12 +975,10 @@ const RanchoApp = {
     doc.text(`Fatura / Extrato`, 14, 28);
     doc.text(`Cliente: ${nomeProp}`, 14, 35);
     doc.text(`Período: ${periodo}`, 14, 42);
-
     let rows = [];
     let total = 0;
     const allCavalos = await ApiService.fetchData("/api/gestao/cavalos");
     const meus = allCavalos.filter((c) => c.proprietario_id == propId);
-
     for (const cavalo of meus) {
       const d = await ApiService.fetchData(
         `/api/gestao/custos/resumo/${cavalo.id}?mes=${mes}&ano=${ano}`,
@@ -1097,9 +1017,7 @@ const RanchoApp = {
         ]);
       });
     }
-
     if (!rows.length) return null;
-
     doc.autoTable({
       startY: 50,
       head: [["Data", "Ref", "Descrição", "Valor"]],
@@ -1108,7 +1026,6 @@ const RanchoApp = {
       headStyles: { fillColor: [139, 69, 19] },
       columnStyles: { 3: { halign: "right", fontStyle: "bold" } },
     });
-
     const finalY = doc.lastAutoTable.finalY + 15;
     doc.setFontSize(14);
     doc.text(
@@ -1119,7 +1036,6 @@ const RanchoApp = {
     );
     return { doc };
   },
-
   async gerarPDFProprietario() {
     const nome = document.getElementById("tituloDetalhesProp").textContent;
     const periodo = document.getElementById("labelMesAnoProp").textContent;
@@ -1135,7 +1051,6 @@ const RanchoApp = {
     if (res) res.doc.save(`Fatura_${nome.trim()}.pdf`);
     else this.mostrarNotificacao("Sem dados.", "erro");
   },
-
   async compartilharFaturaZap(propId, nomeProp, totalTexto, telefone) {
     const periodo = document.getElementById("labelMesAnoProp").textContent;
     const mes = this.dataFiltroProp.getMonth() + 1;
@@ -1151,12 +1066,10 @@ const RanchoApp = {
       this.mostrarNotificacao("Sem dados.", "erro");
       return;
     }
-
     const pdfBlob = res.doc.output("blob");
     const file = new File([pdfBlob], `Fatura_${nomeProp.trim()}.pdf`, {
       type: "application/pdf",
     });
-
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({
@@ -1174,7 +1087,6 @@ const RanchoApp = {
       );
     }
   },
-
   async gerarPDF() {
     if (!window.jspdf) {
       this.mostrarNotificacao("Carregando PDF...", "erro");
@@ -1197,7 +1109,6 @@ const RanchoApp = {
       this.mostrarNotificacao("Sem custos.", "erro");
       return;
     }
-
     doc.setTextColor(139, 69, 19);
     doc.setFontSize(18);
     doc.text(nomeRancho, 14, 20);
@@ -1208,7 +1119,6 @@ const RanchoApp = {
     doc.text(`Animal: ${nomeCavalo}`, 14, 35);
     doc.text(`Período: ${periodo}`, 14, 40);
     doc.text(`Emissão: ${new Date().toLocaleDateString("pt-BR")}`, 14, 45);
-
     const rows = dados.custos.map((c) => [
       new Date(c.data_despesa).toLocaleDateString("pt-BR"),
       c.descricao,
@@ -1233,7 +1143,6 @@ const RanchoApp = {
         3: { halign: "right", fontStyle: "bold" },
       },
     });
-
     const finalY = doc.lastAutoTable.finalY + 10;
     doc.setFontSize(14);
     doc.setTextColor(200, 0, 0);

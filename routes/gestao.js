@@ -6,7 +6,7 @@ const verificarToken = require("../middleware/authMiddleware");
 router.use(verificarToken);
 
 // =======================
-// CAVALOS (SEM FOTO)
+// CAVALOS
 // =======================
 
 router.get("/cavalos", async (req, res) => {
@@ -26,7 +26,6 @@ router.get("/cavalos", async (req, res) => {
 router.post("/cavalos", async (req, res) => {
   try {
     const { nome, lugar, proprietario_id, observacoes } = req.body;
-    // Trata ID vazio
     const propId =
       proprietario_id === "" || proprietario_id === "null"
         ? null
@@ -109,7 +108,7 @@ router.delete("/proprietarios/:id", async (req, res) => {
 });
 
 // =======================
-// CUSTOS (CORRIGIDO)
+// CUSTOS
 // =======================
 
 router.get("/custos/resumo/:cavaloId", async (req, res) => {
@@ -119,6 +118,7 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
     [req.params.cavaloId, req.user.id],
   );
   if (!check.length) return res.status(403).json({ msg: "Sem permissão" });
+
   const [custos] = await pool.query(
     "SELECT * FROM Custos WHERE cavalo_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND usuario_id=?",
     [req.params.cavaloId, mes, ano, req.user.id],
@@ -163,7 +163,7 @@ router.get("/custos/diretos/:propId", async (req, res) => {
   res.json(rows);
 });
 
-// !!! CORREÇÃO AQUI: Esta rota deve vir ANTES de /custos/:id !!!
+// Importante: Rota Específica ANTES da Genérica (:id)
 router.put("/custos/baixar-mes", async (req, res) => {
   const { proprietario_id, mes, ano } = req.body;
   await pool.query(
@@ -173,7 +173,6 @@ router.put("/custos/baixar-mes", async (req, res) => {
   res.json({ message: "Baixado" });
 });
 
-// Rotas genéricas com ID vêm depois
 router.put("/custos/:id", async (req, res) => {
   const { descricao, valor, categoria } = req.body;
   await pool.query(
@@ -192,34 +191,40 @@ router.delete("/custos/:id", async (req, res) => {
 });
 
 // =======================
-// MEDICAMENTOS
+// MENSALIDADES (NOVO)
 // =======================
 
-router.post("/medicamentos", async (req, res) => {
-  const { cavalo_id, nome_medicamento, data_aplicacao, valor, observacoes } =
-    req.body;
-  await pool.query(
-    "INSERT INTO Medicamentos (cavalo_id, nome_medicamento, data_aplicacao, valor, observacoes, usuario_id) VALUES (?, ?, ?, ?, ?, ?)",
-    [
-      cavalo_id,
-      nome_medicamento,
-      data_aplicacao,
-      valor,
-      observacoes,
-      req.user.id,
-    ],
-  );
-  res.status(201).json({ message: "Salvo" });
+router.post("/mensalidades", async (req, res) => {
+  try {
+    const { cavalo_id, mes, ano, valor, data_pagamento } = req.body;
+    // Evita duplicidade simples
+    const [exists] = await pool.query(
+      "SELECT id FROM Mensalidades WHERE cavalo_id=? AND mes=? AND ano=? AND usuario_id=?",
+      [cavalo_id, mes, ano, req.user.id],
+    );
+    if (exists.length > 0)
+      return res.status(409).json({ message: "Mês já pago." });
+
+    await pool.query(
+      "INSERT INTO Mensalidades (cavalo_id, mes, ano, valor, data_pagamento, usuario_id) VALUES (?, ?, ?, ?, ?, ?)",
+      [cavalo_id, mes, ano, valor, data_pagamento, req.user.id],
+    );
+    res.status(201).json({ message: "Salvo" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
-router.get("/medicamentos/:cavaloId", async (req, res) => {
+
+router.get("/mensalidades/:cavaloId", async (req, res) => {
   const [rows] = await pool.query(
-    "SELECT * FROM Medicamentos WHERE cavalo_id=? AND usuario_id=?",
+    "SELECT * FROM Mensalidades WHERE cavalo_id=? AND usuario_id=? ORDER BY ano DESC, mes DESC",
     [req.params.cavaloId, req.user.id],
   );
   res.json(rows);
 });
-router.delete("/medicamentos/:id", async (req, res) => {
-  await pool.query("DELETE FROM Medicamentos WHERE id=? AND usuario_id=?", [
+
+router.delete("/mensalidades/:id", async (req, res) => {
+  await pool.query("DELETE FROM Mensalidades WHERE id=? AND usuario_id=?", [
     req.params.id,
     req.user.id,
   ]);
