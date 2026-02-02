@@ -1,0 +1,411 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+
+:root {
+  /* Variáveis Padrão (Modo Claro) */
+  --cor-primaria: #8b4513;
+  --cor-secundaria: #d2691e;
+  --cor-fundo: #f5f5dc;
+  --cor-card: #ffffff;
+  --cor-texto: #3e2723;
+  --cor-bordas: #ddd;
+  --cor-input-bg: #fff;
+  --ouro: #b8860b;
+  --vermelho-terra: #a52a2a;
+}
+
+/* Variáveis do Modo Escuro */
+body.dark-mode {
+  --cor-primaria: #a16b4a; /* Marrom mais claro para contraste */
+  --cor-secundaria: #e68a45;
+  --cor-fundo: #121212;
+  --cor-card: #1e1e1e;
+  --cor-texto: #e0e0e0;
+  --cor-bordas: #444;
+  --cor-input-bg: #2d2d2d;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background-color: var(--cor-fundo);
+  color: var(--cor-texto);
+  padding-bottom: 100px;
+  overflow-x: hidden;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+}
+
+/* Navbar */
+.navbar {
+  background-color: #8b4513 !important; /* Mantém a navbar marrom fixa */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 0.8rem 1rem;
+}
+.navbar-brand {
+  color: #fff !important;
+  font-size: 1.3rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Resumo Horizontal */
+.scrolling-wrapper {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  gap: 12px;
+  padding: 10px 5px;
+  margin: 0 -12px;
+  padding-left: 12px;
+}
+.scrolling-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.card-resumo-mini {
+  flex: 0 0 auto;
+  width: 150px;
+  background: var(--cor-card);
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--cor-bordas);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: var(--cor-texto);
+}
+
+/* Tabelas */
+.table-container {
+  margin-top: 15px;
+}
+
+/* HEADER DA TABELA */
+.table thead th {
+  border: none;
+  font-size: 0.75rem;
+  color: var(--cor-primaria) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+.table {
+  border-collapse: separate !important;
+  border-spacing: 0 12px !important;
+  --bs-table-bg: transparent; /* Remove fundo padrão do bootstrap */
+  --bs-table-color: var(--cor-texto);
+}
+
+.table tbody tr {
+  background-color: var(--cor-card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+}
+
+.table td {
+  border: none;
+  vertical-align: middle;
+  padding: 15px;
+  color: var(--cor-texto);
+}
+
+/* Ajustes Dark Mode Específicos para Textos */
+body.dark-mode .text-dark {
+  color: #e0e0e0 !important;
+}
+body.dark-mode .text-muted {
+  color: #aaa !important;
+}
+body.dark-mode .bg-white {
+  background-color: var(--cor-card) !important;
+}
+body.dark-mode .modal-content {
+  background-color: var(--cor-card);
+  color: var(--cor-texto);
+}
+body.dark-mode .modal-header {
+  border-bottom-color: var(--cor-bordas);
+}
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+  background-color: var(--cor-input-bg);
+  border-color: var(--cor-bordas);
+  color: var(--cor-texto);
+}
+body.dark-mode .input-group-text {
+  background-color: var(--cor-input-bg) !important;
+  border: none;
+}
+body.dark-mode .form-control::placeholder {
+  color: #888;
+}
+
+/* Avatares */
+.avatar-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-right: 15px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+.avatar-cavalo {
+  background-color: #fff3e0;
+  color: #8b4513; /* Força cor fixa para contraste com fundo claro */
+}
+.avatar-dono {
+  background-color: #efebe9;
+  color: #d2691e; /* Força cor fixa */
+}
+
+/* Badges e Botões */
+.date-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f1f8e9;
+  color: #33691e;
+  border-radius: 10px;
+  width: 45px;
+  height: 45px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin-right: 15px;
+}
+body.dark-mode .date-badge {
+  background-color: #2e3a23;
+  color: #aecd98;
+}
+
+.btn-action {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  margin-left: 5px;
+  transition: 0.2s;
+}
+.btn-action:active {
+  transform: scale(0.9);
+}
+.icon-brown {
+  color: var(--cor-primaria);
+}
+.icon-gold {
+  color: var(--ouro);
+}
+.icon-red {
+  color: var(--vermelho-terra);
+}
+
+/* FAB */
+.fab-container {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  z-index: 1000;
+}
+.fab-main {
+  width: 65px;
+  height: 65px;
+  background-color: #8b4513; /* Mantém cor fixa */
+  color: white;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+.fab-main:active {
+  transform: scale(0.95);
+  background-color: #5d4037;
+}
+.fab-options {
+  position: absolute;
+  bottom: 75px;
+  right: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.2s;
+  transform: translateY(15px);
+}
+.fab-container:hover .fab-options,
+.fab-container:active .fab-options,
+.fab-container.active .fab-options {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+.fab-btn-mini {
+  background: var(--cor-card);
+  color: var(--cor-primaria);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Geral e Inputs */
+.modal-content {
+  border-radius: 16px;
+  border: none;
+}
+.form-control {
+  background-color: var(--cor-input-bg);
+  color: var(--cor-texto);
+  border: 1px solid var(--cor-bordas);
+  border-radius: 10px;
+  padding: 12px;
+}
+.form-control:focus {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+}
+.btn-primary {
+  background-color: #8b4513;
+  border: none;
+}
+.btn-primary:hover,
+.btn-primary:active {
+  background-color: #5d4037 !important;
+}
+/* --- MELHORIA UX MOBILE --- */
+
+/* 1. Efeito de Cartões na Tabela */
+.table {
+  border-collapse: separate !important;
+  border-spacing: 0 12px !important; /* Espaço entre as linhas */
+}
+
+.table tbody tr {
+  background-color: var(--cor-card);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* Sombra suave */
+  border-radius: 12px !important; /* Bordas redondas */
+  transition: transform 0.1s ease;
+}
+
+/* Garante que as células das pontas fiquem redondas */
+.table tbody tr td:first-child {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+.table tbody tr td:last-child {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* 2. Micro-interação: Clique "Afunda" */
+.btn:active,
+.nome-clicavel:active,
+.btn-action:active,
+.fab-main:active,
+.table tbody tr:active {
+  transform: scale(0.97) !important; /* Diminui levemente */
+}
+
+/* 3. Ajuste para o dedo (Touch Target) */
+.btn-action {
+  width: 42px; /* Maior para o dedo acertar */
+  height: 42px;
+}
+/* --- ESTILOS DA TELA DE LOGIN --- */
+
+.login-page {
+  background-color: var(--cor-fundo); /* Usa a cor do tema (Bege ou Escuro) */
+  height: 100vh; /* Altura total da tela */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-card {
+  background: var(--cor-card);
+  padding: 2.5rem 2rem;
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(139, 69, 19, 0.15); /* Sombra marrom suave */
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Ícone grande do cavalo */
+.brand-icon {
+  font-size: 4.5rem;
+  color: #8b4513; /* Marrom Fixo */
+  margin-bottom: 1.5rem;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.1);
+}
+
+/* Ajuste dos Inputs para ficarem juntos do ícone */
+.input-group-text {
+  border-radius: 12px 0 0 12px;
+  border: 1px solid var(--cor-bordas);
+  border-right: none;
+  background-color: var(--cor-input-bg);
+  color: #8b4513;
+  padding-left: 15px;
+}
+
+.login-card .form-control {
+  border-radius: 0 12px 12px 0;
+  padding: 12px;
+  border: 1px solid var(--cor-bordas);
+  border-left: none;
+  background-color: var(--cor-input-bg);
+  font-weight: 500;
+}
+
+.login-card .form-control:focus {
+  box-shadow: none;
+  border-color: var(--cor-bordas);
+}
+
+/* Foco no grupo inteiro */
+.input-group:focus-within {
+  box-shadow: 0 0 0 4px rgba(139, 69, 19, 0.15);
+  border-radius: 12px;
+}
+
+/* Botão Entrar */
+.btn-login {
+  background-color: #8b4513;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  width: 100%;
+  margin-top: 15px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+  transition: transform 0.2s;
+}
+
+.btn-login:active {
+  transform: scale(0.96);
+  background-color: #5d4037;
+}
