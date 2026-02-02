@@ -192,7 +192,7 @@ const RanchoApp = {
     });
   },
 
-  // --- CAVALOS (ATUALIZADO COM BOTÃO DE CALENDÁRIO) ---
+  // --- CAVALOS (ATUALIZADO) ---
   async carregarTabelaCavalos() {
     try {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
@@ -241,7 +241,7 @@ const RanchoApp = {
     }
   },
 
-  // --- DEMAIS FUNÇÕES (MANTIDAS) ---
+  // --- DEMAIS FUNÇÕES ---
   vibrar(ms = 50) {
     if (navigator.vibrate) navigator.vibrate(ms);
   },
@@ -571,7 +571,19 @@ const RanchoApp = {
           style: "currency",
           currency: "BRL",
         });
-        tbody.innerHTML += `<tr><td><div class="d-flex align-items-center"><div class="date-badge"><span class="date-day">${dia}</span><span>${mesNome}</span></div><div><div class="fw-bold text-dark">${c.descricao}</div><div class="text-muted small">${c.categoria}</div></div></div></td><td class="text-end"><div class="d-flex align-items-center justify-content-end gap-1"><span class="text-danger fw-bold me-2">${valorF}</span><button class="btn-action icon-brown me-1" onclick="RanchoApp.prepararEdicaoCusto(${c.id}, '${c.descricao.replace(/'/g, "\\'")}', '${c.categoria}', ${c.valor})"><i class="fa-solid fa-pen"></i></button><button class="btn-action icon-red btn-del-custo" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button></div></td></tr>`;
+
+        // LÓGICA NOVA: Botões diferentes se for mensalidade
+        let botoesAcao = "";
+        if (c.is_mensalidade) {
+          botoesAcao = `<span class="badge bg-light text-secondary border p-2"><i class="fa-solid fa-lock me-1"></i> Fixo</span>`;
+        } else {
+          botoesAcao = `
+            <button class="btn-action icon-brown me-1" onclick="RanchoApp.prepararEdicaoCusto(${c.id}, '${c.descricao.replace(/'/g, "\\'")}', '${c.categoria}', ${c.valor})"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn-action icon-red btn-del-custo" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button>
+          `;
+        }
+
+        tbody.innerHTML += `<tr><td><div class="d-flex align-items-center"><div class="date-badge"><span class="date-day">${dia}</span><span>${mesNome}</span></div><div><div class="fw-bold text-dark">${c.descricao}</div><div class="text-muted small">${c.categoria}</div></div></div></td><td class="text-end"><div class="d-flex align-items-center justify-content-end gap-1"><span class="text-danger fw-bold me-2">${valorF}</span>${botoesAcao}</div></td></tr>`;
       });
       document.getElementById("totalGastoModal").textContent = parseFloat(
         dados.total_gasto,

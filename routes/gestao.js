@@ -113,21 +113,55 @@ router.delete("/proprietarios/:id", async (req, res) => {
 
 router.get("/custos/resumo/:cavaloId", async (req, res) => {
   const { mes, ano } = req.query;
-  const [check] = await pool.query(
-    "SELECT id FROM Cavalos WHERE id=? AND usuario_id=?",
-    [req.params.cavaloId, req.user.id],
-  );
-  if (!check.length) return res.status(403).json({ msg: "Sem permissão" });
+  try {
+    const [check] = await pool.query(
+      "SELECT id FROM Cavalos WHERE id=? AND usuario_id=?",
+      [req.params.cavaloId, req.user.id],
+    );
+    if (!check.length) return res.status(403).json({ msg: "Sem permissão" });
 
-  const [custos] = await pool.query(
-    "SELECT * FROM Custos WHERE cavalo_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND usuario_id=?",
-    [req.params.cavaloId, mes, ano, req.user.id],
-  );
-  const [total] = await pool.query(
-    "SELECT SUM(valor) as total FROM Custos WHERE cavalo_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND usuario_id=?",
-    [req.params.cavaloId, mes, ano, req.user.id],
-  );
-  res.json({ custos, total_gasto: total[0].total || 0 });
+    // 1. Busca os Custos Variáveis
+    const [custos] = await pool.query(
+      "SELECT * FROM Custos WHERE cavalo_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND usuario_id=?",
+      [req.params.cavaloId, mes, ano, req.user.id],
+    );
+
+    // 2. Busca a Mensalidade do mesmo mês
+    const [mensalidades] = await pool.query(
+      "SELECT * FROM Mensalidades WHERE cavalo_id=? AND mes=? AND ano=? AND usuario_id=?",
+      [req.params.cavaloId, mes, ano, req.user.id],
+    );
+
+    // 3. Calcula total dos custos normais
+    const [totalCustos] = await pool.query(
+      "SELECT SUM(valor) as total FROM Custos WHERE cavalo_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND usuario_id=?",
+      [req.params.cavaloId, mes, ano, req.user.id],
+    );
+
+    let valorMensalidade = 0;
+
+    // Se existir mensalidade, adiciona como item na lista de custos
+    if (mensalidades.length > 0) {
+      const m = mensalidades[0];
+      valorMensalidade = parseFloat(m.valor);
+
+      custos.push({
+        id: m.id,
+        descricao: "Mensalidade (Fixo)",
+        categoria: "Mensalidade",
+        valor: m.valor,
+        data_despesa: m.data_pagamento, // Usa data do pagamento para ordenar
+        is_mensalidade: true, // Flag para o front saber que é fixo
+      });
+    }
+
+    const totalGeral =
+      (parseFloat(totalCustos[0].total) || 0) + valorMensalidade;
+
+    res.json({ custos, total_gasto: totalGeral });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post("/custos", async (req, res) => {
