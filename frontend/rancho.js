@@ -31,7 +31,7 @@ const RanchoApp = {
     );
     this.bsModalMensalidade = new bootstrap.Modal(
       document.getElementById("modalMensalidade"),
-    ); // NOVO
+    );
     this.bsModalDetalhesProp = new bootstrap.Modal(
       document.getElementById("modalDetalhesProprietario"),
     );
@@ -73,7 +73,7 @@ const RanchoApp = {
       .addEventListener("submit", (e) => this.salvarConfig(e));
     document
       .getElementById("formMensalidade")
-      .addEventListener("submit", (e) => this.salvarMensalidade(e)); // NOVO
+      .addEventListener("submit", (e) => this.salvarMensalidade(e));
     document
       .getElementById("formCusto")
       .addEventListener("submit", (e) => this.salvarCusto(e));
@@ -95,7 +95,7 @@ const RanchoApp = {
       });
   },
 
-  // --- MENSALIDADES (LÓGICA ATUALIZADA - PENDENTE/PAGO) ---
+  // --- MENSALIDADES (CORRIGIDO) ---
   async abrirMensalidade(cavaloId, nomeCavalo) {
     this.vibrar();
     document.getElementById("mensalidadeCavaloId").value = cavaloId;
@@ -103,10 +103,14 @@ const RanchoApp = {
       `Mensalidade: ${nomeCavalo}`;
     document.getElementById("formMensalidade").reset();
 
-    // Data removida da UI, usamos mês/ano para referência
-    // Escondemos o campo de data se ele ainda existir no HTML, ou ignoramos
+    // CORREÇÃO AQUI: Removemos o 'required' do campo oculto para não travar o envio
     const campoData = document.getElementById("mensalidadeData");
-    if (campoData) campoData.closest(".col-6").style.display = "none";
+    if (campoData) {
+      const divPai = campoData.closest(".col-6");
+      if (divPai) divPai.style.display = "none";
+      campoData.removeAttribute("required"); // Importante!
+      campoData.value = new Date().toISOString().split("T")[0]; // Preenche com data atual só por garantia
+    }
 
     document.getElementById("mensalidadeMes").value = new Date().getMonth() + 1;
     document.getElementById("mensalidadeAno").value = new Date().getFullYear();
@@ -115,8 +119,9 @@ const RanchoApp = {
     const btnSubmit = document
       .getElementById("formMensalidade")
       .querySelector("button[type=submit]");
-    btnSubmit.innerHTML =
-      '<i class="fa-solid fa-plus me-2"></i> Adicionar à Fatura';
+    if (btnSubmit)
+      btnSubmit.innerHTML =
+        '<i class="fa-solid fa-plus me-2"></i> Adicionar à Fatura';
 
     this.bsModalMensalidade.show();
     this.carregarMensalidades(cavaloId);
@@ -141,7 +146,7 @@ const RanchoApp = {
       this.mostrarNotificacao("Mensalidade adicionada!");
       this.carregarMensalidades(body.cavalo_id);
     } catch (err) {
-      if (err.message.includes("409"))
+      if (err.message && err.message.includes("409"))
         this.mostrarNotificacao("Já existe mensalidade neste mês.", "erro");
       else this.mostrarNotificacao("Erro ao salvar", "erro");
     } finally {
@@ -223,9 +228,8 @@ const RanchoApp = {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
       const tbody = document.getElementById("listaCavalosBody");
       tbody.innerHTML = "";
-      document.getElementById("totalCavalos").textContent = cavalos
-        ? cavalos.length
-        : 0;
+      const elTotal = document.getElementById("totalCavalos");
+      if (elTotal) elTotal.textContent = cavalos ? cavalos.length : 0;
 
       const hoje = new Date();
       const mesAtual = hoje.getMonth() + 1;
@@ -927,9 +931,6 @@ const RanchoApp = {
             '<i class="fa-solid fa-check-circle text-success me-2"></i>';
         } else {
           pendente += item.custo;
-          // Mostra botão de excluir apenas se NÃO for mensalidade vinda do cavalo (pois ela tem modal próprio)
-          // Na verdade, a lista mistura tudo. Vamos permitir excluir custo direto, mas não mensalidade aqui.
-          // O item da mensalidade vem como tipo "cavalo" e descrição "Mensalidade (Fixo)".
           if (item.tipo === "direto") {
             actions += `<button class="btn btn-sm text-danger ms-1" onclick="RanchoApp.excluirCustoDireto(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
           }
