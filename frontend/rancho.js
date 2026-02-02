@@ -95,7 +95,7 @@ const RanchoApp = {
       });
   },
 
-  // --- MENSALIDADES (CORRIGIDO) ---
+  // --- MENSALIDADES (ATUALIZADO COM CHECKBOXES) ---
   async abrirMensalidade(cavaloId, nomeCavalo) {
     this.vibrar();
     document.getElementById("mensalidadeCavaloId").value = cavaloId;
@@ -103,13 +103,23 @@ const RanchoApp = {
       `Mensalidade: ${nomeCavalo}`;
     document.getElementById("formMensalidade").reset();
 
-    // CORREÇÃO CRÍTICA: Remove 'required' e esconde o campo data para não dar erro
+    // Reset dos checkboxes (padrão)
+    if (document.getElementById("checkBaia"))
+      document.getElementById("checkBaia").checked = true;
+    if (document.getElementById("checkAlimentacao"))
+      document.getElementById("checkAlimentacao").checked = true;
+    if (document.getElementById("checkPiquete"))
+      document.getElementById("checkPiquete").checked = false;
+    if (document.getElementById("checkTreino"))
+      document.getElementById("checkTreino").checked = false;
+
+    // Correção do campo data
     const campoData = document.getElementById("mensalidadeData");
     if (campoData) {
       const divPai = campoData.closest(".col-6");
       if (divPai) divPai.style.display = "none";
-      campoData.removeAttribute("required"); // Remove obrigatoriedade do HTML
-      campoData.value = new Date().toISOString().split("T")[0]; // Valor default
+      campoData.removeAttribute("required");
+      campoData.value = new Date().toISOString().split("T")[0];
     }
 
     document.getElementById("mensalidadeMes").value = new Date().getMonth() + 1;
@@ -131,6 +141,17 @@ const RanchoApp = {
     const btn = e.submitter;
     this.setLoading(btn, true, "Salvando...");
 
+    // NOVO: Coleta os itens marcados
+    const itensSelecionados = [];
+    if (document.getElementById("checkBaia").checked)
+      itensSelecionados.push("Baia");
+    if (document.getElementById("checkPiquete").checked)
+      itensSelecionados.push("Piquete");
+    if (document.getElementById("checkTreino").checked)
+      itensSelecionados.push("Treino");
+    if (document.getElementById("checkAlimentacao").checked)
+      itensSelecionados.push("Alimentação");
+
     const body = {
       cavalo_id: document.getElementById("mensalidadeCavaloId").value,
       mes: document.getElementById("mensalidadeMes").value,
@@ -138,6 +159,7 @@ const RanchoApp = {
       valor: this.limparMoeda(
         document.getElementById("mensalidadeValor").value,
       ),
+      itens: itensSelecionados.join(", "), // Envia como string
     };
 
     try {
@@ -190,10 +212,16 @@ const RanchoApp = {
           ? '<span class="badge bg-success">PAGO</span>'
           : '<span class="badge bg-danger">PENDENTE</span>';
 
+        // NOVO: Exibe os itens embaixo
+        const itensTexto = m.itens
+          ? `<div class="text-muted small" style="font-size: 0.75rem"><i class="fa-solid fa-check-double me-1"></i> ${m.itens}</div>`
+          : "";
+
         tbody.innerHTML += `
             <tr>
                 <td>
                     <div class="fw-bold text-dark">${nomesMeses[m.mes]} / ${m.ano}</div>
+                    ${itensTexto}
                     <div class="small mt-1">${statusBadge}</div>
                 </td>
                 <td class="text-end">
@@ -1021,7 +1049,7 @@ const RanchoApp = {
     const mes = this.dataFiltroProp.getMonth() + 1;
     const ano = this.dataFiltroProp.getFullYear();
 
-    let msg = `Olá *${nomeProp}*! \nSegue o fechamento de *${periodo}*:\n\n`;
+    let msg = `Olá *${nomeProp}*! 🤠\nSegue o fechamento de *${periodo}*:\n\n`;
     let temItens = false;
 
     try {
@@ -1034,14 +1062,14 @@ const RanchoApp = {
           `/api/gestao/custos/resumo/${cavalo.id}?mes=${mes}&ano=${ano}`,
         );
         if (dados.custos && dados.custos.length > 0) {
-          msg += `*${cavalo.nome}*\n`;
+          msg += `*🐴 ${cavalo.nome}*\n`;
           dados.custos.forEach((c) => {
             const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
               style: "currency",
               currency: "BRL",
             });
-            const icone = c.is_mensalidade ? "" : "";
-            const status = c.pago ? "(Pago ✅)" : "";
+            const icone = c.is_mensalidade ? "🗓️" : "▪️";
+            const status = c.pago ? " (Pago ✅)" : "";
             msg += `${icone} ${c.descricao}: ${valorF}${status}\n`;
             temItens = true;
           });
@@ -1054,14 +1082,14 @@ const RanchoApp = {
         `/api/gestao/custos/diretos/${propId}?mes=${mes}&ano=${ano}`,
       );
       if (diretos && diretos.length > 0) {
-        msg += `*Despesas Avulsas*\n`;
+        msg += `*🛠 Despesas Avulsas*\n`;
         diretos.forEach((c) => {
           const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
           });
-          const status = c.pago ? "(Pago)" : "";
-          msg += ` ${c.descricao}: ${valorF}${status}\n`;
+          const status = c.pago ? " (Pago ✅)" : "";
+          msg += `▪️ ${c.descricao}: ${valorF}${status}\n`;
           temItens = true;
         });
         msg += `\n`;
