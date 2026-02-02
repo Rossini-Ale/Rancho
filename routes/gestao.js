@@ -147,7 +147,7 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
 
       custos.push({
         id: m.id,
-        descricao: "Mensalidade (Fixo)",
+        descricao: "Mensalidade",
         categoria: "Mensalidade",
         valor: m.valor,
         data_despesa: m.data_pagamento,

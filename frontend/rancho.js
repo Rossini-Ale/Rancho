@@ -1,5 +1,5 @@
 const RanchoApp = {
-  // Variáveis
+  // Variáveis Globais
   bsModalProp: null,
   bsModalCavalo: null,
   bsModalFin: null,
@@ -103,19 +103,18 @@ const RanchoApp = {
       `Mensalidade: ${nomeCavalo}`;
     document.getElementById("formMensalidade").reset();
 
-    // CORREÇÃO AQUI: Removemos o 'required' do campo oculto para não travar o envio
+    // CORREÇÃO CRÍTICA: Remove 'required' e esconde o campo data para não dar erro
     const campoData = document.getElementById("mensalidadeData");
     if (campoData) {
       const divPai = campoData.closest(".col-6");
       if (divPai) divPai.style.display = "none";
-      campoData.removeAttribute("required"); // Importante!
-      campoData.value = new Date().toISOString().split("T")[0]; // Preenche com data atual só por garantia
+      campoData.removeAttribute("required"); // Remove obrigatoriedade do HTML
+      campoData.value = new Date().toISOString().split("T")[0]; // Valor default
     }
 
     document.getElementById("mensalidadeMes").value = new Date().getMonth() + 1;
     document.getElementById("mensalidadeAno").value = new Date().getFullYear();
 
-    // Atualiza texto do botão
     const btnSubmit = document
       .getElementById("formMensalidade")
       .querySelector("button[type=submit]");
@@ -187,7 +186,6 @@ const RanchoApp = {
           currency: "BRL",
         });
 
-        // Status badge
         const statusBadge = m.pago
           ? '<span class="badge bg-success">PAGO</span>'
           : '<span class="badge bg-danger">PENDENTE</span>';
@@ -222,7 +220,7 @@ const RanchoApp = {
     });
   },
 
-  // --- CAVALOS (ATUALIZADO) ---
+  // --- CAVALOS ---
   async carregarTabelaCavalos() {
     try {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
@@ -270,7 +268,7 @@ const RanchoApp = {
     }
   },
 
-  // --- DEMAIS FUNÇÕES ---
+  // --- FUNÇÕES UTILITÁRIAS ---
   vibrar(ms = 50) {
     if (navigator.vibrate) navigator.vibrate(ms);
   },
@@ -893,6 +891,7 @@ const RanchoApp = {
               custo: parseFloat(i.valor),
               id: i.id,
               pago: i.pago,
+              is_mensalidade: i.is_mensalidade, // IMPORTANTE
             }))
           : [];
       });
@@ -905,6 +904,7 @@ const RanchoApp = {
         custo: parseFloat(c.valor),
         id: c.id,
         pago: c.pago,
+        is_mensalidade: false,
       }));
       const res = await Promise.all(pCavalos);
       const lista = [...res.flat(), ...itensDiretos];
@@ -931,6 +931,7 @@ const RanchoApp = {
             '<i class="fa-solid fa-check-circle text-success me-2"></i>';
         } else {
           pendente += item.custo;
+          // Só permite excluir se for custo direto (mensalidade tem que ir no menu do cavalo)
           if (item.tipo === "direto") {
             actions += `<button class="btn btn-sm text-danger ms-1" onclick="RanchoApp.excluirCustoDireto(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
           }
@@ -968,6 +969,7 @@ const RanchoApp = {
             cleanTel,
           );
         } catch (e) {
+          // Fallback caso dê erro no detalhado
           window.open(`https://wa.me/55${cleanTel}`, "_blank");
         }
       };
@@ -1011,6 +1013,73 @@ const RanchoApp = {
       }
     });
   },
+
+  // --- NOVA FUNÇÃO ZAP DETALHADO ---
+  async compartilharFaturaZap(propId, nomeProp, totalTexto, telefone) {
+    this.mostrarNotificacao("Gerando texto...", "sucesso");
+    const periodo = document.getElementById("labelMesAnoProp").textContent;
+    const mes = this.dataFiltroProp.getMonth() + 1;
+    const ano = this.dataFiltroProp.getFullYear();
+
+    let msg = `Olá *${nomeProp}*! \nSegue o fechamento de *${periodo}*:\n\n`;
+    let temItens = false;
+
+    try {
+      // Busca cavalos do dono
+      const allCavalos = await ApiService.fetchData("/api/gestao/cavalos");
+      const meusCavalos = allCavalos.filter((c) => c.proprietario_id == propId);
+
+      for (const cavalo of meusCavalos) {
+        const dados = await ApiService.fetchData(
+          `/api/gestao/custos/resumo/${cavalo.id}?mes=${mes}&ano=${ano}`,
+        );
+        if (dados.custos && dados.custos.length > 0) {
+          msg += `*${cavalo.nome}*\n`;
+          dados.custos.forEach((c) => {
+            const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            });
+            const icone = c.is_mensalidade ? "" : "";
+            const status = c.pago ? "(Pago ✅)" : "";
+            msg += `${icone} ${c.descricao}: ${valorF}${status}\n`;
+            temItens = true;
+          });
+          msg += `\n`;
+        }
+      }
+
+      // Busca custos diretos
+      const diretos = await ApiService.fetchData(
+        `/api/gestao/custos/diretos/${propId}?mes=${mes}&ano=${ano}`,
+      );
+      if (diretos && diretos.length > 0) {
+        msg += `*Despesas Avulsas*\n`;
+        diretos.forEach((c) => {
+          const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+          const status = c.pago ? "(Pago)" : "";
+          msg += ` ${c.descricao}: ${valorF}${status}\n`;
+          temItens = true;
+        });
+        msg += `\n`;
+      }
+
+      if (!temItens) msg += "_(Nenhum lançamento neste mês)_\n\n";
+      msg += `*TOTAL A PAGAR: ${totalTexto}*`;
+
+      const cleanTel = telefone.replace(/\D/g, "");
+      const url = `https://wa.me/55${cleanTel}?text=${encodeURIComponent(msg)}`;
+      window.open(url, "_blank");
+    } catch (e) {
+      console.error(e);
+      this.mostrarNotificacao("Erro ao gerar Zap.", "erro");
+    }
+  },
+
+  // --- PDF ---
   async _gerarDocPDFDados(propId, nomeProp, periodo, mes, ano) {
     if (!window.jspdf) return null;
     const { jsPDF } = window.jspdf;
@@ -1099,42 +1168,6 @@ const RanchoApp = {
     );
     if (res) res.doc.save(`Fatura_${nome.trim()}.pdf`);
     else this.mostrarNotificacao("Sem dados.", "erro");
-  },
-  async compartilharFaturaZap(propId, nomeProp, totalTexto, telefone) {
-    const periodo = document.getElementById("labelMesAnoProp").textContent;
-    const mes = this.dataFiltroProp.getMonth() + 1;
-    const ano = this.dataFiltroProp.getFullYear();
-    const res = await this._gerarDocPDFDados(
-      propId,
-      nomeProp,
-      periodo,
-      mes,
-      ano,
-    );
-    if (!res) {
-      this.mostrarNotificacao("Sem dados.", "erro");
-      return;
-    }
-    const pdfBlob = res.doc.output("blob");
-    const file = new File([pdfBlob], `Fatura_${nomeProp.trim()}.pdf`, {
-      type: "application/pdf",
-    });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({
-          files: [file],
-          title: "Fatura Rancho",
-          text: `Olá ${nomeProp}, segue o detalhamento de ${periodo}. Total: ${totalTexto}`,
-        });
-      } catch (error) {}
-    } else {
-      res.doc.save(`Fatura_${nomeProp.trim()}.pdf`);
-      const msg = `Olá *${nomeProp}*! 🤠\nSegue o fechamento de *${periodo}*.\n\n*TOTAL: ${totalTexto}*`;
-      window.open(
-        `https://wa.me/55${telefone}?text=${encodeURIComponent(msg)}`,
-        "_blank",
-      );
-    }
   },
   async gerarPDF() {
     if (!window.jspdf) {
