@@ -347,38 +347,45 @@
                 class="d-flex gap-2 align-items-center bg-light p-2 rounded-3 border"
               >
                 <input type="hidden" id="custoIdEdit" />
+
                 <div class="flex-grow-1">
-                  <input
-                    type="text"
-                    class="form-control border-0 bg-transparent fw-bold"
-                    id="custoDesc"
-                    placeholder="Descrição"
+                  <select
+                    class="form-select border-0 bg-transparent fw-bold shadow-none mb-1 text-brown"
+                    id="custoCat"
                     required
-                    style="font-size: 0.9rem"
-                  />
-                  <div class="d-flex gap-2 mt-1">
-                    <select
-                      class="form-select form-select-sm border-0 bg-white shadow-sm"
-                      id="custoCat"
-                      required
-                      style="width: 100px"
-                    >
-                      <option value="" disabled selected>Tipo</option>
-                      <option value="Ração">Ração</option>
-                      <option value="Ferragem">Ferragem</option>
-                      <option value="Medicamento">Medicamento</option>
-                      <option value="Veterinário">Veterinário</option>
-                      <option value="Outros">Outros</option></select
-                    ><input
+                    style="font-size: 1rem"
+                  >
+                    <option value="" disabled selected>
+                      Selecione a Categoria...
+                    </option>
+                    <option value="Exames">Exames</option>
+                    <option value="Ferradura">Ferradura</option>
+                    <option value="Frete">Frete</option>
+                    <option value="Medicamento">Medicamento</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+
+                  <div class="d-flex gap-2 align-items-center">
+                    <input
+                      type="text"
+                      class="form-control form-control-sm border-0 bg-white shadow-sm"
+                      id="custoDesc"
+                      placeholder="Descrição"
+                      style="flex-grow: 1"
+                    />
+
+                    <input
                       type="text"
                       inputmode="decimal"
                       class="form-control form-control-sm border-0 bg-white shadow-sm text-end"
                       id="custoValor"
                       placeholder="R$ 0,00"
                       required
+                      style="width: 90px"
                     />
                   </div>
                 </div>
+
                 <button
                   type="submit"
                   id="btnSalvarCusto"
@@ -390,6 +397,7 @@
               </form>
             </div>
             <input type="hidden" id="finCavaloId" />
+
             <div
               class="d-flex align-items-center justify-content-between px-4 py-2 border-top border-bottom bg-light"
             >
@@ -397,25 +405,29 @@
                 class="btn btn-sm text-secondary"
                 onclick="RanchoApp.mudarMes(-1)"
               >
-                <i class="fa-solid fa-chevron-left"></i></button
-              ><span class="fw-bold text-brown small" id="labelMesAno">MÊS</span
-              ><button
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <span class="fw-bold text-brown small" id="labelMesAno">MÊS</span>
+              <button
                 class="btn btn-sm text-secondary"
                 onclick="RanchoApp.mudarMes(1)"
               >
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
             </div>
+
             <div class="px-3 py-2" id="areaGrafico" style="display: none">
               <div style="height: 150px; width: 100%; position: relative">
                 <canvas id="graficoFinanceiro"></canvas>
               </div>
             </div>
+
             <div class="px-3 pb-5">
               <table class="table mb-0">
                 <tbody id="tabelaCustosBody"></tbody>
               </table>
             </div>
+
             <div
               class="position-absolute bottom-0 w-100 bg-white border-top p-3 d-flex justify-content-between align-items-center"
             >
