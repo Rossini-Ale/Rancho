@@ -71,8 +71,8 @@
         </div>
       </div>
 
-      <div class="mt-4 mb-4">
-        <div class="search-input-wrapper">
+      <div class="mt-4 mb-4 d-flex gap-2">
+        <div class="search-input-wrapper flex-grow-1">
           <i class="fa-solid fa-magnifying-glass text-muted me-2"></i>
           <input
             type="text"
@@ -81,19 +81,29 @@
             placeholder="Buscar..."
           />
         </div>
+        <select
+          id="inputOrdenacao"
+          class="form-select border-0 shadow-sm fw-bold text-secondary"
+          style="width: auto; border-radius: 12px"
+        >
+          <option value="az">A-Z</option>
+          <option value="za">Z-A</option>
+          <option value="maior_valor">Maior Valor</option>
+          <option value="menor_valor">Menor Valor</option>
+        </select>
       </div>
 
       <div class="d-flex align-items-center justify-content-between mb-3">
         <h5 class="fw-bold text-dark mb-0" id="tituloSecao">Meus Animais</h5>
         <div class="d-none d-md-flex gap-2">
           <button
-            class="btn btn-sm btn-primary rounded-pill"
+            class="btn btn-sm btn-primary rounded-pill px-3"
             onclick="RanchoApp.mudarAba('cavalos')"
           >
             Animais
           </button>
           <button
-            class="btn btn-sm btn-outline-secondary rounded-pill"
+            class="btn btn-sm btn-outline-secondary rounded-pill px-3"
             onclick="RanchoApp.mudarAba('proprietarios')"
           >
             Clientes
@@ -177,7 +187,7 @@
               <div class="d-grid">
                 <button
                   type="submit"
-                  class="btn btn-primary btn-lg rounded-pill fw-bold"
+                  class="btn btn-primary btn-lg rounded-3 fw-bold"
                   id="btnSalvarConfig"
                 >
                   Salvar
@@ -209,7 +219,7 @@
                 <label class="small-label mb-1">Nome</label
                 ><input
                   type="text"
-                  class="form-control form-control-lg bg-light border-0 fw-bold text-brown"
+                  class="form-control form-control-lg bg-light border-0 fw-bold"
                   id="propNome"
                   required
                 />
@@ -228,13 +238,13 @@
                 <button
                   type="button"
                   id="btnExcluirProp"
-                  class="btn btn-light text-danger rounded-pill px-3 d-none"
+                  class="btn btn-light text-danger px-3 d-none"
                   onclick="RanchoApp.excluirProprietarioAtual()"
                 >
                   <i class="fa-solid fa-trash"></i></button
                 ><button
                   type="submit"
-                  class="btn btn-primary btn-lg rounded-pill px-5 fw-bold ms-auto"
+                  class="btn btn-primary btn-lg rounded-3 px-5 fw-bold ms-auto"
                 >
                   Salvar
                 </button>
@@ -300,13 +310,13 @@
                 <button
                   type="button"
                   id="btnExcluirCavalo"
-                  class="btn btn-light text-danger rounded-pill px-3 d-none"
+                  class="btn btn-light text-danger px-3 d-none"
                   onclick="RanchoApp.excluirCavaloAtual()"
                 >
                   <i class="fa-solid fa-trash"></i></button
                 ><button
                   type="submit"
-                  class="btn btn-primary btn-lg rounded-pill px-5 fw-bold ms-auto"
+                  class="btn btn-primary btn-lg rounded-3 px-5 fw-bold ms-auto"
                 >
                   Salvar
                 </button>
@@ -334,7 +344,7 @@
             <div class="px-3 pb-3">
               <form
                 id="formCusto"
-                class="d-flex gap-2 align-items-center bg-light p-2 rounded-4 border"
+                class="d-flex gap-2 align-items-center bg-light p-2 rounded-3 border"
               >
                 <input type="hidden" id="custoIdEdit" />
                 <div class="flex-grow-1">
@@ -372,7 +382,7 @@
                 <button
                   type="submit"
                   id="btnSalvarCusto"
-                  class="btn btn-success rounded-circle shadow-sm"
+                  class="btn btn-success rounded-3 shadow-sm"
                   style="width: 45px; height: 45px"
                 >
                   <i class="fa-solid fa-plus"></i>

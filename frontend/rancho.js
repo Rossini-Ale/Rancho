@@ -1,5 +1,5 @@
 const RanchoApp = {
-  // --- VARIÁVEIS GLOBAIS ---
+  // Variáveis
   bsModalProp: null,
   bsModalCavalo: null,
   bsModalFin: null,
@@ -16,7 +16,6 @@ const RanchoApp = {
   abaAtual: "cavalos",
   proprietarioAtualId: null,
 
-  // --- INICIALIZAÇÃO ---
   async init() {
     this.bsModalProp = new bootstrap.Modal(
       document.getElementById("modalProprietario"),
@@ -85,6 +84,12 @@ const RanchoApp = {
       .getElementById("inputBusca")
       .addEventListener("keyup", (e) => this.filtrarTabela(e.target.value));
 
+    // Listener para o Select de Ordenação
+    document.getElementById("inputOrdenacao").addEventListener("change", () => {
+      if (this.abaAtual === "cavalos") this.carregarTabelaCavalos();
+      else this.carregarTabelaProprietarios();
+    });
+
     document
       .getElementById("logoutButton")
       .addEventListener("click", async () => {
@@ -96,7 +101,7 @@ const RanchoApp = {
       });
   },
 
-  // --- PWA (INSTALAÇÃO) ---
+  // --- PWA ---
   setupPWA() {
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
@@ -119,7 +124,7 @@ const RanchoApp = {
     }
   },
 
-  // --- NAVEGAÇÃO E UI ---
+  // --- NAVEGAÇÃO ---
   mudarAba(aba) {
     this.vibrar(30);
     this.abaAtual = aba;
@@ -134,12 +139,14 @@ const RanchoApp = {
       titulo.textContent = "Meus Animais";
       document.getElementById("navBtnCavalos").classList.add("active");
       document.getElementById("navBtnProps").classList.remove("active");
+      this.carregarTabelaCavalos(); // Recarrega para aplicar ordem
     } else {
       tabCavalos.classList.add("d-none");
       tabProps.classList.remove("d-none");
       titulo.textContent = "Meus Clientes";
       document.getElementById("navBtnProps").classList.add("active");
       document.getElementById("navBtnCavalos").classList.remove("active");
+      this.carregarTabelaProprietarios(); // Recarrega para aplicar ordem
     }
 
     document.getElementById("inputBusca").value = "";
@@ -147,15 +154,16 @@ const RanchoApp = {
   },
 
   filtrarTabela(termo) {
-    const selector =
+    const s =
       this.abaAtual === "cavalos"
         ? "#listaCavalosBody tr"
         : "#listaProprietariosMainBody tr";
-    const linhas = document.querySelectorAll(selector);
-
-    linhas.forEach((linha) => {
-      const texto = linha.textContent.toLowerCase();
-      linha.style.display = texto.includes(termo.toLowerCase()) ? "" : "none";
+    document.querySelectorAll(s).forEach((r) => {
+      r.style.display = r.textContent
+        .toLowerCase()
+        .includes(termo.toLowerCase())
+        ? ""
+        : "none";
     });
   },
 
@@ -165,7 +173,18 @@ const RanchoApp = {
     else this.abrirModalGerenciarProprietarios();
   },
 
-  // --- GESTÃO DE CAVALOS ---
+  // --- HELPER DE ORDENAÇÃO ---
+  ordenarLista(lista, criterio) {
+    return lista.sort((a, b) => {
+      if (criterio === "az") return a.nome.localeCompare(b.nome);
+      if (criterio === "za") return b.nome.localeCompare(a.nome);
+      if (criterio === "maior_valor") return b.totalSort - a.totalSort; // Decrescente
+      if (criterio === "menor_valor") return a.totalSort - b.totalSort; // Crescente
+      return 0;
+    });
+  },
+
+  // --- GESTÃO CAVALOS (COM ORDENAÇÃO) ---
   async carregarTabelaCavalos() {
     try {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
@@ -176,21 +195,36 @@ const RanchoApp = {
         : 0;
 
       if (!cavalos || cavalos.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-5 border-0"><div class="mb-3 opacity-25"><i class="fa-solid fa-horse-head display-1 text-secondary"></i></div><h6 class="text-muted fw-bold">Nenhum animal cadastrado</h6><button class="btn btn-primary rounded-pill mt-2" onclick="RanchoApp.abrirModalNovoCavalo()">Cadastrar Agora</button></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-5 border-0"><div class="mb-3 opacity-25"><i class="fa-solid fa-horse-head display-1 text-secondary"></i></div><h6 class="text-muted fw-bold">Nenhum animal</h6><button class="btn btn-primary rounded-pill mt-2" onclick="RanchoApp.abrirModalNovoCavalo()">Cadastrar</button></td></tr>`;
         return;
       }
 
       const hoje = new Date();
       const mesAtual = hoje.getMonth() + 1;
       const anoAtual = hoje.getFullYear();
+      const ordem = document.getElementById("inputOrdenacao").value;
 
-      for (const cavalo of cavalos) {
-        const dadosFin = await ApiService.fetchData(
-          `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
-        );
-        const totalFormatado = parseFloat(
-          dadosFin.total_gasto || 0,
-        ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      // 1. Processar dados (buscar totais) antes de desenhar
+      const listaProcessada = await Promise.all(
+        cavalos.map(async (cavalo) => {
+          const dadosFin = await ApiService.fetchData(
+            `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
+          );
+          return {
+            ...cavalo,
+            totalSort: parseFloat(dadosFin.total_gasto || 0), // Valor numérico para ordenar
+            totalFormatado: parseFloat(
+              dadosFin.total_gasto || 0,
+            ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+          };
+        }),
+      );
+
+      // 2. Ordenar
+      const listaOrdenada = this.ordenarLista(listaProcessada, ordem);
+
+      // 3. Desenhar
+      listaOrdenada.forEach((cavalo) => {
         const ns = cavalo.nome.replace(/'/g, "\\'");
         let avatarHtml = `<div class="avatar-circle avatar-cavalo shadow-sm">${cavalo.nome.charAt(0).toUpperCase()}</div>`;
 
@@ -203,18 +237,114 @@ const RanchoApp = {
                     </div>
                 </td>
                 <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-user me-1"></i> ${cavalo.nome_proprietario || "Sem dono"}</td>
-                <td class="text-nowrap"><div class="d-flex flex-column align-items-end align-items-md-start"><span class="d-md-none small-label mb-1">Gasto Mês</span><span class="text-danger fw-bold bg-soft-danger px-2 py-1 rounded-3">${totalFormatado}</span></div></td>
+                <td class="text-nowrap"><div class="d-flex flex-column align-items-end align-items-md-start"><span class="d-md-none small-label mb-1">Gasto Mês</span><span class="text-danger fw-bold bg-soft-danger px-2 py-1 rounded-3">${cavalo.totalFormatado}</span></div></td>
                 <td class="text-end">
                     <button class="btn-action btn-light text-primary me-2 shadow-sm" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${cavalo.id},'${ns}')"><i class="fa-solid fa-calendar-plus"></i></button>
                     <button class="btn-action icon-gold shadow-sm" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${cavalo.id},'${ns}')"><i class="fa-solid fa-coins"></i></button>
                 </td>`;
         tbody.appendChild(tr);
-      }
+      });
     } catch (error) {
       console.error(error);
     }
   },
 
+  // --- GESTÃO PROPRIETÁRIOS (COM ORDENAÇÃO) ---
+  async carregarTabelaProprietarios() {
+    try {
+      const props = await ApiService.fetchData("/api/gestao/proprietarios");
+      const cavalos = (await ApiService.fetchData("/api/gestao/cavalos")) || [];
+      const tbody = document.getElementById("listaProprietariosMainBody");
+      tbody.innerHTML = "";
+      document.getElementById("totalProprietarios").textContent = props
+        ? props.length
+        : 0;
+
+      if (!props || props.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center py-5 border-0"><div class="mb-3 opacity-25"><i class="fa-solid fa-users display-1 text-secondary"></i></div><h6 class="text-muted fw-bold">Sem clientes</h6><button class="btn btn-secondary rounded-pill mt-2" onclick="RanchoApp.abrirModalGerenciarProprietarios()">Novo Cliente</button></td></tr>`;
+        return;
+      }
+
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth() + 1;
+      const anoAtual = hoje.getFullYear();
+      const ordem = document.getElementById("inputOrdenacao").value;
+
+      // 1. Processar dados (calcular dívidas)
+      const listaProcessada = await Promise.all(
+        props.map(async (p) => {
+          const meusCavalos = cavalos.filter((c) => c.proprietario_id == p.id);
+          const txt =
+            meusCavalos.length === 1
+              ? "1 animal"
+              : `${meusCavalos.length} animais`;
+
+          let totalDivida = 0;
+          for (const cavalo of meusCavalos) {
+            const resumo = await ApiService.fetchData(
+              `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
+            );
+            if (resumo.custos)
+              resumo.custos.forEach((c) => {
+                if (!c.pago) totalDivida += parseFloat(c.valor);
+              });
+          }
+          const diretos = await ApiService.fetchData(
+            `/api/gestao/custos/diretos/${p.id}?mes=${mesAtual}&ano=${anoAtual}`,
+          );
+          if (diretos)
+            diretos.forEach((c) => {
+              if (!c.pago) totalDivida += parseFloat(c.valor);
+            });
+
+          return {
+            ...p,
+            totalSort: totalDivida, // Para ordenação
+            txtAnimais: txt,
+            txtValor:
+              totalDivida > 0
+                ? totalDivida.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })
+                : "Pago",
+            badgeClass:
+              totalDivida > 0
+                ? "bg-soft-danger text-danger"
+                : "bg-soft-success text-success",
+          };
+        }),
+      );
+
+      // 2. Ordenar
+      const listaOrdenada = this.ordenarLista(listaProcessada, ordem);
+
+      // 3. Desenhar
+      listaOrdenada.forEach((p) => {
+        let avatarHtml = `<div class="avatar-circle avatar-dono shadow-sm">${p.nome.charAt(0).toUpperCase()}</div>`;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <tr>
+            <td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
+                <div class="d-flex align-items-center gap-3">
+                    ${avatarHtml}
+                    <div><div class="fw-bold text-dark">${p.nome}</div><div class="text-primary small fw-bold"><i class="fa-solid fa-horse-head me-1"></i> ${p.txtAnimais}</div></div>
+                </div>
+            </td>
+            <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td>
+            <td class="text-end">
+                <div class="d-flex align-items-center justify-content-end gap-3">
+                    <span class="badge-status ${p.badgeClass}">${p.txtValor}</span>
+                    <button class="btn-action icon-brown shadow-sm btn-edit" onclick="event.stopPropagation(); RanchoApp.abrirModalGerenciarProprietarios(${p.id}, '${p.nome}', '${p.telefone}')"><i class="fa-solid fa-pen"></i></button>
+                </div>
+            </td>
+            </tr>`;
+        tbody.appendChild(tr);
+      });
+    } catch (err) {}
+  },
+
+  // --- MODAIS GERAIS ---
   abrirModalNovoCavalo() {
     this.vibrar();
     document.getElementById("formCavalo").reset();
@@ -274,88 +404,6 @@ const RanchoApp = {
         }
       });
     }
-  },
-
-  // --- GESTÃO DE PROPRIETÁRIOS ---
-  async carregarTabelaProprietarios() {
-    try {
-      const props = await ApiService.fetchData("/api/gestao/proprietarios");
-      const cavalos = (await ApiService.fetchData("/api/gestao/cavalos")) || [];
-      const tbody = document.getElementById("listaProprietariosMainBody");
-      tbody.innerHTML = "";
-      document.getElementById("totalProprietarios").textContent = props
-        ? props.length
-        : 0;
-
-      if (!props || props.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="text-center py-5 border-0"><div class="mb-3 opacity-25"><i class="fa-solid fa-users display-1 text-secondary"></i></div><h6 class="text-muted fw-bold">Sem clientes ainda</h6><button class="btn btn-secondary rounded-pill mt-2" onclick="RanchoApp.abrirModalGerenciarProprietarios()">Novo Cliente</button></td></tr>`;
-        return;
-      }
-
-      const hoje = new Date();
-      const mesAtual = hoje.getMonth() + 1;
-      const anoAtual = hoje.getFullYear();
-
-      const linhas = await Promise.all(
-        props.map(async (p) => {
-          const meusCavalos = cavalos.filter((c) => c.proprietario_id == p.id);
-          const txt =
-            meusCavalos.length === 1
-              ? "1 animal"
-              : `${meusCavalos.length} animais`;
-
-          let totalDivida = 0;
-          for (const cavalo of meusCavalos) {
-            const resumo = await ApiService.fetchData(
-              `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
-            );
-            if (resumo.custos)
-              resumo.custos.forEach((c) => {
-                if (!c.pago) totalDivida += parseFloat(c.valor);
-              });
-          }
-          const diretos = await ApiService.fetchData(
-            `/api/gestao/custos/diretos/${p.id}?mes=${mesAtual}&ano=${anoAtual}`,
-          );
-          if (diretos)
-            diretos.forEach((c) => {
-              if (!c.pago) totalDivida += parseFloat(c.valor);
-            });
-
-          const txtValor =
-            totalDivida > 0
-              ? totalDivida.toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })
-              : "Pago";
-          const badgeClass =
-            totalDivida > 0
-              ? "bg-soft-danger text-danger"
-              : "bg-soft-success text-success";
-
-          let avatarHtml = `<div class="avatar-circle avatar-dono shadow-sm">${p.nome.charAt(0).toUpperCase()}</div>`;
-
-          return `
-            <tr>
-            <td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
-                <div class="d-flex align-items-center gap-3">
-                    ${avatarHtml}
-                    <div><div class="fw-bold text-dark">${p.nome}</div><div class="text-primary small fw-bold"><i class="fa-solid fa-horse-head me-1"></i> ${txt}</div></div>
-                </div>
-            </td>
-            <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td>
-            <td class="text-end">
-                <div class="d-flex align-items-center justify-content-end gap-3">
-                    <span class="badge-status ${badgeClass}">${txtValor}</span>
-                    <button class="btn-action icon-brown shadow-sm btn-edit" onclick="event.stopPropagation(); RanchoApp.abrirModalGerenciarProprietarios(${p.id}, '${p.nome}', '${p.telefone}')"><i class="fa-solid fa-pen"></i></button>
-                </div>
-            </td>
-            </tr>`;
-        }),
-      );
-      tbody.innerHTML = linhas.join("");
-    } catch (err) {}
   },
 
   abrirModalGerenciarProprietarios(id = null, nome = "", telefone = "") {
@@ -776,7 +824,7 @@ const RanchoApp = {
     });
   },
 
-  // --- DETALHES DO PROPRIETÁRIO ---
+  // --- DETALHES DONO ---
   async abrirDetalhesProprietario(id, nome, telefone) {
     this.vibrar();
     this.proprietarioAtualId = id;
@@ -834,6 +882,7 @@ const RanchoApp = {
               custo: parseFloat(i.valor),
               id: i.id,
               pago: i.pago,
+              is_mensalidade: i.is_mensalidade,
             }))
           : [];
       });
@@ -846,6 +895,7 @@ const RanchoApp = {
         custo: parseFloat(c.valor),
         id: c.id,
         pago: c.pago,
+        is_mensalidade: false,
       }));
       const res = await Promise.all(pCavalos);
       const lista = [...res.flat(), ...itensDiretos];
@@ -1273,7 +1323,7 @@ const RanchoApp = {
     doc.save(`${nomeCavalo.trim()}_${periodo.replace(" ", "_")}.pdf`);
   },
 
-  // --- FUNÇÕES UTILITÁRIAS ---
+  // --- UTILS ---
   vibrar(ms = 50) {
     if (navigator.vibrate) navigator.vibrate(ms);
   },
