@@ -148,7 +148,7 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
       // NOVO: Adiciona os itens inclusos na descrição para aparecer no ZAP
       const descDetalhada = m.itens
         ? `Mensalidade (${m.itens})`
-        : "Mensalidade (Fixo)";
+        : "Mensalidade";
 
       custos.push({
         id: m.id,
