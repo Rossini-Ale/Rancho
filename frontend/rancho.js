@@ -1,5 +1,5 @@
 const RanchoApp = {
-  // Variáveis Globais
+  // --- VARIÁVEIS GLOBAIS ---
   bsModalProp: null,
   bsModalCavalo: null,
   bsModalFin: null,
@@ -16,6 +16,7 @@ const RanchoApp = {
   abaAtual: "cavalos",
   proprietarioAtualId: null,
 
+  // --- INICIALIZAÇÃO ---
   async init() {
     this.bsModalProp = new bootstrap.Modal(
       document.getElementById("modalProprietario"),
@@ -56,7 +57,6 @@ const RanchoApp = {
     if (telInput)
       telInput.addEventListener("input", (e) => this.mascaraTelefone(e));
 
-    // Máscaras de Moeda
     ["custoValor", "mensalidadeValor", "custoPropValor"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", (e) => this.mascaraMoeda(e));
@@ -84,6 +84,7 @@ const RanchoApp = {
     document
       .getElementById("inputBusca")
       .addEventListener("keyup", (e) => this.filtrarTabela(e.target.value));
+
     document
       .getElementById("logoutButton")
       .addEventListener("click", async () => {
@@ -93,6 +94,338 @@ const RanchoApp = {
         localStorage.removeItem("token");
         window.location.href = "login.html";
       });
+  },
+
+  // --- PWA (INSTALAÇÃO) ---
+  setupPWA() {
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      this.deferredPrompt = e;
+      const btn = document.getElementById("btnInstalarApp");
+      if (btn) {
+        btn.classList.remove("d-none");
+        btn.onclick = () => this.instalarApp();
+      }
+    });
+  },
+
+  async instalarApp() {
+    if (this.deferredPrompt) {
+      this.deferredPrompt.prompt();
+      const c = await this.deferredPrompt.userChoice;
+      if (c.outcome === "accepted")
+        document.getElementById("btnInstalarApp").classList.add("d-none");
+      this.deferredPrompt = null;
+    }
+  },
+
+  // --- NAVEGAÇÃO E UI ---
+  mudarAba(aba) {
+    this.vibrar(30);
+    this.abaAtual = aba;
+
+    const tabCavalos = document.getElementById("tabCavalos");
+    const tabProps = document.getElementById("tabProprietarios");
+    const titulo = document.getElementById("tituloSecao");
+
+    if (aba === "cavalos") {
+      tabCavalos.classList.remove("d-none");
+      tabProps.classList.add("d-none");
+      titulo.textContent = "Meus Animais";
+      document.getElementById("navBtnCavalos").classList.add("active");
+      document.getElementById("navBtnProps").classList.remove("active");
+    } else {
+      tabCavalos.classList.add("d-none");
+      tabProps.classList.remove("d-none");
+      titulo.textContent = "Meus Clientes";
+      document.getElementById("navBtnProps").classList.add("active");
+      document.getElementById("navBtnCavalos").classList.remove("active");
+    }
+
+    document.getElementById("inputBusca").value = "";
+    this.filtrarTabela("");
+  },
+
+  filtrarTabela(termo) {
+    const selector =
+      this.abaAtual === "cavalos"
+        ? "#listaCavalosBody tr"
+        : "#listaProprietariosMainBody tr";
+    const linhas = document.querySelectorAll(selector);
+
+    linhas.forEach((linha) => {
+      const texto = linha.textContent.toLowerCase();
+      linha.style.display = texto.includes(termo.toLowerCase()) ? "" : "none";
+    });
+  },
+
+  adicionarItemAtual() {
+    this.vibrar();
+    if (this.abaAtual === "cavalos") this.abrirModalNovoCavalo();
+    else this.abrirModalGerenciarProprietarios();
+  },
+
+  // --- GESTÃO DE CAVALOS ---
+  async carregarTabelaCavalos() {
+    try {
+      const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
+      const tbody = document.getElementById("listaCavalosBody");
+      tbody.innerHTML = "";
+      document.getElementById("totalCavalos").textContent = cavalos
+        ? cavalos.length
+        : 0;
+
+      if (!cavalos || cavalos.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-5 border-0"><div class="mb-3 opacity-25"><i class="fa-solid fa-horse-head display-1 text-secondary"></i></div><h6 class="text-muted fw-bold">Nenhum animal cadastrado</h6><button class="btn btn-primary rounded-pill mt-2" onclick="RanchoApp.abrirModalNovoCavalo()">Cadastrar Agora</button></td></tr>`;
+        return;
+      }
+
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth() + 1;
+      const anoAtual = hoje.getFullYear();
+
+      for (const cavalo of cavalos) {
+        const dadosFin = await ApiService.fetchData(
+          `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
+        );
+        const totalFormatado = parseFloat(
+          dadosFin.total_gasto || 0,
+        ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        const ns = cavalo.nome.replace(/'/g, "\\'");
+        let avatarHtml = `<div class="avatar-circle avatar-cavalo shadow-sm">${cavalo.nome.charAt(0).toUpperCase()}</div>`;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+                <td class="nome-clicavel" onclick="RanchoApp.abrirModalEditar(${cavalo.id}, '${ns}', '${(cavalo.lugar || "").replace(/'/g, "\\'")}', '${cavalo.proprietario_id || ""}', '${(cavalo.observacoes || "").replace(/'/g, "\\'")}')">
+                    <div class="d-flex align-items-center gap-3">
+                        ${avatarHtml}
+                        <div><div class="fw-bold text-dark" style="font-size: 1.05rem;">${cavalo.nome}</div><div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> ${cavalo.lugar || "Sem local"}</div></div>
+                    </div>
+                </td>
+                <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-user me-1"></i> ${cavalo.nome_proprietario || "Sem dono"}</td>
+                <td class="text-nowrap"><div class="d-flex flex-column align-items-end align-items-md-start"><span class="d-md-none small-label mb-1">Gasto Mês</span><span class="text-danger fw-bold bg-soft-danger px-2 py-1 rounded-3">${totalFormatado}</span></div></td>
+                <td class="text-end">
+                    <button class="btn-action btn-light text-primary me-2 shadow-sm" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${cavalo.id},'${ns}')"><i class="fa-solid fa-calendar-plus"></i></button>
+                    <button class="btn-action icon-gold shadow-sm" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${cavalo.id},'${ns}')"><i class="fa-solid fa-coins"></i></button>
+                </td>`;
+        tbody.appendChild(tr);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
+  abrirModalNovoCavalo() {
+    this.vibrar();
+    document.getElementById("formCavalo").reset();
+    document.getElementById("cavaloId").value = "";
+    document.getElementById("tituloModalCavalo").textContent = "Novo Animal";
+    document.getElementById("btnExcluirCavalo").classList.add("d-none");
+    this.bsModalCavalo.show();
+  },
+
+  abrirModalEditar(id, n, l, p, o) {
+    this.vibrar();
+    document.getElementById("cavaloId").value = id;
+    document.getElementById("cavaloNome").value = n;
+    document.getElementById("cavaloLugar").value = l;
+    document.getElementById("cavaloProprietario").value = p;
+    document.getElementById("cavaloObs").value = o;
+    document.getElementById("tituloModalCavalo").textContent = `Editar: ${n}`;
+    document.getElementById("btnExcluirCavalo").classList.remove("d-none");
+    this.bsModalCavalo.show();
+  },
+
+  async salvarCavalo(e) {
+    e.preventDefault();
+    const btn = e.submitter;
+    this.setLoading(btn, true, "Salvar");
+    const body = {
+      nome: document.getElementById("cavaloNome").value,
+      lugar: document.getElementById("cavaloLugar").value,
+      proprietario_id: document.getElementById("cavaloProprietario").value,
+      observacoes: document.getElementById("cavaloObs").value,
+    };
+    const id = document.getElementById("cavaloId").value;
+    try {
+      if (id) await ApiService.putData(`/api/gestao/cavalos/${id}`, body);
+      else await ApiService.postData("/api/gestao/cavalos", body);
+      this.bsModalCavalo.hide();
+      this.carregarTabelaCavalos();
+      this.mostrarNotificacao("Ficha salva!");
+    } catch (err) {
+      this.mostrarNotificacao("Erro ao salvar.", "erro");
+    } finally {
+      this.setLoading(btn, false, "Salvar");
+    }
+  },
+
+  excluirCavaloAtual() {
+    const id = document.getElementById("cavaloId").value;
+    if (id) {
+      this.abrirConfirmacao("Excluir", "Apagar ficha?", async () => {
+        try {
+          await ApiService.deleteData(`/api/gestao/cavalos/${id}`);
+          this.bsModalCavalo.hide();
+          this.carregarTabelaCavalos();
+          this.mostrarNotificacao("Removido.");
+        } catch (e) {
+          this.mostrarNotificacao("Erro.", "erro");
+        }
+      });
+    }
+  },
+
+  // --- GESTÃO DE PROPRIETÁRIOS ---
+  async carregarTabelaProprietarios() {
+    try {
+      const props = await ApiService.fetchData("/api/gestao/proprietarios");
+      const cavalos = (await ApiService.fetchData("/api/gestao/cavalos")) || [];
+      const tbody = document.getElementById("listaProprietariosMainBody");
+      tbody.innerHTML = "";
+      document.getElementById("totalProprietarios").textContent = props
+        ? props.length
+        : 0;
+
+      if (!props || props.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center py-5 border-0"><div class="mb-3 opacity-25"><i class="fa-solid fa-users display-1 text-secondary"></i></div><h6 class="text-muted fw-bold">Sem clientes ainda</h6><button class="btn btn-secondary rounded-pill mt-2" onclick="RanchoApp.abrirModalGerenciarProprietarios()">Novo Cliente</button></td></tr>`;
+        return;
+      }
+
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth() + 1;
+      const anoAtual = hoje.getFullYear();
+
+      const linhas = await Promise.all(
+        props.map(async (p) => {
+          const meusCavalos = cavalos.filter((c) => c.proprietario_id == p.id);
+          const txt =
+            meusCavalos.length === 1
+              ? "1 animal"
+              : `${meusCavalos.length} animais`;
+
+          let totalDivida = 0;
+          for (const cavalo of meusCavalos) {
+            const resumo = await ApiService.fetchData(
+              `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
+            );
+            if (resumo.custos)
+              resumo.custos.forEach((c) => {
+                if (!c.pago) totalDivida += parseFloat(c.valor);
+              });
+          }
+          const diretos = await ApiService.fetchData(
+            `/api/gestao/custos/diretos/${p.id}?mes=${mesAtual}&ano=${anoAtual}`,
+          );
+          if (diretos)
+            diretos.forEach((c) => {
+              if (!c.pago) totalDivida += parseFloat(c.valor);
+            });
+
+          const txtValor =
+            totalDivida > 0
+              ? totalDivida.toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })
+              : "Pago";
+          const badgeClass =
+            totalDivida > 0
+              ? "bg-soft-danger text-danger"
+              : "bg-soft-success text-success";
+
+          let avatarHtml = `<div class="avatar-circle avatar-dono shadow-sm">${p.nome.charAt(0).toUpperCase()}</div>`;
+
+          return `
+            <tr>
+            <td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
+                <div class="d-flex align-items-center gap-3">
+                    ${avatarHtml}
+                    <div><div class="fw-bold text-dark">${p.nome}</div><div class="text-primary small fw-bold"><i class="fa-solid fa-horse-head me-1"></i> ${txt}</div></div>
+                </div>
+            </td>
+            <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td>
+            <td class="text-end">
+                <div class="d-flex align-items-center justify-content-end gap-3">
+                    <span class="badge-status ${badgeClass}">${txtValor}</span>
+                    <button class="btn-action icon-brown shadow-sm btn-edit" onclick="event.stopPropagation(); RanchoApp.abrirModalGerenciarProprietarios(${p.id}, '${p.nome}', '${p.telefone}')"><i class="fa-solid fa-pen"></i></button>
+                </div>
+            </td>
+            </tr>`;
+        }),
+      );
+      tbody.innerHTML = linhas.join("");
+    } catch (err) {}
+  },
+
+  abrirModalGerenciarProprietarios(id = null, nome = "", telefone = "") {
+    this.vibrar();
+    document.getElementById("formProprietario").reset();
+    if (id) {
+      document.getElementById("propId").value = id;
+      document.getElementById("propNome").value = nome;
+      document.getElementById("propTelefone").value = telefone;
+      document.getElementById("tituloModalProp").textContent = "Editar";
+      document.getElementById("btnExcluirProp").classList.remove("d-none");
+    } else {
+      document.getElementById("propId").value = "";
+      document.getElementById("tituloModalProp").textContent = "Novo Dono";
+      document.getElementById("btnExcluirProp").classList.add("d-none");
+    }
+    this.bsModalProp.show();
+  },
+
+  async salvarProprietario(e) {
+    e.preventDefault();
+    const btn = e.submitter;
+    this.setLoading(btn, true, "Salvar");
+    const id = document.getElementById("propId").value;
+    const body = {
+      nome: document.getElementById("propNome").value,
+      telefone: document.getElementById("propTelefone").value,
+    };
+    try {
+      if (id) await ApiService.putData(`/api/gestao/proprietarios/${id}`, body);
+      else await ApiService.postData("/api/gestao/proprietarios", body);
+      this.bsModalProp.hide();
+      this.carregarTabelaProprietarios();
+      this.carregarProprietariosSelect();
+      this.mostrarNotificacao("Salvo!");
+    } catch (err) {
+      this.mostrarNotificacao("Erro", "erro");
+    } finally {
+      this.setLoading(btn, false, "Salvar");
+    }
+  },
+
+  excluirProprietarioAtual() {
+    const id = document.getElementById("propId").value;
+    if (id) {
+      this.abrirConfirmacao("Excluir", "Apagar cliente?", async () => {
+        try {
+          await ApiService.deleteData(`/api/gestao/proprietarios/${id}`);
+          this.bsModalProp.hide();
+          this.carregarTabelaProprietarios();
+          this.carregarProprietariosSelect();
+          this.mostrarNotificacao("Excluído!");
+        } catch (err) {
+          this.mostrarNotificacao("Erro", "erro");
+        }
+      });
+    }
+  },
+
+  async carregarProprietariosSelect() {
+    try {
+      const props = await ApiService.fetchData("/api/gestao/proprietarios");
+      const select = document.getElementById("cavaloProprietario");
+      select.innerHTML = '<option value="">Selecione...</option>';
+      if (props)
+        props.forEach(
+          (p) =>
+            (select.innerHTML += `<option value="${p.id}">${p.nome}</option>`),
+        );
+    } catch (e) {}
   },
 
   // --- MENSALIDADES ---
@@ -119,16 +452,8 @@ const RanchoApp = {
       campoData.removeAttribute("required");
       campoData.value = new Date().toISOString().split("T")[0];
     }
-
     document.getElementById("mensalidadeMes").value = new Date().getMonth() + 1;
     document.getElementById("mensalidadeAno").value = new Date().getFullYear();
-
-    const btnSubmit = document
-      .getElementById("formMensalidade")
-      .querySelector("button[type=submit]");
-    if (btnSubmit)
-      btnSubmit.innerHTML =
-        '<i class="fa-solid fa-plus me-2"></i> Adicionar à Fatura';
 
     this.bsModalMensalidade.show();
     this.carregarMensalidades(cavaloId);
@@ -204,34 +529,29 @@ const RanchoApp = {
           style: "currency",
           currency: "BRL",
         });
-        const statusBadge = m.pago
-          ? '<span class="badge bg-success border"><i class="fa-solid fa-check me-1"></i> PAGO</span>'
-          : '<span class="badge bg-danger border"><i class="fa-solid fa-clock me-1"></i> PENDENTE</span>';
-
-        const itensTexto = m.itens
-          ? `<div class="text-muted small mt-1"><i class="fa-solid fa-list-check me-1"></i> ${m.itens}</div>`
+        const badge = m.pago
+          ? '<span class="badge-status bg-soft-success"><i class="fa-solid fa-check"></i> Pago</span>'
+          : '<span class="badge-status bg-soft-danger"><i class="fa-solid fa-clock"></i> Pendente</span>';
+        const itens = m.itens
+          ? `<div class="text-muted small mt-1"><i class="fa-solid fa-list-ul me-1"></i> ${m.itens}</div>`
           : "";
 
         tbody.innerHTML += `
-            <tr>
-                <td>
+            <tr class="border-bottom">
+                <td class="py-3 ps-3">
                     <div class="fw-bold text-dark">${nomesMeses[m.mes]} / ${m.ano}</div>
-                    ${itensTexto}
-                    <div class="mt-1">${statusBadge}</div>
+                    ${itens}
+                    <div class="mt-2">${badge}</div>
                 </td>
-                <td class="text-end">
-                    <div class="d-flex align-items-center justify-content-end">
-                        <span class="fw-bold text-secondary me-3">${valorF}</span>
-                        <button class="btn-action icon-red" onclick="RanchoApp.excluirMensalidade(${m.id}, ${cavaloId})" title="Excluir">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </div>
+                <td class="text-end pe-3">
+                    <div class="fw-bold text-secondary mb-2">${valorF}</div>
+                    <button class="btn-action icon-red shadow-sm btn-sm" style="width:32px; height:32px" onclick="RanchoApp.excluirMensalidade(${m.id}, ${cavaloId})"><i class="fa-solid fa-trash" style="font-size:0.8rem"></i></button>
                 </td>
             </tr>`;
       });
     } else {
       tbody.innerHTML =
-        '<tr><td colspan="2" class="text-center text-muted p-3">Nenhuma mensalidade lançada.</td></tr>';
+        '<tr><td colspan="2" class="text-center text-muted py-4">Nenhuma mensalidade lançada.</td></tr>';
     }
   },
 
@@ -247,427 +567,7 @@ const RanchoApp = {
     });
   },
 
-  // --- CAVALOS ---
-  async carregarTabelaCavalos() {
-    try {
-      const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
-      const tbody = document.getElementById("listaCavalosBody");
-      tbody.innerHTML = "";
-      const elTotal = document.getElementById("totalCavalos");
-      if (elTotal) elTotal.textContent = cavalos ? cavalos.length : 0;
-
-      const hoje = new Date();
-      const mesAtual = hoje.getMonth() + 1;
-      const anoAtual = hoje.getFullYear();
-
-      if (cavalos && cavalos.length > 0) {
-        for (const cavalo of cavalos) {
-          const dadosFin = await ApiService.fetchData(
-            `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
-          );
-          const totalFormatado = parseFloat(
-            dadosFin.total_gasto || 0,
-          ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-          const ns = cavalo.nome.replace(/'/g, "\\'");
-
-          let avatarHtml = `<div class="avatar-circle avatar-cavalo">${cavalo.nome.charAt(0).toUpperCase()}</div>`;
-
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-                <td class="nome-clicavel" onclick="RanchoApp.abrirModalEditar(${cavalo.id}, '${ns}', '${(cavalo.lugar || "").replace(/'/g, "\\'")}', '${cavalo.proprietario_id || ""}', '${(cavalo.observacoes || "").replace(/'/g, "\\'")}')">
-                    <div class="d-flex align-items-center gap-2">
-                        ${avatarHtml}
-                        <div>
-                            <div class="fw-bold text-dark" style="font-size: 1.05rem;">${cavalo.nome}</div>
-                            <div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> ${cavalo.lugar || "N/D"}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-user me-1"></i> ${cavalo.nome_proprietario || "Sem dono"}</td>
-                <td class="text-nowrap">
-                    <div class="d-flex flex-column align-items-end align-items-md-start">
-                        <span class="d-md-none small text-muted">Mês Atual</span>
-                        <span class="text-danger fw-bold">${totalFormatado}</span>
-                    </div>
-                </td>
-                <td class="text-end">
-                    <button class="btn-action btn-light text-primary me-1" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${cavalo.id},'${ns}')" title="Mensalidades"><i class="fa-solid fa-calendar-plus"></i></button>
-                    <button class="btn-action icon-gold me-1" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${cavalo.id},'${ns}')" title="Custos"><i class="fa-solid fa-coins"></i></button>
-                </td>`;
-          tbody.appendChild(tr);
-        }
-      } else {
-        tbody.innerHTML =
-          '<tr><td colspan="4" class="text-center text-muted p-4">Nenhum animal cadastrado.</td></tr>';
-      }
-    } catch (error) {
-      console.error("Erro cavalos", error);
-    }
-  },
-
-  // --- FUNÇÕES UTILITÁRIAS ---
-  vibrar(ms = 50) {
-    if (navigator.vibrate) navigator.vibrate(ms);
-  },
-  mascaraTelefone(e) {
-    let v = e.target.value
-      .replace(/\D/g, "")
-      .replace(/^(\d{2})(\d)/g, "($1) $2")
-      .replace(/(\d)(\d{4})$/, "$1-$2");
-    e.target.value = v;
-  },
-  mascaraMoeda(e) {
-    let v = e.target.value.replace(/\D/g, "");
-    v = (Number(v) / 100).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-    e.target.value = v;
-  },
-  limparMoeda(v) {
-    if (!v) return 0;
-    return parseFloat(v.replace(/[^\d,]/g, "").replace(",", "."));
-  },
-  setLoading(btn, l, t) {
-    if (l) {
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${t}`;
-    } else {
-      btn.disabled = false;
-      btn.innerHTML = t;
-    }
-  },
-  mostrarNotificacao(msg, tipo = "sucesso") {
-    const tm = document.getElementById("toastMessage");
-    const te = document.getElementById("liveToast");
-    tm.innerHTML = msg;
-    te.className = `toast align-items-center border-0 ${tipo === "erro" ? "text-bg-danger" : "text-bg-success"}`;
-    if (this.bsToast) this.bsToast.show();
-    if (tipo === "erro") this.vibrar([50, 50, 50]);
-    else this.vibrar(100);
-  },
-  abrirConfirmacao(t, m, cb) {
-    this.vibrar();
-    document.getElementById("tituloConfirmacao").textContent = t;
-    document.getElementById("msgConfirmacao").textContent = m;
-    const btn = document.getElementById("btnConfirmarAcao");
-    const nb = btn.cloneNode(true);
-    btn.parentNode.replaceChild(nb, btn);
-    nb.onclick = () => {
-      this.bsModalConfirm.hide();
-      this.vibrar();
-      cb();
-    };
-    this.bsModalConfirm.show();
-  },
-  setupPWA() {
-    window.addEventListener("beforeinstallprompt", (e) => {
-      e.preventDefault();
-      this.deferredPrompt = e;
-      const btn = document.getElementById("btnInstalarApp");
-      if (btn) {
-        btn.classList.remove("d-none");
-        btn.onclick = () => this.instalarApp();
-      }
-    });
-  },
-  async instalarApp() {
-    if (this.deferredPrompt) {
-      this.deferredPrompt.prompt();
-      const c = await this.deferredPrompt.userChoice;
-      if (c.outcome === "accepted")
-        document.getElementById("btnInstalarApp").classList.add("d-none");
-      this.deferredPrompt = null;
-    }
-  },
-  mudarAba(a) {
-    this.vibrar(30);
-    this.abaAtual = a;
-    const bc = document.getElementById("btnTabCavalos");
-    const bp = document.getElementById("btnTabProprietarios");
-    const dc = document.getElementById("tabCavalos");
-    const dp = document.getElementById("tabProprietarios");
-    if (a === "cavalos") {
-      bc.className = "btn btn-primary rounded-pill px-4 fw-bold flex-grow-1";
-      bp.className =
-        "btn btn-light bg-white border text-secondary rounded-pill px-4 fw-bold flex-grow-1";
-      dc.classList.remove("d-none");
-      dp.classList.add("d-none");
-    } else {
-      bp.className = "btn btn-primary rounded-pill px-4 fw-bold flex-grow-1";
-      bc.className =
-        "btn btn-light bg-white border text-secondary rounded-pill px-4 fw-bold flex-grow-1";
-      dp.classList.remove("d-none");
-      dc.classList.add("d-none");
-    }
-    document.getElementById("inputBusca").value = "";
-    this.filtrarTabela("");
-  },
-  filtrarTabela(t) {
-    const s =
-      this.abaAtual === "cavalos"
-        ? "#listaCavalosBody tr"
-        : "#listaProprietariosMainBody tr";
-    document.querySelectorAll(s).forEach((r) => {
-      r.style.display = r.textContent.toLowerCase().includes(t.toLowerCase())
-        ? ""
-        : "none";
-    });
-  },
-  async carregarConfiguracoes() {
-    try {
-      const r = await ApiService.fetchData("/api/gestao/config");
-      if (r && r.nome_rancho) {
-        document.getElementById("brandName").textContent = r.nome_rancho;
-        document.title = r.nome_rancho;
-      }
-    } catch (e) {}
-  },
-  abrirModalConfig() {
-    this.vibrar();
-    document.getElementById("configNomeRancho").value =
-      document.getElementById("brandName").textContent;
-    this.bsModalConfig.show();
-  },
-  async salvarConfig(e) {
-    e.preventDefault();
-    const btn = document.getElementById("btnSalvarConfig");
-    this.setLoading(btn, true, "Salvar");
-    try {
-      await ApiService.putData("/api/gestao/config", {
-        nome_rancho: document.getElementById("configNomeRancho").value,
-      });
-      this.carregarConfiguracoes();
-      this.bsModalConfig.hide();
-      this.mostrarNotificacao("Salvo!");
-    } catch (e) {
-      this.mostrarNotificacao("Erro", "erro");
-    } finally {
-      this.setLoading(btn, false, "Salvar");
-    }
-  },
-  abrirModalNovoCavalo() {
-    this.vibrar();
-    document.getElementById("formCavalo").reset();
-    document.getElementById("cavaloId").value = "";
-    document.getElementById("tituloModalCavalo").textContent = "Novo Animal";
-    document.getElementById("btnExcluirCavalo").classList.add("d-none");
-    this.bsModalCavalo.show();
-  },
-  abrirModalEditar(id, n, l, p, o) {
-    this.vibrar();
-    document.getElementById("cavaloId").value = id;
-    document.getElementById("cavaloNome").value = n;
-    document.getElementById("cavaloLugar").value = l;
-    document.getElementById("cavaloProprietario").value = p;
-    document.getElementById("cavaloObs").value = o;
-    document.getElementById("tituloModalCavalo").textContent = `Editar: ${n}`;
-    document.getElementById("btnExcluirCavalo").classList.remove("d-none");
-    this.bsModalCavalo.show();
-  },
-  async salvarCavalo(e) {
-    e.preventDefault();
-    const btn = e.submitter;
-    this.setLoading(btn, true, "Salvar");
-    const body = {
-      nome: document.getElementById("cavaloNome").value,
-      lugar: document.getElementById("cavaloLugar").value,
-      proprietario_id: document.getElementById("cavaloProprietario").value,
-      observacoes: document.getElementById("cavaloObs").value,
-    };
-    const id = document.getElementById("cavaloId").value;
-    try {
-      if (id) await ApiService.putData(`/api/gestao/cavalos/${id}`, body);
-      else await ApiService.postData("/api/gestao/cavalos", body);
-      this.bsModalCavalo.hide();
-      this.carregarTabelaCavalos();
-      this.mostrarNotificacao("Ficha salva!");
-    } catch (err) {
-      this.mostrarNotificacao("Erro ao salvar.", "erro");
-    } finally {
-      this.setLoading(btn, false, "Salvar");
-    }
-  },
-  excluirCavaloAtual() {
-    const id = document.getElementById("cavaloId").value;
-    if (id) {
-      this.abrirConfirmacao("Excluir", "Apagar ficha?", async () => {
-        try {
-          await ApiService.deleteData(`/api/gestao/cavalos/${id}`);
-          this.bsModalCavalo.hide();
-          this.carregarTabelaCavalos();
-          this.mostrarNotificacao("Removido.");
-        } catch (e) {
-          this.mostrarNotificacao("Erro.", "erro");
-        }
-      });
-    }
-  },
-
-  // --- CLIENTES (ATUALIZADO COM TOTAL) ---
-  async carregarTabelaProprietarios() {
-    try {
-      const props = await ApiService.fetchData("/api/gestao/proprietarios");
-      const cavalos = (await ApiService.fetchData("/api/gestao/cavalos")) || [];
-      const tbody = document.getElementById("listaProprietariosMainBody");
-      tbody.innerHTML = "";
-      document.getElementById("totalProprietarios").textContent = props
-        ? props.length
-        : 0;
-
-      if (!props || props.length === 0) {
-        tbody.innerHTML =
-          '<tr><td colspan="3" class="text-center text-muted p-4">Nenhum cliente.</td></tr>';
-        return;
-      }
-
-      // Preparação dos dados financeiros
-      const hoje = new Date();
-      const mesAtual = hoje.getMonth() + 1;
-      const anoAtual = hoje.getFullYear();
-
-      // Mapeia e gera as linhas
-      const linhas = await Promise.all(
-        props.map(async (p) => {
-          const meusCavalos = cavalos.filter((c) => c.proprietario_id == p.id);
-          const txt =
-            meusCavalos.length === 1
-              ? "1 animal"
-              : `${meusCavalos.length} animais`;
-
-          // --- CÁLCULO FINANCEIRO ---
-          let totalDivida = 0;
-
-          // 1. Soma dos custos de cada cavalo
-          for (const cavalo of meusCavalos) {
-            const resumo = await ApiService.fetchData(
-              `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
-            );
-            // Soma tudo que não foi pago
-            if (resumo.custos) {
-              resumo.custos.forEach((custo) => {
-                if (!custo.pago) totalDivida += parseFloat(custo.valor);
-              });
-            }
-          }
-
-          // 2. Soma dos custos diretos (avulsos)
-          const diretos = await ApiService.fetchData(
-            `/api/gestao/custos/diretos/${p.id}?mes=${mesAtual}&ano=${anoAtual}`,
-          );
-          if (diretos) {
-            diretos.forEach((custo) => {
-              if (!custo.pago) totalDivida += parseFloat(custo.valor);
-            });
-          }
-
-          const totalFormatado = totalDivida.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          });
-          const corValor = totalDivida > 0 ? "text-danger" : "text-success";
-          const txtValor = totalDivida > 0 ? totalFormatado : "Pago";
-
-          let avatarHtml = `<div class="avatar-circle avatar-dono">${p.nome.charAt(0).toUpperCase()}</div>`;
-
-          return `
-            <tr>
-            <td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
-                <div class="d-flex align-items-center gap-2">
-                    ${avatarHtml}
-                    <div>
-                        <div class="fw-bold text-dark">${p.nome}</div>
-                        <div class="text-primary small fw-bold mt-1"><i class="fa-solid fa-horse-head me-1"></i> ${txt}</div>
-                    </div>
-                </div>
-            </td>
-            <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td>
-            
-            <td class="text-end">
-                <div class="d-flex align-items-center justify-content-end gap-2">
-                    <span class="${corValor} fw-bold me-2" style="font-size: 1rem;">${txtValor}</span>
-                    <button class="btn-action icon-brown me-1 btn-edit" title="Editar" onclick="event.stopPropagation(); RanchoApp.abrirModalGerenciarProprietarios(${p.id}, '${p.nome}', '${p.telefone}')">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                </div>
-            </td>
-            </tr>`;
-        }),
-      );
-
-      // Injeta todas as linhas
-      tbody.innerHTML = linhas.join("");
-    } catch (err) {
-      console.error("Erro prop", err);
-    }
-  },
-
-  abrirModalGerenciarProprietarios(id = null, nome = "", telefone = "") {
-    this.vibrar();
-    document.getElementById("formProprietario").reset();
-    if (id) {
-      document.getElementById("propId").value = id;
-      document.getElementById("propNome").value = nome;
-      document.getElementById("propTelefone").value = telefone;
-      document.getElementById("tituloModalProp").textContent = "Editar";
-      document.getElementById("btnExcluirProp").classList.remove("d-none");
-    } else {
-      document.getElementById("propId").value = "";
-      document.getElementById("tituloModalProp").textContent = "Novo Dono";
-      document.getElementById("btnExcluirProp").classList.add("d-none");
-    }
-    this.bsModalProp.show();
-  },
-  async salvarProprietario(e) {
-    e.preventDefault();
-    const btn = e.submitter;
-    this.setLoading(btn, true, "Salvar");
-    const id = document.getElementById("propId").value;
-    const body = {
-      nome: document.getElementById("propNome").value,
-      telefone: document.getElementById("propTelefone").value,
-    };
-    try {
-      if (id) await ApiService.putData(`/api/gestao/proprietarios/${id}`, body);
-      else await ApiService.postData("/api/gestao/proprietarios", body);
-      this.bsModalProp.hide();
-      this.carregarTabelaProprietarios();
-      this.carregarProprietariosSelect();
-      this.mostrarNotificacao("Salvo!");
-    } catch (err) {
-      this.mostrarNotificacao("Erro", "erro");
-    } finally {
-      this.setLoading(btn, false, "Salvar");
-    }
-  },
-  excluirProprietarioAtual() {
-    const id = document.getElementById("propId").value;
-    if (id) {
-      this.abrirConfirmacao("Excluir", "Apagar cliente?", async () => {
-        try {
-          await ApiService.deleteData(`/api/gestao/proprietarios/${id}`);
-          this.bsModalProp.hide();
-          this.carregarTabelaProprietarios();
-          this.carregarProprietariosSelect();
-          this.mostrarNotificacao("Excluído!");
-        } catch (err) {
-          this.mostrarNotificacao("Erro", "erro");
-        }
-      });
-    }
-  },
-  async carregarProprietariosSelect() {
-    try {
-      const props = await ApiService.fetchData("/api/gestao/proprietarios");
-      const select = document.getElementById("cavaloProprietario");
-      select.innerHTML = '<option value="">Selecione...</option>';
-      if (props)
-        props.forEach(
-          (p) =>
-            (select.innerHTML += `<option value="${p.id}">${p.nome}</option>`),
-        );
-    } catch (e) {}
-  },
+  // --- CUSTOS & FINANCEIRO ---
   async abrirFinanceiro(cavaloId, nomeCavalo) {
     this.vibrar();
     document.getElementById("finCavaloId").value = cavaloId;
@@ -685,6 +585,7 @@ const RanchoApp = {
     this.bsModalFin.show();
     this.carregarListaCustos(cavaloId);
   },
+
   async carregarListaCustos(cavaloId) {
     const mes = this.dataFiltro.getMonth() + 1;
     const ano = this.dataFiltro.getFullYear();
@@ -694,6 +595,7 @@ const RanchoApp = {
     const tbody = document.getElementById("tabelaCustosBody");
     tbody.innerHTML = "";
     this.renderizarGrafico(dados && dados.custos ? dados.custos : []);
+
     if (dados && dados.custos && dados.custos.length > 0) {
       dados.custos.forEach((c) => {
         const dia = new Date(c.data_despesa).getDate();
@@ -706,48 +608,27 @@ const RanchoApp = {
           currency: "BRL",
         });
 
-        let botoesAcao = "";
+        let acoes = "";
         if (c.is_mensalidade) {
-          if (c.pago) {
-            botoesAcao = `<span class="badge bg-success border"><i class="fa-solid fa-check me-1"></i> PAGO</span>`;
-          } else {
-            botoesAcao = `<span class="badge bg-danger border"><i class="fa-solid fa-clock me-1"></i> PENDENTE</span>`;
-          }
+          acoes = c.pago
+            ? '<span class="badge-status bg-soft-success"><i class="fa-solid fa-check"></i></span>'
+            : '<span class="badge-status bg-soft-danger"><i class="fa-solid fa-clock"></i></span>';
         } else {
-          botoesAcao = `
-            <button class="btn-action icon-brown me-1" onclick="RanchoApp.prepararEdicaoCusto(${c.id}, '${c.descricao.replace(/'/g, "\\'")}', '${c.categoria}', ${c.valor})"><i class="fa-solid fa-pen"></i></button>
-            <button class="btn-action icon-red" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash"></i></button>
-            `;
+          acoes = `<button class="btn-action icon-brown shadow-sm me-1" style="width:32px; height:32px" onclick="RanchoApp.prepararEdicaoCusto(${c.id}, '${c.descricao.replace(/'/g, "\\'")}', '${c.categoria}', ${c.valor})"><i class="fa-solid fa-pen" style="font-size:0.8rem"></i></button><button class="btn-action icon-red shadow-sm" style="width:32px; height:32px" onclick="RanchoApp.excluirCusto(${c.id}, ${cavaloId})"><i class="fa-solid fa-trash" style="font-size:0.8rem"></i></button>`;
         }
 
-        tbody.innerHTML += `
-            <tr>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <div class="date-badge"><span class="date-day">${dia}</span><span>${mesNome}</span></div>
-                        <div>
-                            <div class="fw-bold text-dark">${c.descricao}</div>
-                            <div class="text-muted small">${c.categoria}</div>
-                        </div>
-                    </div>
-                </td>
-                <td class="text-end">
-                    <div class="d-flex align-items-center justify-content-end gap-1">
-                        <span class="text-danger fw-bold me-2">${valorF}</span>
-                        ${botoesAcao}
-                    </div>
-                </td>
-            </tr>`;
+        tbody.innerHTML += `<tr class="border-bottom"><td class="py-3"><div class="d-flex align-items-center"><div class="date-badge me-3 text-center rounded-3 bg-light p-1 border" style="min-width: 45px;"><div class="fw-bold fs-5 lh-1">${dia}</div><div class="small text-muted" style="font-size: 0.65rem;">${mesNome}</div></div><div><div class="fw-bold text-dark text-truncate" style="max-width: 160px;">${c.descricao}</div><div class="text-muted small">${c.categoria}</div></div></div></td><td class="text-end py-3"><div class="fw-bold text-danger mb-1">${valorF}</div><div class="d-flex justify-content-end">${acoes}</div></td></tr>`;
       });
       document.getElementById("totalGastoModal").textContent = parseFloat(
         dados.total_gasto,
       ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     } else {
       tbody.innerHTML =
-        '<tr><td colspan="2" class="text-center text-muted p-3">Nenhum custo.</td></tr>';
+        '<tr><td colspan="2" class="text-center text-muted py-5">Nenhum custo neste mês.</td></tr>';
       document.getElementById("totalGastoModal").textContent = "R$ 0,00";
     }
   },
+
   prepararEdicaoCusto(id, desc, cat, valor) {
     this.vibrar();
     document.getElementById("custoIdEdit").value = id;
@@ -761,6 +642,7 @@ const RanchoApp = {
     btn.classList.replace("btn-success", "btn-warning");
     document.getElementById("custoDesc").focus();
   },
+
   async salvarCusto(e) {
     e.preventDefault();
     const btn = e.submitter;
@@ -820,6 +702,7 @@ const RanchoApp = {
       );
     }
   },
+
   excluirCusto(id, cavaloId) {
     this.abrirConfirmacao("Excluir", "Apagar custo?", async () => {
       try {
@@ -832,17 +715,20 @@ const RanchoApp = {
       }
     });
   },
+
   mudarMes(d) {
     this.vibrar(20);
     this.dataFiltro.setMonth(this.dataFiltro.getMonth() + d);
     this.atualizarLabelMes();
     this.carregarListaCustos(document.getElementById("finCavaloId").value);
   },
+
   atualizarLabelMes() {
     document.getElementById("labelMesAno").textContent = this.dataFiltro
       .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
       .toUpperCase();
   },
+
   renderizarGrafico(custos) {
     const ctx = document.getElementById("graficoFinanceiro");
     const area = document.getElementById("areaGrafico");
@@ -889,6 +775,150 @@ const RanchoApp = {
       },
     });
   },
+
+  // --- DETALHES DO PROPRIETÁRIO ---
+  async abrirDetalhesProprietario(id, nome, telefone) {
+    this.vibrar();
+    this.proprietarioAtualId = id;
+    document.getElementById("tituloDetalhesProp").textContent = nome;
+    document.getElementById("subtituloDetalhesProp").textContent =
+      telefone || "Sem telefone";
+    document.getElementById("formCustoProp").reset();
+    document.getElementById("custoPropIdEdit").value = "";
+    document.getElementById("btnSalvarCustoProp").innerHTML =
+      '<i class="fa-solid fa-plus"></i>';
+    document
+      .getElementById("btnSalvarCustoProp")
+      .classList.replace("btn-warning", "btn-success");
+    this.dataFiltroProp = new Date();
+    this.atualizarLabelMesProp();
+    this.bsModalDetalhesProp.show();
+    this.carregarFaturaProprietario(id, nome, telefone);
+  },
+
+  mudarMesProp(d) {
+    this.vibrar(20);
+    this.dataFiltroProp.setMonth(this.dataFiltroProp.getMonth() + d);
+    this.atualizarLabelMesProp();
+    this.carregarFaturaProprietario(
+      this.proprietarioAtualId,
+      document.getElementById("tituloDetalhesProp").textContent,
+      document.getElementById("subtituloDetalhesProp").textContent,
+    );
+  },
+
+  atualizarLabelMesProp() {
+    document.getElementById("labelMesAnoProp").textContent = this.dataFiltroProp
+      .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+      .toUpperCase();
+  },
+
+  async carregarFaturaProprietario(propId, nomeProp, telefoneProp) {
+    const tbody = document.getElementById("listaCavalosPropBody");
+    tbody.innerHTML =
+      '<tr><td colspan="2" class="text-center p-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+    try {
+      const mes = this.dataFiltroProp.getMonth() + 1;
+      const ano = this.dataFiltroProp.getFullYear();
+
+      const allCavalos = await ApiService.fetchData("/api/gestao/cavalos");
+      const meusCavalos = allCavalos.filter((c) => c.proprietario_id == propId);
+      const pCavalos = meusCavalos.map(async (c) => {
+        const d = await ApiService.fetchData(
+          `/api/gestao/custos/resumo/${c.id}?mes=${mes}&ano=${ano}`,
+        );
+        return d.custos
+          ? d.custos.map((i) => ({
+              tipo: "cavalo",
+              nome: `${c.nome} - ${i.descricao}`,
+              custo: parseFloat(i.valor),
+              id: i.id,
+              pago: i.pago,
+            }))
+          : [];
+      });
+      const diretos = await ApiService.fetchData(
+        `/api/gestao/custos/diretos/${propId}?mes=${mes}&ano=${ano}`,
+      );
+      const itensDiretos = diretos.map((c) => ({
+        tipo: "direto",
+        nome: c.descricao,
+        custo: parseFloat(c.valor),
+        id: c.id,
+        pago: c.pago,
+      }));
+      const res = await Promise.all(pCavalos);
+      const lista = [...res.flat(), ...itensDiretos];
+
+      if (!lista.length) {
+        tbody.innerHTML =
+          '<tr><td colspan="2" class="text-center text-muted py-5"><i class="fa-regular fa-folder-open display-4 opacity-25 mb-2"></i><br>Fatura zerada.</td></tr>';
+        document.getElementById("totalGeralProp").textContent = "R$ 0,00";
+        document.getElementById("acoesFatura").classList.add("d-none");
+        return;
+      }
+      document.getElementById("acoesFatura").classList.remove("d-none");
+
+      let pendente = 0;
+      let html = "";
+      lista.forEach((item) => {
+        const valorF = item.custo.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+        let acao = "";
+        let iconeStatus = item.pago
+          ? '<i class="fa-solid fa-check-circle text-success me-2"></i>'
+          : '<i class="fa-regular fa-circle text-muted me-2"></i>';
+
+        if (!item.pago) {
+          pendente += item.custo;
+          if (item.tipo === "direto")
+            acao = `<button class="btn btn-sm text-danger ms-2 p-0" onclick="RanchoApp.excluirCustoDireto(${item.id})"><i class="fa-solid fa-times"></i></button>`;
+        }
+
+        html += `<tr class="border-bottom"><td class="py-3 text-start"><div class="${item.pago ? "text-success text-decoration-line-through opacity-75" : "text-dark fw-bold"}">${iconeStatus}${item.nome}</div></td><td class="text-end py-3"><span class="${item.pago ? "text-success opacity-75" : "text-dark fw-bold"}">${valorF}</span>${acao}</td></tr>`;
+      });
+      tbody.innerHTML = html;
+
+      const btnBaixar = document.getElementById("btnBaixarFatura");
+      const btnZap = document.getElementById("btnZapCobranca");
+
+      if (pendente > 0) {
+        document.getElementById("totalGeralProp").innerHTML =
+          `<span class="text-danger">${pendente.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>`;
+        btnBaixar.disabled = false;
+        btnBaixar.innerHTML =
+          '<i class="fa-solid fa-check-circle me-2"></i> Confirmar Pagamento';
+        btnBaixar.className =
+          "btn btn-primary py-3 rounded-4 fw-bold shadow-sm";
+      } else {
+        document.getElementById("totalGeralProp").innerHTML =
+          '<span class="text-success"><i class="fa-solid fa-check-double me-2"></i>Pago</span>';
+        btnBaixar.disabled = true;
+        btnBaixar.className =
+          "btn btn-success py-3 rounded-4 fw-bold shadow-sm opacity-50";
+        btnBaixar.innerHTML = "Fatura Quitada";
+      }
+
+      const cleanTel = telefoneProp.replace(/\D/g, "");
+      const novoBtnZap = btnZap.cloneNode(true);
+      btnZap.parentNode.replaceChild(novoBtnZap, btnZap);
+      novoBtnZap.onclick = () => {
+        const totalTexto =
+          pendente > 0
+            ? pendente.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })
+            : "QUITADO";
+        this.compartilharFaturaZap(propId, nomeProp, totalTexto, cleanTel);
+      };
+    } catch (err) {
+      console.error(err);
+    }
+  },
+
   prepararEdicaoCustoProp(id, desc, valor) {
     this.vibrar();
     document.getElementById("custoPropIdEdit").value = id;
@@ -901,6 +931,7 @@ const RanchoApp = {
     btn.classList.replace("btn-success", "btn-warning");
     document.getElementById("custoPropDesc").focus();
   },
+
   async salvarCustoProp(e) {
     e.preventDefault();
     const btn = e.submitter;
@@ -959,166 +990,7 @@ const RanchoApp = {
       );
     }
   },
-  async abrirDetalhesProprietario(id, nome, telefone) {
-    this.vibrar();
-    this.proprietarioAtualId = id;
-    document.getElementById("tituloDetalhesProp").textContent = nome;
-    document.getElementById("subtituloDetalhesProp").textContent =
-      telefone || "Sem telefone";
-    document.getElementById("formCustoProp").reset();
-    document.getElementById("custoPropIdEdit").value = "";
-    document.getElementById("btnSalvarCustoProp").innerHTML =
-      '<i class="fa-solid fa-plus"></i>';
-    document
-      .getElementById("btnSalvarCustoProp")
-      .classList.replace("btn-warning", "btn-success");
-    this.dataFiltroProp = new Date();
-    this.atualizarLabelMesProp();
-    this.bsModalDetalhesProp.show();
-    this.carregarFaturaProprietario(id, nome, telefone);
-  },
-  mudarMesProp(d) {
-    this.vibrar(20);
-    this.dataFiltroProp.setMonth(this.dataFiltroProp.getMonth() + d);
-    this.atualizarLabelMesProp();
-    this.carregarFaturaProprietario(
-      this.proprietarioAtualId,
-      document.getElementById("tituloDetalhesProp").textContent,
-      document.getElementById("subtituloDetalhesProp").textContent,
-    );
-  },
-  atualizarLabelMesProp() {
-    document.getElementById("labelMesAnoProp").textContent = this.dataFiltroProp
-      .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
-      .toUpperCase();
-  },
-  async carregarFaturaProprietario(propId, nomeProp, telefoneProp) {
-    const tbody = document.getElementById("listaCavalosPropBody");
-    tbody.innerHTML =
-      '<tr><td colspan="2" class="text-center p-3">Carregando...</td></tr>';
-    try {
-      const mes = this.dataFiltroProp.getMonth() + 1;
-      const ano = this.dataFiltroProp.getFullYear();
-      const allCavalos = await ApiService.fetchData("/api/gestao/cavalos");
-      const meusCavalos = allCavalos.filter((c) => c.proprietario_id == propId);
-      const pCavalos = meusCavalos.map(async (c) => {
-        const d = await ApiService.fetchData(
-          `/api/gestao/custos/resumo/${c.id}?mes=${mes}&ano=${ano}`,
-        );
-        return d.custos
-          ? d.custos.map((i) => ({
-              tipo: "cavalo",
-              nome: `${c.nome} - ${i.descricao}`,
-              custo: parseFloat(i.valor),
-              id: i.id,
-              pago: i.pago,
-              is_mensalidade: i.is_mensalidade,
-            }))
-          : [];
-      });
-      const diretos = await ApiService.fetchData(
-        `/api/gestao/custos/diretos/${propId}?mes=${mes}&ano=${ano}`,
-      );
-      const itensDiretos = diretos.map((c) => ({
-        tipo: "direto",
-        nome: c.descricao,
-        custo: parseFloat(c.valor),
-        id: c.id,
-        pago: c.pago,
-        is_mensalidade: false,
-      }));
-      const res = await Promise.all(pCavalos);
-      const lista = [...res.flat(), ...itensDiretos];
-      if (!lista.length) {
-        tbody.innerHTML =
-          '<tr><td colspan="2" class="text-center text-muted p-4">Nenhum custo.</td></tr>';
-        document.getElementById("totalGeralProp").textContent = "R$ 0,00";
-        document.getElementById("btnBaixarFatura").classList.add("d-none");
-        return;
-      }
-      let pendente = 0;
-      let html = "";
-      lista.forEach((item) => {
-        const valorF = item.custo.toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        });
-        let actions = "";
 
-        if (item.tipo === "direto" && !item.pago)
-          actions += `<button class="btn-action icon-brown ms-1" onclick="RanchoApp.prepararEdicaoCustoProp(${item.id}, '${item.nome.replace(/'/g, "\\'")}', ${item.custo})"><i class="fa-solid fa-pen"></i></button>`;
-
-        let statusIcon = "";
-        if (item.pago) {
-          statusIcon =
-            '<i class="fa-solid fa-check-circle text-success me-2"></i>';
-        } else {
-          pendente += item.custo;
-          if (item.tipo === "direto") {
-            actions += `<button class="btn-action icon-red ms-1" onclick="RanchoApp.excluirCustoDireto(${item.id})"><i class="fa-solid fa-trash"></i></button>`;
-          }
-        }
-
-        html += `<tr><td><div class="${item.pago ? "text-success fw-bold" : "text-dark"} d-flex align-items-center">${statusIcon}${item.nome}</div></td><td class="text-end"><span>${valorF}</span>${actions}</td></tr>`;
-      });
-      tbody.innerHTML = html;
-      if (pendente > 0) {
-        document.getElementById("totalGeralProp").innerHTML =
-          `<span class="text-danger">${pendente.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>`;
-        document.getElementById("btnBaixarFatura").classList.remove("d-none");
-      } else {
-        document.getElementById("totalGeralProp").innerHTML =
-          '<span class="text-success">Pago</span>';
-        document.getElementById("btnBaixarFatura").classList.add("d-none");
-      }
-      const btnZap = document.getElementById("btnZapCobranca");
-      const cleanTel = telefoneProp.replace(/\D/g, "");
-      const novoBtnZap = btnZap.cloneNode(true);
-      btnZap.parentNode.replaceChild(novoBtnZap, btnZap);
-      novoBtnZap.onclick = async () => {
-        try {
-          const totalTexto =
-            pendente > 0
-              ? pendente.toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })
-              : "QUITADO";
-          await this.compartilharFaturaZap(
-            propId,
-            nomeProp,
-            totalTexto,
-            cleanTel,
-          );
-        } catch (e) {
-          window.open(`https://wa.me/55${cleanTel}`, "_blank");
-        }
-      };
-    } catch (err) {}
-  },
-  baixarFaturaMes() {
-    this.abrirConfirmacao(
-      "Baixar Fatura",
-      "Confirmar recebimento?",
-      async () => {
-        try {
-          await ApiService.putData("/api/gestao/custos/baixar-mes", {
-            proprietario_id: this.proprietarioAtualId,
-            mes: this.dataFiltroProp.getMonth() + 1,
-            ano: this.dataFiltroProp.getFullYear(),
-          });
-          this.carregarFaturaProprietario(
-            this.proprietarioAtualId,
-            document.getElementById("tituloDetalhesProp").textContent,
-            document.getElementById("subtituloDetalhesProp").textContent,
-          );
-          this.mostrarNotificacao("Baixada!");
-        } catch (err) {
-          this.mostrarNotificacao("Erro", "erro");
-        }
-      },
-    );
-  },
   excluirCustoDireto(id) {
     this.abrirConfirmacao("Excluir", "Apagar custo?", async () => {
       try {
@@ -1135,6 +1007,26 @@ const RanchoApp = {
     });
   },
 
+  async baixarFaturaMes() {
+    this.abrirConfirmacao("Baixar", "Confirmar?", async () => {
+      try {
+        await ApiService.putData("/api/gestao/custos/baixar-mes", {
+          proprietario_id: this.proprietarioAtualId,
+          mes: this.dataFiltroProp.getMonth() + 1,
+          ano: this.dataFiltroProp.getFullYear(),
+        });
+        this.carregarFaturaProprietario(
+          this.proprietarioAtualId,
+          document.getElementById("tituloDetalhesProp").textContent,
+          document.getElementById("subtituloDetalhesProp").textContent,
+        );
+        this.mostrarNotificacao("Baixada!");
+      } catch (err) {
+        this.mostrarNotificacao("Erro", "erro");
+      }
+    });
+  },
+
   async compartilharFaturaZap(propId, nomeProp, totalTexto, telefone) {
     this.mostrarNotificacao("Gerando texto...", "sucesso");
     const periodo = document.getElementById("labelMesAnoProp").textContent;
@@ -1144,33 +1036,24 @@ const RanchoApp = {
     let msg = `Ola *${nomeProp}*.\nSegue o fechamento de *${periodo}*:\n\n`;
 
     try {
-      // 1. Busca Cavalos
       const allCavalos = await ApiService.fetchData("/api/gestao/cavalos");
       const meusCavalos = allCavalos.filter((c) => c.proprietario_id == propId);
 
-      // 2. Agrupa total por cavalo
       for (const cavalo of meusCavalos) {
         const dados = await ApiService.fetchData(
           `/api/gestao/custos/resumo/${cavalo.id}?mes=${mes}&ano=${ano}`,
         );
-        let subtotalCavalo = 0;
-        if (dados.custos && dados.custos.length > 0) {
-          dados.custos.forEach((c) => (subtotalCavalo += parseFloat(c.valor)));
-        }
-        if (subtotalCavalo > 0) {
-          const valF = subtotalCavalo.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          });
-          msg += `*${cavalo.nome}*: ${valF}\n`;
-        }
+        let subtotal = 0;
+        if (dados.custos)
+          dados.custos.forEach((c) => (subtotal += parseFloat(c.valor)));
+        if (subtotal > 0)
+          msg += `*${cavalo.nome}*: ${subtotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
       }
 
-      // 3. Lista despesas avulsas individualmente (para explicar o que são)
       const diretos = await ApiService.fetchData(
         `/api/gestao/custos/diretos/${propId}?mes=${mes}&ano=${ano}`,
       );
-      if (diretos && diretos.length > 0) {
+      if (diretos) {
         diretos.forEach((c) => {
           const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
             style: "currency",
@@ -1191,6 +1074,43 @@ const RanchoApp = {
     }
   },
 
+  // --- CONFIGURAÇÕES ---
+  abrirModalConfig() {
+    this.vibrar();
+    document.getElementById("configNomeRancho").value =
+      document.getElementById("brandName").textContent;
+    this.bsModalConfig.show();
+  },
+
+  async salvarConfig(e) {
+    e.preventDefault();
+    const btn = document.getElementById("btnSalvarConfig");
+    this.setLoading(btn, true, "Salvar");
+    try {
+      await ApiService.putData("/api/gestao/config", {
+        nome_rancho: document.getElementById("configNomeRancho").value,
+      });
+      this.carregarConfiguracoes();
+      this.bsModalConfig.hide();
+      this.mostrarNotificacao("Salvo!");
+    } catch (e) {
+      this.mostrarNotificacao("Erro", "erro");
+    } finally {
+      this.setLoading(btn, false, "Salvar");
+    }
+  },
+
+  async carregarConfiguracoes() {
+    try {
+      const r = await ApiService.fetchData("/api/gestao/config");
+      if (r && r.nome_rancho) {
+        document.getElementById("brandName").textContent = r.nome_rancho;
+        document.title = r.nome_rancho;
+      }
+    } catch (e) {}
+  },
+
+  // --- PDF ---
   async _gerarDocPDFDados(propId, nomeProp, periodo, mes, ano) {
     if (!window.jspdf) return null;
     const { jsPDF } = window.jspdf;
@@ -1265,6 +1185,7 @@ const RanchoApp = {
     );
     return { doc };
   },
+
   async gerarPDFProprietario() {
     const nome = document.getElementById("tituloDetalhesProp").textContent;
     const periodo = document.getElementById("labelMesAnoProp").textContent;
@@ -1280,6 +1201,7 @@ const RanchoApp = {
     if (res) res.doc.save(`Fatura_${nome.trim()}.pdf`);
     else this.mostrarNotificacao("Sem dados.", "erro");
   },
+
   async gerarPDF() {
     if (!window.jspdf) {
       this.mostrarNotificacao("Carregando PDF...", "erro");
@@ -1349,6 +1271,62 @@ const RanchoApp = {
       { align: "right" },
     );
     doc.save(`${nomeCavalo.trim()}_${periodo.replace(" ", "_")}.pdf`);
+  },
+
+  // --- FUNÇÕES UTILITÁRIAS ---
+  vibrar(ms = 50) {
+    if (navigator.vibrate) navigator.vibrate(ms);
+  },
+  mascaraTelefone(e) {
+    let v = e.target.value
+      .replace(/\D/g, "")
+      .replace(/^(\d{2})(\d)/g, "($1) $2")
+      .replace(/(\d)(\d{4})$/, "$1-$2");
+    e.target.value = v;
+  },
+  mascaraMoeda(e) {
+    let v = e.target.value.replace(/\D/g, "");
+    v = (Number(v) / 100).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    e.target.value = v;
+  },
+  limparMoeda(v) {
+    if (!v) return 0;
+    return parseFloat(v.replace(/[^\d,]/g, "").replace(",", "."));
+  },
+  setLoading(btn, l, t) {
+    if (l) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${t}`;
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = t;
+    }
+  },
+  mostrarNotificacao(msg, tipo = "sucesso") {
+    const tm = document.getElementById("toastMessage");
+    const te = document.getElementById("liveToast");
+    tm.innerHTML = msg;
+    te.className = `toast align-items-center border-0 ${tipo === "erro" ? "text-bg-danger" : "text-bg-success"}`;
+    if (this.bsToast) this.bsToast.show();
+    if (tipo === "erro") this.vibrar([50, 50, 50]);
+    else this.vibrar(100);
+  },
+  abrirConfirmacao(t, m, cb) {
+    this.vibrar();
+    document.getElementById("tituloConfirmacao").textContent = t;
+    document.getElementById("msgConfirmacao").textContent = m;
+    const btn = document.getElementById("btnConfirmarAcao");
+    const nb = btn.cloneNode(true);
+    btn.parentNode.replaceChild(nb, btn);
+    nb.onclick = () => {
+      this.bsModalConfirm.hide();
+      this.vibrar();
+      cb();
+    };
+    this.bsModalConfirm.show();
   },
 };
 

@@ -1,62 +1,55 @@
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
-
 :root {
-  /* Variáveis Padrão (Modo Claro) */
-  --cor-primaria: #8b4513;
-  --cor-secundaria: #d2691e;
-  --cor-fundo: #f5f5dc;
-  --cor-card: #ffffff;
-  --cor-texto: #3e2723;
-  --cor-bordas: #ddd;
-  --cor-input-bg: #fff;
-  --ouro: #b8860b;
-  --vermelho-terra: #a52a2a;
-}
-
-/* Variáveis do Modo Escuro */
-body.dark-mode {
-  --cor-primaria: #a16b4a; /* Marrom mais claro para contraste */
-  --cor-secundaria: #e68a45;
-  --cor-fundo: #121212;
-  --cor-card: #1e1e1e;
-  --cor-texto: #e0e0e0;
-  --cor-bordas: #444;
-  --cor-input-bg: #2d2d2d;
+  --cor-primaria: #8b4513; /* SaddleBrown */
+  --cor-secundaria: #a0522d; /* Sienna */
+  --cor-fundo: #f8f9fa; /* Cinza muito claro */
+  --cor-texto: #2c3e50;
+  --cor-borda: #e9ecef;
 }
 
 body {
-  font-family: "Poppins", sans-serif;
   background-color: var(--cor-fundo);
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
   color: var(--cor-texto);
-  padding-bottom: 100px;
-  overflow-x: hidden;
-  transition:
-    background-color 0.3s,
-    color 0.3s;
+  padding-bottom: 90px; /* Espaço para a barra inferior no mobile */
 }
 
-/* Navbar */
+/* --- Tipografia e Utilitários --- */
+.text-brown {
+  color: var(--cor-primaria) !important;
+}
+.fw-bold {
+  font-weight: 600 !important;
+}
+.small-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #6c757d;
+  font-weight: 700;
+}
+
+/* --- Navbar Superior --- */
 .navbar {
-  background-color: #8b4513 !important; /* Mantém a navbar marrom fixa */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  padding: 0.8rem 1rem;
-}
-.navbar-brand {
-  color: #fff !important;
-  font-size: 1.3rem;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(
+    135deg,
+    var(--cor-primaria),
+    var(--cor-secundaria)
+  );
+  box-shadow: 0 4px 15px rgba(139, 69, 19, 0.2);
 }
 
-/* Resumo Horizontal */
+/* --- Cards de Resumo (Topo) --- */
 .scrolling-wrapper {
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto;
+  gap: 15px;
+  padding: 5px 2px 15px 2px;
   -webkit-overflow-scrolling: touch;
-  gap: 12px;
-  padding: 10px 5px;
-  margin: 0 -12px;
-  padding-left: 12px;
 }
 .scrolling-wrapper::-webkit-scrollbar {
   display: none;
@@ -64,348 +57,274 @@ body {
 
 .card-resumo-mini {
   flex: 0 0 auto;
-  width: 150px;
-  background: var(--cor-card);
-  border-radius: 12px;
+  width: 140px;
+  background: white;
+  border-radius: 16px;
   padding: 15px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--cor-bordas);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  color: var(--cor-texto);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s;
+}
+.card-resumo-mini:active {
+  transform: scale(0.97);
 }
 
-/* Tabelas */
-.table-container {
-  margin-top: 15px;
+/* --- Tabelas e Listas --- */
+.nome-clicavel {
+  cursor: pointer;
+}
+.nome-clicavel:active {
+  opacity: 0.7;
 }
 
-/* HEADER DA TABELA */
-.table thead th {
-  border: none;
-  font-size: 0.75rem;
-  color: var(--cor-primaria) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  opacity: 0.8;
-}
-
-.table {
-  border-collapse: separate !important;
-  border-spacing: 0 12px !important;
-  --bs-table-bg: transparent; /* Remove fundo padrão do bootstrap */
-  --bs-table-color: var(--cor-texto);
-}
-
-.table tbody tr {
-  background-color: var(--cor-card);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border-radius: 12px;
-}
-
-.table td {
-  border: none;
-  vertical-align: middle;
-  padding: 15px;
-  color: var(--cor-texto);
-}
-
-/* Ajustes Dark Mode Específicos para Textos */
-body.dark-mode .text-dark {
-  color: #e0e0e0 !important;
-}
-body.dark-mode .text-muted {
-  color: #aaa !important;
-}
-body.dark-mode .bg-white {
-  background-color: var(--cor-card) !important;
-}
-body.dark-mode .modal-content {
-  background-color: var(--cor-card);
-  color: var(--cor-texto);
-}
-body.dark-mode .modal-header {
-  border-bottom-color: var(--cor-bordas);
-}
-body.dark-mode .form-control,
-body.dark-mode .form-select {
-  background-color: var(--cor-input-bg);
-  border-color: var(--cor-bordas);
-  color: var(--cor-texto);
-}
-body.dark-mode .input-group-text {
-  background-color: var(--cor-input-bg) !important;
-  border: none;
-}
-body.dark-mode .form-control::placeholder {
-  color: #888;
-}
-
-/* Avatares */
 .avatar-circle {
-  width: 50px;
-  height: 50px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 1.2rem;
-  margin-right: 15px;
+  font-weight: bold;
+  color: white;
+  font-size: 1.1rem;
   flex-shrink: 0;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 .avatar-cavalo {
-  background-color: #fff3e0;
-  color: #8b4513; /* Força cor fixa para contraste com fundo claro */
+  background: linear-gradient(135deg, #d2691e, #8b4513);
 }
 .avatar-dono {
-  background-color: #efebe9;
-  color: #d2691e; /* Força cor fixa */
+  background: linear-gradient(135deg, #6c757d, #495057);
 }
 
-/* Badges e Botões */
-.date-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: #f1f8e9;
-  color: #33691e;
-  border-radius: 10px;
-  width: 45px;
-  height: 45px;
-  font-size: 0.75rem;
-  font-weight: bold;
-  margin-right: 15px;
-}
-body.dark-mode .date-badge {
-  background-color: #2e3a23;
-  color: #aecd98;
-}
-
+/* Botões de Ação Redondos */
 .btn-action {
   width: 38px;
   height: 38px;
-  border-radius: 10px;
-  background: transparent;
+  border-radius: 50%;
   border: none;
-  font-size: 1.1rem;
-  margin-left: 5px;
-  transition: 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  background: #f8f9fa;
 }
 .btn-action:active {
   transform: scale(0.9);
 }
 .icon-brown {
   color: var(--cor-primaria);
-}
-.icon-gold {
-  color: var(--ouro);
+  background-color: rgba(139, 69, 19, 0.1);
 }
 .icon-red {
-  color: var(--vermelho-terra);
+  color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+.icon-gold {
+  color: #d4af37;
+  background-color: rgba(212, 175, 55, 0.1);
 }
 
-/* FAB */
+/* --- Mobile Cards (Transformação da Tabela) --- */
+@media (max-width: 768px) {
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tr {
+    background: white;
+    margin-bottom: 12px;
+    border-radius: 16px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    padding: 12px;
+    position: relative;
+  }
+
+  .table td {
+    padding: 4px 0;
+    border: none !important;
+    text-align: left;
+  }
+
+  .table td:last-child {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0 !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .text-end {
+    text-align: left !important;
+  }
+}
+
+/* --- Floating Action Button (Desktop) --- */
 .fab-container {
   position: fixed;
-  bottom: 25px;
-  right: 25px;
+  bottom: 30px;
+  right: 30px;
   z-index: 1000;
 }
 .fab-main {
-  width: 65px;
-  height: 65px;
-  background-color: #8b4513; /* Mantém cor fixa */
-  color: white;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
+  background-color: var(--cor-primaria);
+  color: white;
   border: none;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-  font-size: 26px;
+  box-shadow: 0 4px 15px rgba(139, 69, 19, 0.4);
+  font-size: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s;
-}
-.fab-main:active {
-  transform: scale(0.95);
-  background-color: #5d4037;
+  transition: transform 0.3s;
 }
 .fab-options {
   position: absolute;
-  bottom: 75px;
-  right: 5px;
+  bottom: 70px;
+  right: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
   opacity: 0;
+  transform: translateY(20px);
   pointer-events: none;
-  transition: 0.2s;
-  transform: translateY(15px);
+  transition: all 0.3s;
 }
-.fab-container:hover .fab-options,
-.fab-container:active .fab-options,
 .fab-container.active .fab-options {
   opacity: 1;
-  pointer-events: all;
   transform: translateY(0);
+  pointer-events: all;
 }
+.fab-container.active .fab-main {
+  transform: rotate(45deg);
+}
+
 .fab-btn-mini {
-  background: var(--cor-card);
+  background: white;
   color: var(--cor-primaria);
   border: none;
-  padding: 10px 20px;
-  border-radius: 25px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  font-weight: 700;
-  font-size: 0.95rem;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  font-weight: bold;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  white-space: nowrap;
 }
 
-/* Geral e Inputs */
-.modal-content {
-  border-radius: 16px;
+@media (max-width: 768px) {
+  .fab-container {
+    display: none;
+  }
+}
+
+/* --- Barra de Navegação Inferior --- */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: white;
+  border-top: 1px solid #eee;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0;
+  z-index: 1050;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+}
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+}
+
+.nav-item-bottom {
   border: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #adb5bd;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: color 0.2s;
 }
-.form-control {
-  background-color: var(--cor-input-bg);
-  color: var(--cor-texto);
-  border: 1px solid var(--cor-bordas);
-  border-radius: 10px;
-  padding: 12px;
+.nav-item-bottom i {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
 }
-.form-control:focus {
-  border-color: var(--cor-primaria);
-  box-shadow: 0 0 0 3px rgba(139, 69, 19, 0.1);
+.nav-item-bottom.active {
+  color: var(--cor-primaria);
 }
-.btn-primary {
-  background-color: #8b4513;
+
+.nav-btn-main {
+  background: var(--cor-primaria);
+  color: white;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
   border: none;
-}
-.btn-primary:hover,
-.btn-primary:active {
-  background-color: #5d4037 !important;
-}
-/* --- MELHORIA UX MOBILE --- */
-
-/* 1. Efeito de Cartões na Tabela */
-.table {
-  border-collapse: separate !important;
-  border-spacing: 0 12px !important; /* Espaço entre as linhas */
-}
-
-.table tbody tr {
-  background-color: var(--cor-card);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); /* Sombra suave */
-  border-radius: 12px !important; /* Bordas redondas */
-  transition: transform 0.1s ease;
-}
-
-/* Garante que as células das pontas fiquem redondas */
-.table tbody tr td:first-child {
-  border-top-left-radius: 12px;
-  border-bottom-left-radius: 12px;
-}
-.table tbody tr td:last-child {
-  border-top-right-radius: 12px;
-  border-bottom-right-radius: 12px;
-}
-
-/* 2. Micro-interação: Clique "Afunda" */
-.btn:active,
-.nome-clicavel:active,
-.btn-action:active,
-.fab-main:active,
-.table tbody tr:active {
-  transform: scale(0.97) !important; /* Diminui levemente */
-}
-
-/* 3. Ajuste para o dedo (Touch Target) */
-.btn-action {
-  width: 42px; /* Maior para o dedo acertar */
-  height: 42px;
-}
-/* --- ESTILOS DA TELA DE LOGIN --- */
-
-.login-page {
-  background-color: var(--cor-fundo); /* Usa a cor do tema (Bege ou Escuro) */
-  height: 100vh; /* Altura total da tela */
+  margin-top: -25px;
+  box-shadow: 0 4px 10px rgba(139, 69, 19, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.2rem;
+}
+.nav-btn-main:active {
+  transform: scale(0.95);
 }
 
-.login-card {
-  background: var(--cor-card);
-  padding: 2.5rem 2rem;
-  border-radius: 24px;
-  box-shadow: 0 10px 40px rgba(139, 69, 19, 0.15); /* Sombra marrom suave */
-  width: 100%;
-  max-width: 380px;
-  text-align: center;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+/* Input de busca */
+.search-input-wrapper {
+  background: white;
+  border-radius: 25px;
+  padding: 5px 15px;
+  border: 1px solid transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
 }
-
-/* Ícone grande do cavalo */
-.brand-icon {
-  font-size: 4.5rem;
-  color: #8b4513; /* Marrom Fixo */
-  margin-bottom: 1.5rem;
-  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.1);
+.search-input-wrapper:focus-within {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.1);
 }
-
-/* Ajuste dos Inputs para ficarem juntos do ícone */
-.input-group-text {
-  border-radius: 12px 0 0 12px;
-  border: 1px solid var(--cor-bordas);
-  border-right: none;
-  background-color: var(--cor-input-bg);
-  color: #8b4513;
-  padding-left: 15px;
-}
-
-.login-card .form-control {
-  border-radius: 0 12px 12px 0;
-  padding: 12px;
-  border: 1px solid var(--cor-bordas);
-  border-left: none;
-  background-color: var(--cor-input-bg);
-  font-weight: 500;
-}
-
-.login-card .form-control:focus {
-  box-shadow: none;
-  border-color: var(--cor-bordas);
-}
-
-/* Foco no grupo inteiro */
-.input-group:focus-within {
-  box-shadow: 0 0 0 4px rgba(139, 69, 19, 0.15);
-  border-radius: 12px;
-}
-
-/* Botão Entrar */
-.btn-login {
-  background-color: #8b4513;
-  color: white;
+.search-input {
   border: none;
-  border-radius: 12px;
-  padding: 14px;
-  font-weight: 700;
-  font-size: 1.1rem;
+  outline: none;
   width: 100%;
-  margin-top: 15px;
-  letter-spacing: 0.5px;
-  box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
-  transition: transform 0.2s;
+  padding: 8px;
 }
 
-.btn-login:active {
-  transform: scale(0.96);
-  background-color: #5d4037;
+/* Badges de Status */
+.badge-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.bg-soft-success {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+.bg-soft-danger {
+  background-color: #f8d7da;
+  color: #842029;
 }
