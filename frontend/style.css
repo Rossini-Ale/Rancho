@@ -330,3 +330,24 @@ body {
   background-color: #f8d7da;
   color: #842029;
 }
+
+/* --- ADIÇÕES PARA O VISUAL NOVO DA ABA DESPESAS --- */
+
+#listaRanchoBody tr {
+  transition: background-color 0.2s;
+}
+
+#listaRanchoBody tr:hover {
+  background-color: #fffaf5;
+}
+
+#labelMesAnoRancho {
+  letter-spacing: 1px;
+  color: var(--cor-primaria);
+  min-width: 150px;
+  text-align: center;
+}
+
+.avatar-circle i {
+  font-size: 1.1rem;
+}

@@ -141,6 +141,23 @@
       </div>
 
       <div id="tabRancho" class="d-none">
+        <div
+          class="card border-0 shadow-sm mb-4"
+          style="
+            background: linear-gradient(135deg, #8b4513, #a0522d);
+            border-radius: 20px;
+          "
+        >
+          <div class="card-body p-4 text-white text-center">
+            <span class="small-label text-white-50 d-block mb-1"
+              >TOTAL GASTO NO MÊS</span
+            >
+            <h2 class="display-5 fw-bold mb-0" id="totalRanchoMesDisplay">
+              R$ 0,00
+            </h2>
+          </div>
+        </div>
+
         <div class="bg-white p-3 mb-3 rounded-4 shadow-sm border">
           <h6 class="text-muted small fw-bold mb-2">NOVA DESPESA</h6>
           <form id="formCustoRancho" class="d-flex gap-2">
@@ -194,15 +211,6 @@
           <table class="table mb-0 align-middle">
             <tbody id="listaRanchoBody"></tbody>
           </table>
-        </div>
-
-        <div class="p-3">
-          <div class="d-flex justify-content-between align-items-end">
-            <span class="text-muted small fw-bold">TOTAL GASTO</span>
-            <span class="display-6 fw-bold text-danger" id="totalGeralRancho"
-              >R$ 0,00</span
-            >
-          </div>
         </div>
       </div>
     </main>

@@ -225,12 +225,12 @@ const RanchoApp = {
     });
   },
 
-  // --- GESTÃO RANCHO (ATUALIZADO PARA ORDENAÇÃO) ---
+  // --- GESTÃO RANCHO (ATUALIZADO) ---
 
   async carregarDespesasRancho() {
     const mes = this.dataFiltroRancho.getMonth() + 1;
     const ano = this.dataFiltroRancho.getFullYear();
-    const ordem = document.getElementById("inputOrdenacao").value; // Pega a ordem selecionada
+    const ordem = document.getElementById("inputOrdenacao").value;
     const tbody = document.getElementById("listaRanchoBody");
     tbody.innerHTML =
       '<tr><td colspan="2" class="text-center py-4"><span class="spinner-border spinner-border-sm text-secondary"></span></td></tr>';
@@ -242,14 +242,12 @@ const RanchoApp = {
       tbody.innerHTML = "";
 
       if (dados && dados.custos && dados.custos.length > 0) {
-        // Prepara a lista para ordenação (Mapeia campos para nome/totalSort)
         const listaProcessada = dados.custos.map((c) => ({
           ...c,
-          nome: c.descricao, // Usado para A-Z
-          totalSort: parseFloat(c.valor), // Usado para Maior/Menor Valor
+          nome: c.descricao,
+          totalSort: parseFloat(c.valor),
         }));
 
-        // Ordena
         const listaOrdenada = this.ordenarLista(listaProcessada, ordem);
 
         listaOrdenada.forEach((c) => {
@@ -263,33 +261,45 @@ const RanchoApp = {
             <tr class="border-bottom">
               <td class="py-3 ps-3">
                  <div class="d-flex align-items-center">
-                    <div class="text-center me-3 text-muted fw-bold small" style="min-width: 25px">${dia}</div>
-                    <div class="fw-bold text-dark">${c.descricao}</div>
+                    <div class="avatar-circle shadow-sm me-3" style="background: rgba(139, 69, 19, 0.1); color: #8b4513; width: 40px; height: 40px;">
+                       <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                    <div>
+                       <div class="fw-bold text-dark">${c.descricao}</div>
+                       <div class="text-muted" style="font-size: 0.75rem;">Dia ${dia}</div>
+                    </div>
                  </div>
               </td>
               <td class="text-end pe-3">
                  <div class="d-flex align-items-center justify-content-end gap-3">
-                    <span class="fw-bold text-dark">${valorF}</span>
-                    <button class="btn btn-sm text-danger p-0" onclick="RanchoApp.excluirCustoRancho(${c.id})">
-                        <i class="fa-solid fa-times"></i>
+                    <span class="fw-bold text-danger">${valorF}</span>
+                    <button class="btn-action icon-red shadow-sm" onclick="RanchoApp.excluirCustoRancho(${c.id})">
+                        <i class="fa-solid fa-trash-can" style="font-size: 0.8rem;"></i>
                     </button>
                  </div>
               </td>
             </tr>`;
         });
-        document.getElementById("totalGeralRancho").textContent = parseFloat(
-          dados.total_gasto,
-        ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-        document.getElementById("totalRanchoMes").textContent = parseFloat(
-          dados.total_gasto,
-        ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+        const totalFormatado = parseFloat(dados.total_gasto).toLocaleString(
+          "pt-BR",
+          { style: "currency", currency: "BRL" },
+        );
+        // Atualiza o card grande
+        const displayTotal = document.getElementById("totalRanchoMesDisplay");
+        if (displayTotal) displayTotal.textContent = totalFormatado;
+
+        // Atualiza o card mini
+        document.getElementById("totalRanchoMes").textContent = totalFormatado;
       } else {
         tbody.innerHTML =
           '<tr><td colspan="2" class="text-center text-muted py-5 small">Nenhuma despesa neste mês.</td></tr>';
-        document.getElementById("totalGeralRancho").textContent = "R$ 0,00";
+        const displayTotal = document.getElementById("totalRanchoMesDisplay");
+        if (displayTotal) displayTotal.textContent = "R$ 0,00";
         document.getElementById("totalRanchoMes").textContent = "R$ 0,00";
       }
     } catch (e) {
+      console.error(e);
       tbody.innerHTML =
         '<tr><td colspan="2" class="text-center text-danger small">Erro ao carregar dados.</td></tr>';
     }
@@ -348,8 +358,6 @@ const RanchoApp = {
   },
 
   // --- FIM GESTÃO RANCHO ---
-
-  // ... (MANTENHA AS OUTRAS FUNÇÕES IGUAIS) ...
 
   async carregarTabelaCavalos() {
     try {
