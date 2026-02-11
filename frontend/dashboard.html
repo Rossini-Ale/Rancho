@@ -141,18 +141,58 @@
       </div>
 
       <div id="tabEstoque" class="d-none">
-        <div class="text-end mb-3">
-          <button
-            class="btn btn-success rounded-pill fw-bold shadow-sm"
-            onclick="RanchoApp.abrirModalCompraEstoque()"
-          >
-            <i class="fa-solid fa-plus me-1"></i> Nova Compra
-          </button>
+        <div class="mb-4">
+          <div class="d-flex justify-content-between align-items-end mb-2">
+            <h6 class="text-muted small fw-bold mb-0">SALDO ATUAL</h6>
+            <button
+              class="btn btn-sm btn-success rounded-pill fw-bold"
+              onclick="RanchoApp.abrirModalCompraEstoque()"
+            >
+              <i class="fa-solid fa-plus me-1"></i> Comprar
+            </button>
+          </div>
+          <div class="bg-white rounded-4 shadow-sm overflow-hidden">
+            <table class="table mb-0 align-middle">
+              <tbody id="listaEstoqueBody"></tbody>
+            </table>
+          </div>
         </div>
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <tbody id="listaEstoqueBody"></tbody>
-          </table>
+
+        <div>
+          <h6 class="text-muted small fw-bold mb-2">HISTÓRICO DE COMPRAS</h6>
+
+          <div
+            class="d-flex align-items-center justify-content-between px-3 py-2 bg-white rounded-3 shadow-sm mb-3 border"
+          >
+            <button
+              class="btn btn-sm text-secondary"
+              onclick="RanchoApp.mudarMesEstoque(-1)"
+            >
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span class="fw-bold text-brown small" id="labelMesAnoEstoque"
+              >MÊS</span
+            >
+            <button
+              class="btn btn-sm text-secondary"
+              onclick="RanchoApp.mudarMesEstoque(1)"
+            >
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <tbody id="listaHistoricoEstoqueBody"></tbody>
+            </table>
+          </div>
+
+          <div class="text-end mt-2">
+            <span class="text-muted small me-2">Total Mês:</span>
+            <span class="fw-bold fs-5 text-dark" id="totalMesEstoque"
+              >R$ 0,00</span
+            >
+          </div>
         </div>
       </div>
     </main>
@@ -818,6 +858,60 @@
                   class="btn btn-success btn-lg rounded-3 fw-bold"
                 >
                   Registrar Compra
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalEditarCusto" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold text-brown">Editar Custo</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="formEditarCusto">
+              <input type="hidden" id="editCustoId" />
+              <div class="mb-3">
+                <label class="small-label mb-1">Descrição</label>
+                <input
+                  type="text"
+                  class="form-control bg-light border-0"
+                  id="editCustoDesc"
+                  required
+                />
+              </div>
+              <div class="mb-4">
+                <label class="small-label mb-1">Valor</label>
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  class="form-control bg-light border-0 fw-bold"
+                  id="editCustoValor"
+                  required
+                />
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <button
+                  type="button"
+                  id="btnExcluirCustoGen"
+                  class="btn btn-light text-danger px-3"
+                  onclick="RanchoApp.excluirCustoGenerico()"
+                >
+                  <i class="fa-solid fa-trash"></i></button
+                ><button
+                  type="submit"
+                  class="btn btn-primary btn-lg rounded-3 px-5 fw-bold ms-auto"
+                >
+                  Salvar
                 </button>
               </div>
             </form>

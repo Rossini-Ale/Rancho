@@ -196,6 +196,30 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
   }
 });
 
+// NOVO: Busca custos de Estoque por Mês
+router.get("/custos/estoque", async (req, res) => {
+  const { mes, ano } = req.query;
+  try {
+    const [rows] = await pool.query(
+      "SELECT * FROM Custos WHERE categoria = 'Estoque' AND MONTH(data_despesa) = ? AND YEAR(data_despesa) = ? AND usuario_id = ? ORDER BY data_despesa DESC",
+      [mes, ano, req.user.id],
+    );
+
+    const [totalResult] = await pool.query(
+      "SELECT SUM(valor) as total FROM Custos WHERE categoria = 'Estoque' AND MONTH(data_despesa) = ? AND YEAR(data_despesa) = ? AND usuario_id = ?",
+      [mes, ano, req.user.id],
+    );
+
+    res.json({
+      custos: rows,
+      total_gasto: totalResult[0].total || 0,
+    });
+  } catch (err) {
+    console.error("Erro GET /custos/estoque:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post("/custos", async (req, res) => {
   const {
     cavalo_id,
@@ -346,7 +370,7 @@ router.delete("/mensalidades/:id", async (req, res) => {
 });
 
 // =======================
-// ESTOQUE (CORRIGIDO)
+// ESTOQUE
 // =======================
 
 router.get("/estoque", async (req, res) => {
@@ -367,8 +391,6 @@ router.post("/estoque/compra", async (req, res) => {
   const usuario_id = req.user.id;
 
   try {
-    // 1. Atualiza ou Insere no estoque
-    // Sintaxe compatível com todas as versões MySQL (evitando VALUES() deprecated)
     const sqlEstoque = `
       INSERT INTO Estoque (usuario_id, item_nome, quantidade, unidade) 
       VALUES (?, ?, ?, ?) 
@@ -377,7 +399,6 @@ router.post("/estoque/compra", async (req, res) => {
       updated_at = NOW()
     `;
 
-    // Note que passamos 'quantidade' duas vezes nos parâmetros
     await pool.query(sqlEstoque, [
       usuario_id,
       item_nome,
@@ -386,7 +407,6 @@ router.post("/estoque/compra", async (req, res) => {
       quantidade,
     ]);
 
-    // 2. Registra o Custo Financeiro (Categoria Rancho/Estoque)
     await pool.query(
       "INSERT INTO Custos (cavalo_id, proprietario_id, descricao, categoria, valor, data_despesa, usuario_id) VALUES (NULL, NULL, ?, 'Estoque', ?, NOW(), ?)",
       [
@@ -398,7 +418,7 @@ router.post("/estoque/compra", async (req, res) => {
 
     res.status(201).json({ message: "Estoque e custo registrados!" });
   } catch (err) {
-    console.error("Erro POST /estoque/compra:", err); // ISSO VAI MOSTRAR O ERRO NO TERMINAL
+    console.error("Erro POST /estoque/compra:", err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -6,7 +6,8 @@ const RanchoApp = {
   bsModalConfig: null,
   bsModalMensalidade: null,
   bsModalDetalhesProp: null,
-  bsModalCompraEstoque: null, // NOVO
+  bsModalCompraEstoque: null,
+  bsModalEditarCusto: null, // NOVO
   bsToast: null,
   bsModalConfirm: null,
   deferredPrompt: null,
@@ -14,6 +15,7 @@ const RanchoApp = {
 
   dataFiltro: new Date(),
   dataFiltroProp: new Date(),
+  dataFiltroEstoque: new Date(), // NOVO
   abaAtual: "cavalos",
   proprietarioAtualId: null,
 
@@ -39,9 +41,12 @@ const RanchoApp = {
     this.bsModalConfirm = new bootstrap.Modal(
       document.getElementById("modalConfirmacao"),
     );
-    // NOVO
     this.bsModalCompraEstoque = new bootstrap.Modal(
       document.getElementById("modalCompraEstoque"),
+    );
+    // NOVO
+    this.bsModalEditarCusto = new bootstrap.Modal(
+      document.getElementById("modalEditarCusto"),
     );
 
     const toastEl = document.getElementById("liveToast");
@@ -54,7 +59,7 @@ const RanchoApp = {
     await this.carregarProprietariosSelect();
     await this.carregarTabelaCavalos();
     await this.carregarTabelaProprietarios();
-    await this.carregarEstoque(); // NOVO
+    await this.carregarEstoque();
   },
 
   setupListeners() {
@@ -62,12 +67,12 @@ const RanchoApp = {
     if (telInput)
       telInput.addEventListener("input", (e) => this.mascaraTelefone(e));
 
-    // Adicionado estValorTotal na máscara de moeda
     [
       "custoValor",
       "mensalidadeValor",
       "custoPropValor",
       "estValorTotal",
+      "editCustoValor",
     ].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", (e) => this.mascaraMoeda(e));
@@ -91,25 +96,24 @@ const RanchoApp = {
     document
       .getElementById("formCustoProp")
       .addEventListener("submit", (e) => this.salvarCustoProp(e));
-
-    // NOVO LISTENER ESTOQUE
     document
       .getElementById("formCompraEstoque")
       .addEventListener("submit", (e) => this.salvarCompraEstoque(e));
+    // NOVO
+    document
+      .getElementById("formEditarCusto")
+      .addEventListener("submit", (e) => this.salvarEdicaoCustoGen(e));
 
     document
       .getElementById("inputBusca")
       .addEventListener("keyup", (e) => this.filtrarTabela(e.target.value));
 
-    // Listener para o Select de Ordenação
     document.getElementById("inputOrdenacao").addEventListener("change", () => {
       if (this.abaAtual === "cavalos") this.carregarTabelaCavalos();
       else if (this.abaAtual === "proprietarios")
         this.carregarTabelaProprietarios();
-      // Estoque geralmente não precisa de muita ordenação complexa agora, mas poderia ter
     });
 
-    // --- LÓGICA DE CATEGORIAS ---
     document.getElementById("custoCat").addEventListener("change", (e) => {
       const cat = e.target.value;
       const descInput = document.getElementById("custoDesc");
@@ -160,17 +164,16 @@ const RanchoApp = {
     }
   },
 
-  // --- NAVEGAÇÃO ATUALIZADA ---
+  // --- NAVEGAÇÃO ---
   mudarAba(aba) {
     this.vibrar(30);
     this.abaAtual = aba;
 
     const tabCavalos = document.getElementById("tabCavalos");
     const tabProps = document.getElementById("tabProprietarios");
-    const tabEstoque = document.getElementById("tabEstoque"); // NOVO
+    const tabEstoque = document.getElementById("tabEstoque");
     const titulo = document.getElementById("tituloSecao");
 
-    // Esconde tudo primeiro
     tabCavalos.classList.add("d-none");
     tabProps.classList.add("d-none");
     tabEstoque.classList.add("d-none");
@@ -189,11 +192,14 @@ const RanchoApp = {
       document.getElementById("navBtnProps").classList.add("active");
       this.carregarTabelaProprietarios();
     } else if (aba === "estoque") {
-      // Lógica nova Estoque
       tabEstoque.classList.remove("d-none");
       titulo.textContent = "Estoque & Insumos";
       document.getElementById("navBtnEstoque").classList.add("active");
       this.carregarEstoque();
+      // Carrega o histórico do mês atual
+      this.dataFiltroEstoque = new Date();
+      this.atualizarLabelMesEstoque();
+      this.carregarHistoricoEstoque();
     }
 
     document.getElementById("inputBusca").value = "";
@@ -205,7 +211,7 @@ const RanchoApp = {
     if (this.abaAtual === "cavalos") s = "#listaCavalosBody tr";
     else if (this.abaAtual === "proprietarios")
       s = "#listaProprietariosMainBody tr";
-    else if (this.abaAtual === "estoque") s = "#listaEstoqueBody tr"; // NOVO
+    else if (this.abaAtual === "estoque") s = "#listaEstoqueBody tr"; // Filtra saldo, não histórico
 
     document.querySelectorAll(s).forEach((r) => {
       r.style.display = r.textContent
@@ -221,7 +227,7 @@ const RanchoApp = {
     if (this.abaAtual === "cavalos") this.abrirModalNovoCavalo();
     else if (this.abaAtual === "proprietarios")
       this.abrirModalGerenciarProprietarios();
-    else if (this.abaAtual === "estoque") this.abrirModalCompraEstoque(); // NOVO
+    else if (this.abaAtual === "estoque") this.abrirModalCompraEstoque();
   },
 
   ordenarLista(lista, criterio) {
@@ -234,7 +240,9 @@ const RanchoApp = {
     });
   },
 
-  // --- GESTÃO ESTOQUE (NOVO) ---
+  // --- GESTÃO ESTOQUE ---
+
+  // Saldo (Topo)
   async carregarEstoque() {
     try {
       const itens = await ApiService.fetchData("/api/gestao/estoque");
@@ -245,29 +253,22 @@ const RanchoApp = {
         : 0;
 
       if (!itens || itens.length === 0) {
-        tbody.innerHTML = `<tr><td class="text-center py-5 border-0"><div class="mb-3 opacity-25"><i class="fa-solid fa-boxes-stacked display-1 text-secondary"></i></div><h6 class="text-muted fw-bold">Estoque vazio</h6></td></tr>`;
+        tbody.innerHTML = `<tr><td class="text-center py-4 border-0 text-muted small">Nenhum item em estoque.</td></tr>`;
         return;
       }
 
       itens.forEach((item) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
-                <td class="py-3">
+                <td class="py-3 ps-3">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="avatar-circle shadow-sm" style="background: #198754;">${item.item_nome
+                        <div class="avatar-circle shadow-sm" style="background: #198754; width:36px; height:36px; font-size: 0.9rem">${item.item_nome
                           .charAt(0)
                           .toUpperCase()}</div>
-                        <div>
-                            <div class="fw-bold text-dark" style="font-size: 1.05rem;">${
-                              item.item_nome
-                            }</div>
-                            <div class="text-muted small">Atualizado: ${new Date(
-                              item.updated_at,
-                            ).toLocaleDateString("pt-BR")}</div>
-                        </div>
+                        <div class="fw-bold text-dark">${item.item_nome}</div>
                     </div>
                 </td>
-                <td class="text-end">
+                <td class="text-end pe-3">
                     <div class="fw-bold fs-5 text-dark">${
                       item.quantidade
                     } <span class="small text-muted" style="font-size: 0.8rem">${
@@ -281,6 +282,123 @@ const RanchoApp = {
     }
   },
 
+  // Histórico Financeiro do Estoque
+  async carregarHistoricoEstoque() {
+    const mes = this.dataFiltroEstoque.getMonth() + 1;
+    const ano = this.dataFiltroEstoque.getFullYear();
+    const tbody = document.getElementById("listaHistoricoEstoqueBody");
+    tbody.innerHTML =
+      '<tr><td colspan="2" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+
+    try {
+      const dados = await ApiService.fetchData(
+        `/api/gestao/custos/estoque?mes=${mes}&ano=${ano}`,
+      );
+      tbody.innerHTML = "";
+
+      if (dados && dados.custos && dados.custos.length > 0) {
+        dados.custos.forEach((c) => {
+          const dia = new Date(c.data_despesa).getDate();
+          const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+          const ns = c.descricao.replace(/'/g, "\\'");
+
+          tbody.innerHTML += `
+            <tr class="border-bottom">
+              <td class="py-3 ps-2">
+                 <div class="d-flex align-items-center">
+                    <div class="text-center me-3 text-muted fw-bold" style="min-width: 25px">${dia}</div>
+                    <div class="fw-bold text-dark">${c.descricao}</div>
+                 </div>
+              </td>
+              <td class="text-end pe-2">
+                 <div class="fw-bold text-danger mb-1">${valorF}</div>
+                 <button class="btn btn-sm text-secondary p-0" onclick="RanchoApp.abrirModalEditarCustoGen(${c.id}, '${ns}', ${c.valor})">
+                    <i class="fa-solid fa-pen"></i> Editar
+                 </button>
+              </td>
+            </tr>`;
+        });
+        document.getElementById("totalMesEstoque").textContent = parseFloat(
+          dados.total_gasto,
+        ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      } else {
+        tbody.innerHTML =
+          '<tr><td colspan="2" class="text-center text-muted py-4 small">Nenhuma compra neste mês.</td></tr>';
+        document.getElementById("totalMesEstoque").textContent = "R$ 0,00";
+      }
+    } catch (e) {
+      tbody.innerHTML =
+        '<tr><td colspan="2" class="text-center text-danger small">Erro ao carregar.</td></tr>';
+    }
+  },
+
+  mudarMesEstoque(d) {
+    this.vibrar(20);
+    this.dataFiltroEstoque.setMonth(this.dataFiltroEstoque.getMonth() + d);
+    this.atualizarLabelMesEstoque();
+    this.carregarHistoricoEstoque();
+  },
+
+  atualizarLabelMesEstoque() {
+    document.getElementById("labelMesAnoEstoque").textContent =
+      this.dataFiltroEstoque
+        .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+        .toUpperCase();
+  },
+
+  // Edição Genérica (para estoque)
+  abrirModalEditarCustoGen(id, desc, valor) {
+    this.vibrar();
+    document.getElementById("editCustoId").value = id;
+    document.getElementById("editCustoDesc").value = desc;
+    document.getElementById("editCustoValor").value = parseFloat(
+      valor,
+    ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    this.bsModalEditarCusto.show();
+  },
+
+  async salvarEdicaoCustoGen(e) {
+    e.preventDefault();
+    const id = document.getElementById("editCustoId").value;
+    const desc = document.getElementById("editCustoDesc").value;
+    const valor = this.limparMoeda(
+      document.getElementById("editCustoValor").value,
+    );
+
+    const body = {
+      descricao: desc,
+      valor: valor,
+      categoria: "Estoque", // Mantém categoria
+    };
+
+    try {
+      await ApiService.putData(`/api/gestao/custos/${id}`, body);
+      this.mostrarNotificacao("Atualizado!");
+      this.bsModalEditarCusto.hide();
+      this.carregarHistoricoEstoque();
+    } catch (err) {
+      this.mostrarNotificacao("Erro", "erro");
+    }
+  },
+
+  excluirCustoGenerico() {
+    const id = document.getElementById("editCustoId").value;
+    this.abrirConfirmacao("Excluir", "Apagar registro?", async () => {
+      try {
+        await ApiService.deleteData(`/api/gestao/custos/${id}`);
+        this.bsModalEditarCusto.hide();
+        this.carregarHistoricoEstoque();
+        this.mostrarNotificacao("Apagado!");
+      } catch (e) {
+        this.mostrarNotificacao("Erro", "erro");
+      }
+    });
+  },
+
+  // Nova Compra
   abrirModalCompraEstoque() {
     this.vibrar();
     document.getElementById("formCompraEstoque").reset();
@@ -305,7 +423,8 @@ const RanchoApp = {
       await ApiService.postData("/api/gestao/estoque/compra", body);
       this.mostrarNotificacao("Compra registrada!");
       this.bsModalCompraEstoque.hide();
-      this.carregarEstoque();
+      this.carregarEstoque(); // Atualiza saldo
+      this.carregarHistoricoEstoque(); // Atualiza histórico
     } catch (err) {
       this.mostrarNotificacao("Erro ao salvar", "erro");
     } finally {
@@ -316,9 +435,7 @@ const RanchoApp = {
   // --- FIM ESTOQUE ---
 
   // ... (MANTENHA AS OUTRAS FUNÇÕES DO SISTEMA: carregarTabelaCavalos, carregarTabelaProprietarios, salvarCusto, etc. IGUAIS AO ARQUIVO ORIGINAL) ...
-  // Para brevidade, vou repetir apenas as essenciais abaixo, mas garanta que no seu arquivo final todas as funções originais estejam presentes.
 
-  // --- GESTÃO CAVALOS ---
   async carregarTabelaCavalos() {
     try {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
@@ -401,7 +518,6 @@ const RanchoApp = {
     }
   },
 
-  // --- GESTÃO PROPRIETÁRIOS ---
   async carregarTabelaProprietarios() {
     try {
       const props = await ApiService.fetchData("/api/gestao/proprietarios");
@@ -508,9 +624,6 @@ const RanchoApp = {
       });
     } catch (err) {}
   },
-
-  // --- FUNÇÕES AUXILIARES E MODAIS (Replicar do original) ---
-  // Vou manter as principais apenas para garantir funcionamento, copie o resto do arquivo original se faltar algo.
 
   async abrirFinanceiro(cavaloId, nomeCavalo) {
     this.vibrar();
@@ -796,9 +909,6 @@ const RanchoApp = {
         );
     } catch (e) {}
   },
-
-  // ... (Mantenha as demais funções de mensalidade e PDF intactas) ...
-  // Incluindo aqui apenas a máscara de moeda que foi alterada para ser genérica, e as finais.
 
   async abrirMensalidade(cavaloId, nomeCavalo) {
     this.vibrar();
