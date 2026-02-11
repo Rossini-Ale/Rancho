@@ -13,7 +13,7 @@ const RanchoApp = {
 
   dataFiltro: new Date(),
   dataFiltroProp: new Date(),
-  dataFiltroRancho: new Date(), // NOVO: Filtro da aba Rancho
+  dataFiltroRancho: new Date(),
   abaAtual: "cavalos",
   proprietarioAtualId: null,
 
@@ -83,7 +83,6 @@ const RanchoApp = {
       .getElementById("formCustoProp")
       .addEventListener("submit", (e) => this.salvarCustoProp(e));
 
-    // NOVO: Listener do formulário rápido do Rancho
     document
       .getElementById("formCustoRancho")
       .addEventListener("submit", (e) => this.salvarCustoRancho(e));
@@ -92,10 +91,12 @@ const RanchoApp = {
       .getElementById("inputBusca")
       .addEventListener("keyup", (e) => this.filtrarTabela(e.target.value));
 
+    // ATUALIZADO: Agora atualiza também a tabela Rancho ao mudar a ordenação
     document.getElementById("inputOrdenacao").addEventListener("change", () => {
       if (this.abaAtual === "cavalos") this.carregarTabelaCavalos();
       else if (this.abaAtual === "proprietarios")
         this.carregarTabelaProprietarios();
+      else if (this.abaAtual === "rancho") this.carregarDespesasRancho();
     });
 
     document.getElementById("custoCat").addEventListener("change", (e) => {
@@ -158,7 +159,6 @@ const RanchoApp = {
     const tabRancho = document.getElementById("tabRancho");
     const titulo = document.getElementById("tituloSecao");
 
-    // Esconde tudo
     tabCavalos.classList.add("d-none");
     tabProps.classList.add("d-none");
     tabRancho.classList.add("d-none");
@@ -180,7 +180,6 @@ const RanchoApp = {
       tabRancho.classList.remove("d-none");
       titulo.textContent = "Despesas do Rancho";
       document.getElementById("navBtnRancho").classList.add("active");
-      // Inicializa a aba Rancho
       this.dataFiltroRancho = new Date();
       this.atualizarLabelMesRancho();
       this.carregarDespesasRancho();
@@ -212,7 +211,6 @@ const RanchoApp = {
     else if (this.abaAtual === "proprietarios")
       this.abrirModalGerenciarProprietarios();
     else if (this.abaAtual === "rancho") {
-      // Foca no input de descrição para adicionar rápido
       document.getElementById("ranchoDesc").focus();
     }
   },
@@ -227,11 +225,12 @@ const RanchoApp = {
     });
   },
 
-  // --- GESTÃO RANCHO (NOVA) ---
+  // --- GESTÃO RANCHO (ATUALIZADO PARA ORDENAÇÃO) ---
 
   async carregarDespesasRancho() {
     const mes = this.dataFiltroRancho.getMonth() + 1;
     const ano = this.dataFiltroRancho.getFullYear();
+    const ordem = document.getElementById("inputOrdenacao").value; // Pega a ordem selecionada
     const tbody = document.getElementById("listaRanchoBody");
     tbody.innerHTML =
       '<tr><td colspan="2" class="text-center py-4"><span class="spinner-border spinner-border-sm text-secondary"></span></td></tr>';
@@ -243,7 +242,17 @@ const RanchoApp = {
       tbody.innerHTML = "";
 
       if (dados && dados.custos && dados.custos.length > 0) {
-        dados.custos.forEach((c) => {
+        // Prepara a lista para ordenação (Mapeia campos para nome/totalSort)
+        const listaProcessada = dados.custos.map((c) => ({
+          ...c,
+          nome: c.descricao, // Usado para A-Z
+          totalSort: parseFloat(c.valor), // Usado para Maior/Menor Valor
+        }));
+
+        // Ordena
+        const listaOrdenada = this.ordenarLista(listaProcessada, ordem);
+
+        listaOrdenada.forEach((c) => {
           const dia = new Date(c.data_despesa).getDate();
           const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
             style: "currency",
@@ -271,7 +280,6 @@ const RanchoApp = {
         document.getElementById("totalGeralRancho").textContent = parseFloat(
           dados.total_gasto,
         ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-        // Atualiza card resumo
         document.getElementById("totalRanchoMes").textContent = parseFloat(
           dados.total_gasto,
         ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -311,7 +319,7 @@ const RanchoApp = {
       cavalo_id: null,
       descricao: document.getElementById("ranchoDesc").value,
       valor: this.limparMoeda(document.getElementById("ranchoValor").value),
-      data_despesa: new Date().toISOString().split("T")[0], // Usa data de hoje para simplificar, ou poderia ser a data do filtro
+      data_despesa: new Date().toISOString().split("T")[0],
       categoria: "Rancho",
     };
 
@@ -332,7 +340,7 @@ const RanchoApp = {
       try {
         await ApiService.deleteData(`/api/gestao/custos/${id}`);
         this.carregarDespesasRancho();
-        this.mostrarNotificacao("Apagado!"); // O saldo atualiza automaticamente ao recarregar a lista
+        this.mostrarNotificacao("Apagado!");
       } catch (e) {
         this.mostrarNotificacao("Erro", "erro");
       }
@@ -341,7 +349,7 @@ const RanchoApp = {
 
   // --- FIM GESTÃO RANCHO ---
 
-  // ... (MANTENHA O RESTANTE DAS FUNÇÕES ABAIXO IGUAIS) ...
+  // ... (MANTENHA AS OUTRAS FUNÇÕES IGUAIS) ...
 
   async carregarTabelaCavalos() {
     try {
