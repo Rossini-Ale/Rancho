@@ -195,26 +195,39 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
   }
 });
 
-// HISTÓRICO DE ESTOQUE (MENSAL)
-router.get("/custos/estoque", async (req, res) => {
+// NOVA ROTA: Despesas do Rancho (Geral)
+router.get("/custos/rancho", async (req, res) => {
   const { mes, ano } = req.query;
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM Custos WHERE categoria = 'Estoque' AND MONTH(data_despesa) = ? AND YEAR(data_despesa) = ? AND usuario_id = ? ORDER BY data_despesa DESC",
-      [mes, ano, req.user.id],
-    );
+    // Busca custos que não têm cavalo nem proprietário vinculado (são do rancho)
+    const sql = `
+      SELECT * FROM Custos 
+      WHERE usuario_id = ? 
+      AND cavalo_id IS NULL 
+      AND proprietario_id IS NULL
+      AND MONTH(data_despesa) = ? 
+      AND YEAR(data_despesa) = ?
+      ORDER BY data_despesa DESC
+    `;
+    const [rows] = await pool.query(sql, [req.user.id, mes, ano]);
 
-    const [totalResult] = await pool.query(
-      "SELECT SUM(valor) as total FROM Custos WHERE categoria = 'Estoque' AND MONTH(data_despesa) = ? AND YEAR(data_despesa) = ? AND usuario_id = ?",
-      [mes, ano, req.user.id],
-    );
+    // Calcula total
+    const sqlTotal = `
+      SELECT SUM(valor) as total FROM Custos 
+      WHERE usuario_id = ? 
+      AND cavalo_id IS NULL 
+      AND proprietario_id IS NULL
+      AND MONTH(data_despesa) = ? 
+      AND YEAR(data_despesa) = ?
+    `;
+    const [totalResult] = await pool.query(sqlTotal, [req.user.id, mes, ano]);
 
     res.json({
       custos: rows,
       total_gasto: totalResult[0].total || 0,
     });
   } catch (err) {
-    console.error("Erro GET /custos/estoque:", err);
+    console.error("Erro GET /custos/rancho:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -302,40 +315,13 @@ router.put("/custos/:id", async (req, res) => {
   }
 });
 
-// === EXCLUSÃO INTELIGENTE (ESTORNA O ESTOQUE) ===
 router.delete("/custos/:id", async (req, res) => {
   try {
-    // 1. Busca o custo para saber se é Estoque
-    const [rows] = await pool.query(
-      "SELECT * FROM Custos WHERE id=? AND usuario_id=?",
-      [req.params.id, req.user.id],
-    );
-
-    if (rows.length > 0) {
-      const custo = rows[0];
-
-      // 2. Se for Estoque, tenta devolver a quantidade
-      if (custo.categoria === "Estoque") {
-        // Formato esperado da descrição: "Compra: 200 Kg de Feno"
-        const regex = /^Compra: ([\d\.]+) \S+ de (.+)$/i;
-        const match = custo.descricao.match(regex);
-
-        if (match) {
-          const qtd = parseFloat(match[1]);
-          const itemNome = match[2];
-
-          // Subtrai do estoque (estorna a entrada)
-          await pool.query(
-            "UPDATE Estoque SET quantidade = quantidade - ? WHERE item_nome = ? AND usuario_id = ?",
-            [qtd, itemNome, req.user.id],
-          );
-        }
-      }
-
-      // 3. Apaga o registro financeiro
-      await pool.query("DELETE FROM Custos WHERE id=?", [req.params.id]);
-    }
-
+    // Apenas deleta o custo, sem lógica de estoque
+    await pool.query("DELETE FROM Custos WHERE id=? AND usuario_id=?", [
+      req.params.id,
+      req.user.id,
+    ]);
     res.json({ message: "Ok" });
   } catch (err) {
     console.error("Erro DELETE /custos:", err);
@@ -392,62 +378,6 @@ router.delete("/mensalidades/:id", async (req, res) => {
     res.json({ message: "Ok" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// =======================
-// ESTOQUE (SALDO E COMPRA)
-// =======================
-
-router.get("/estoque", async (req, res) => {
-  try {
-    const [rows] = await pool.query(
-      "SELECT * FROM Estoque WHERE usuario_id = ?",
-      [req.user.id],
-    );
-    res.json(rows);
-  } catch (err) {
-    console.error("Erro GET /estoque:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.post("/estoque/compra", async (req, res) => {
-  const { item_nome, quantidade, unidade, valor_total } = req.body;
-  const usuario_id = req.user.id;
-
-  try {
-    // 1. Atualiza Estoque (Insert ou Update)
-    const sqlEstoque = `
-      INSERT INTO Estoque (usuario_id, item_nome, quantidade, unidade) 
-      VALUES (?, ?, ?, ?) 
-      ON DUPLICATE KEY UPDATE 
-      quantidade = quantidade + ?, 
-      updated_at = NOW()
-    `;
-
-    await pool.query(sqlEstoque, [
-      usuario_id,
-      item_nome,
-      quantidade,
-      unidade,
-      quantidade, // Soma na quantidade existente
-    ]);
-
-    // 2. Gera Custo (com descrição padronizada para o delete funcionar depois)
-    await pool.query(
-      "INSERT INTO Custos (cavalo_id, proprietario_id, descricao, categoria, valor, data_despesa, usuario_id) VALUES (NULL, NULL, ?, 'Estoque', ?, NOW(), ?)",
-      [
-        `Compra: ${quantidade} ${unidade} de ${item_nome}`,
-        valor_total,
-        usuario_id,
-      ],
-    );
-
-    res.status(201).json({ message: "Estoque e custo registrados!" });
-  } catch (err) {
-    console.error("Erro POST /estoque/compra:", err);
     res.status(500).json({ error: err.message });
   }
 });

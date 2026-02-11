@@ -6,8 +6,6 @@ const RanchoApp = {
   bsModalConfig: null,
   bsModalMensalidade: null,
   bsModalDetalhesProp: null,
-  bsModalCompraEstoque: null,
-  bsModalEditarCusto: null, // NOVO
   bsToast: null,
   bsModalConfirm: null,
   deferredPrompt: null,
@@ -15,7 +13,7 @@ const RanchoApp = {
 
   dataFiltro: new Date(),
   dataFiltroProp: new Date(),
-  dataFiltroEstoque: new Date(), // NOVO
+  dataFiltroRancho: new Date(), // NOVO: Filtro da aba Rancho
   abaAtual: "cavalos",
   proprietarioAtualId: null,
 
@@ -41,13 +39,6 @@ const RanchoApp = {
     this.bsModalConfirm = new bootstrap.Modal(
       document.getElementById("modalConfirmacao"),
     );
-    this.bsModalCompraEstoque = new bootstrap.Modal(
-      document.getElementById("modalCompraEstoque"),
-    );
-    // NOVO
-    this.bsModalEditarCusto = new bootstrap.Modal(
-      document.getElementById("modalEditarCusto"),
-    );
 
     const toastEl = document.getElementById("liveToast");
     if (toastEl) this.bsToast = new bootstrap.Toast(toastEl);
@@ -59,7 +50,6 @@ const RanchoApp = {
     await this.carregarProprietariosSelect();
     await this.carregarTabelaCavalos();
     await this.carregarTabelaProprietarios();
-    await this.carregarEstoque();
   },
 
   setupListeners() {
@@ -67,16 +57,12 @@ const RanchoApp = {
     if (telInput)
       telInput.addEventListener("input", (e) => this.mascaraTelefone(e));
 
-    [
-      "custoValor",
-      "mensalidadeValor",
-      "custoPropValor",
-      "estValorTotal",
-      "editCustoValor",
-    ].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener("input", (e) => this.mascaraMoeda(e));
-    });
+    ["custoValor", "mensalidadeValor", "custoPropValor", "ranchoValor"].forEach(
+      (id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("input", (e) => this.mascaraMoeda(e));
+      },
+    );
 
     document
       .getElementById("formProprietario")
@@ -96,13 +82,11 @@ const RanchoApp = {
     document
       .getElementById("formCustoProp")
       .addEventListener("submit", (e) => this.salvarCustoProp(e));
+
+    // NOVO: Listener do formulário rápido do Rancho
     document
-      .getElementById("formCompraEstoque")
-      .addEventListener("submit", (e) => this.salvarCompraEstoque(e));
-    // NOVO
-    document
-      .getElementById("formEditarCusto")
-      .addEventListener("submit", (e) => this.salvarEdicaoCustoGen(e));
+      .getElementById("formCustoRancho")
+      .addEventListener("submit", (e) => this.salvarCustoRancho(e));
 
     document
       .getElementById("inputBusca")
@@ -171,15 +155,16 @@ const RanchoApp = {
 
     const tabCavalos = document.getElementById("tabCavalos");
     const tabProps = document.getElementById("tabProprietarios");
-    const tabEstoque = document.getElementById("tabEstoque");
+    const tabRancho = document.getElementById("tabRancho");
     const titulo = document.getElementById("tituloSecao");
 
+    // Esconde tudo
     tabCavalos.classList.add("d-none");
     tabProps.classList.add("d-none");
-    tabEstoque.classList.add("d-none");
+    tabRancho.classList.add("d-none");
     document.getElementById("navBtnCavalos").classList.remove("active");
     document.getElementById("navBtnProps").classList.remove("active");
-    document.getElementById("navBtnEstoque").classList.remove("active");
+    document.getElementById("navBtnRancho").classList.remove("active");
 
     if (aba === "cavalos") {
       tabCavalos.classList.remove("d-none");
@@ -191,15 +176,14 @@ const RanchoApp = {
       titulo.textContent = "Meus Clientes";
       document.getElementById("navBtnProps").classList.add("active");
       this.carregarTabelaProprietarios();
-    } else if (aba === "estoque") {
-      tabEstoque.classList.remove("d-none");
-      titulo.textContent = "Estoque & Insumos";
-      document.getElementById("navBtnEstoque").classList.add("active");
-      this.carregarEstoque();
-      // Inicializa histórico
-      this.dataFiltroEstoque = new Date();
-      this.atualizarLabelMesEstoque();
-      this.carregarHistoricoEstoque();
+    } else if (aba === "rancho") {
+      tabRancho.classList.remove("d-none");
+      titulo.textContent = "Despesas do Rancho";
+      document.getElementById("navBtnRancho").classList.add("active");
+      // Inicializa a aba Rancho
+      this.dataFiltroRancho = new Date();
+      this.atualizarLabelMesRancho();
+      this.carregarDespesasRancho();
     }
 
     document.getElementById("inputBusca").value = "";
@@ -211,7 +195,7 @@ const RanchoApp = {
     if (this.abaAtual === "cavalos") s = "#listaCavalosBody tr";
     else if (this.abaAtual === "proprietarios")
       s = "#listaProprietariosMainBody tr";
-    else if (this.abaAtual === "estoque") s = "#listaEstoqueBody tr";
+    else if (this.abaAtual === "rancho") s = "#listaRanchoBody tr";
 
     document.querySelectorAll(s).forEach((r) => {
       r.style.display = r.textContent
@@ -227,7 +211,10 @@ const RanchoApp = {
     if (this.abaAtual === "cavalos") this.abrirModalNovoCavalo();
     else if (this.abaAtual === "proprietarios")
       this.abrirModalGerenciarProprietarios();
-    else if (this.abaAtual === "estoque") this.abrirModalCompraEstoque();
+    else if (this.abaAtual === "rancho") {
+      // Foca no input de descrição para adicionar rápido
+      document.getElementById("ranchoDesc").focus();
+    }
   },
 
   ordenarLista(lista, criterio) {
@@ -240,57 +227,18 @@ const RanchoApp = {
     });
   },
 
-  // --- GESTÃO ESTOQUE ---
+  // --- GESTÃO RANCHO (NOVA) ---
 
-  async carregarEstoque() {
-    try {
-      const itens = await ApiService.fetchData("/api/gestao/estoque");
-      const tbody = document.getElementById("listaEstoqueBody");
-      tbody.innerHTML = "";
-      document.getElementById("totalItensEstoque").textContent = itens
-        ? itens.length
-        : 0;
-
-      if (!itens || itens.length === 0) {
-        tbody.innerHTML = `<tr><td class="text-center py-4 border-0 text-muted small">Nenhum item em estoque.</td></tr>`;
-        return;
-      }
-
-      itens.forEach((item) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-                <td class="py-3 ps-3">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="avatar-circle shadow-sm" style="background: #198754; width:36px; height:36px; font-size: 0.9rem">${item.item_nome
-                          .charAt(0)
-                          .toUpperCase()}</div>
-                        <div class="fw-bold text-dark">${item.item_nome}</div>
-                    </div>
-                </td>
-                <td class="text-end pe-3">
-                    <div class="fw-bold fs-5 text-dark">${
-                      item.quantidade
-                    } <span class="small text-muted" style="font-size: 0.8rem">${
-                      item.unidade
-                    }</span></div>
-                </td>`;
-        tbody.appendChild(tr);
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  },
-
-  async carregarHistoricoEstoque() {
-    const mes = this.dataFiltroEstoque.getMonth() + 1;
-    const ano = this.dataFiltroEstoque.getFullYear();
-    const tbody = document.getElementById("listaHistoricoEstoqueBody");
+  async carregarDespesasRancho() {
+    const mes = this.dataFiltroRancho.getMonth() + 1;
+    const ano = this.dataFiltroRancho.getFullYear();
+    const tbody = document.getElementById("listaRanchoBody");
     tbody.innerHTML =
-      '<tr><td colspan="2" class="text-center py-4"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+      '<tr><td colspan="2" class="text-center py-4"><span class="spinner-border spinner-border-sm text-secondary"></span></td></tr>';
 
     try {
       const dados = await ApiService.fetchData(
-        `/api/gestao/custos/estoque?mes=${mes}&ano=${ano}`,
+        `/api/gestao/custos/rancho?mes=${mes}&ano=${ano}`,
       );
       tbody.innerHTML = "";
 
@@ -301,141 +249,100 @@ const RanchoApp = {
             style: "currency",
             currency: "BRL",
           });
-          const ns = c.descricao.replace(/'/g, "\\'");
 
           tbody.innerHTML += `
             <tr class="border-bottom">
-              <td class="py-3 ps-2">
+              <td class="py-3 ps-3">
                  <div class="d-flex align-items-center">
-                    <div class="text-center me-3 text-muted fw-bold" style="min-width: 25px">${dia}</div>
+                    <div class="text-center me-3 text-muted fw-bold small" style="min-width: 25px">${dia}</div>
                     <div class="fw-bold text-dark">${c.descricao}</div>
                  </div>
               </td>
-              <td class="text-end pe-2">
-                 <div class="fw-bold text-danger mb-1">${valorF}</div>
-                 <button class="btn btn-sm text-secondary p-0" onclick="RanchoApp.abrirModalEditarCustoGen(${c.id}, '${ns}', ${c.valor})">
-                    <i class="fa-solid fa-pen"></i> Editar
-                 </button>
+              <td class="text-end pe-3">
+                 <div class="d-flex align-items-center justify-content-end gap-3">
+                    <span class="fw-bold text-dark">${valorF}</span>
+                    <button class="btn btn-sm text-danger p-0" onclick="RanchoApp.excluirCustoRancho(${c.id})">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                 </div>
               </td>
             </tr>`;
         });
-        document.getElementById("totalMesEstoque").textContent = parseFloat(
+        document.getElementById("totalGeralRancho").textContent = parseFloat(
+          dados.total_gasto,
+        ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        // Atualiza card resumo
+        document.getElementById("totalRanchoMes").textContent = parseFloat(
           dados.total_gasto,
         ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       } else {
         tbody.innerHTML =
-          '<tr><td colspan="2" class="text-center text-muted py-4 small">Nenhuma compra neste mês.</td></tr>';
-        document.getElementById("totalMesEstoque").textContent = "R$ 0,00";
+          '<tr><td colspan="2" class="text-center text-muted py-5 small">Nenhuma despesa neste mês.</td></tr>';
+        document.getElementById("totalGeralRancho").textContent = "R$ 0,00";
+        document.getElementById("totalRanchoMes").textContent = "R$ 0,00";
       }
     } catch (e) {
       tbody.innerHTML =
-        '<tr><td colspan="2" class="text-center text-danger small">Erro ao carregar.</td></tr>';
+        '<tr><td colspan="2" class="text-center text-danger small">Erro ao carregar dados.</td></tr>';
     }
   },
 
-  mudarMesEstoque(d) {
+  mudarMesRancho(d) {
     this.vibrar(20);
-    this.dataFiltroEstoque.setMonth(this.dataFiltroEstoque.getMonth() + d);
-    this.atualizarLabelMesEstoque();
-    this.carregarHistoricoEstoque();
+    this.dataFiltroRancho.setMonth(this.dataFiltroRancho.getMonth() + d);
+    this.atualizarLabelMesRancho();
+    this.carregarDespesasRancho();
   },
 
-  atualizarLabelMesEstoque() {
-    document.getElementById("labelMesAnoEstoque").textContent =
-      this.dataFiltroEstoque
+  atualizarLabelMesRancho() {
+    document.getElementById("labelMesAnoRancho").textContent =
+      this.dataFiltroRancho
         .toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
         .toUpperCase();
   },
 
-  abrirModalEditarCustoGen(id, desc, valor) {
-    this.vibrar();
-    document.getElementById("editCustoId").value = id;
-    document.getElementById("editCustoDesc").value = desc;
-    document.getElementById("editCustoValor").value = parseFloat(
-      valor,
-    ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    this.bsModalEditarCusto.show();
-  },
-
-  async salvarEdicaoCustoGen(e) {
-    e.preventDefault();
-    const id = document.getElementById("editCustoId").value;
-    const desc = document.getElementById("editCustoDesc").value;
-    const valor = this.limparMoeda(
-      document.getElementById("editCustoValor").value,
-    );
-
-    const body = {
-      descricao: desc,
-      valor: valor,
-      categoria: "Estoque",
-    };
-
-    try {
-      await ApiService.putData(`/api/gestao/custos/${id}`, body);
-      this.mostrarNotificacao("Atualizado!");
-      this.bsModalEditarCusto.hide();
-      this.carregarHistoricoEstoque();
-    } catch (err) {
-      this.mostrarNotificacao("Erro", "erro");
-    }
-  },
-
-  excluirCustoGenerico() {
-    const id = document.getElementById("editCustoId").value;
-    this.abrirConfirmacao(
-      "Excluir",
-      "Apagar? O saldo será estornado.",
-      async () => {
-        try {
-          await ApiService.deleteData(`/api/gestao/custos/${id}`);
-          this.bsModalEditarCusto.hide();
-          this.carregarHistoricoEstoque();
-          this.carregarEstoque(); // ATUALIZA O SALDO IMEDIATAMENTE
-          this.mostrarNotificacao("Apagado e devolvido!");
-        } catch (e) {
-          this.mostrarNotificacao("Erro", "erro");
-        }
-      },
-    );
-  },
-
-  abrirModalCompraEstoque() {
-    this.vibrar();
-    document.getElementById("formCompraEstoque").reset();
-    this.bsModalCompraEstoque.show();
-  },
-
-  async salvarCompraEstoque(e) {
+  async salvarCustoRancho(e) {
     e.preventDefault();
     const btn = e.submitter;
-    this.setLoading(btn, true, "Salvando...");
+    this.setLoading(btn, true, '<i class="fa-solid fa-plus"></i>');
 
     const body = {
-      item_nome: document.getElementById("estItemNome").value,
-      quantidade: document.getElementById("estQtd").value,
-      unidade: document.getElementById("estUnidade").value,
-      valor_total: this.limparMoeda(
-        document.getElementById("estValorTotal").value,
-      ),
+      proprietario_id: null,
+      cavalo_id: null,
+      descricao: document.getElementById("ranchoDesc").value,
+      valor: this.limparMoeda(document.getElementById("ranchoValor").value),
+      data_despesa: new Date().toISOString().split("T")[0], // Usa data de hoje para simplificar, ou poderia ser a data do filtro
+      categoria: "Rancho",
     };
 
     try {
-      await ApiService.postData("/api/gestao/estoque/compra", body);
-      this.mostrarNotificacao("Compra registrada!");
-      this.bsModalCompraEstoque.hide();
-      this.carregarEstoque();
-      this.carregarHistoricoEstoque();
+      await ApiService.postData("/api/gestao/custos", body);
+      this.mostrarNotificacao("Adicionado!");
+      document.getElementById("formCustoRancho").reset();
+      this.carregarDespesasRancho();
     } catch (err) {
-      this.mostrarNotificacao("Erro ao salvar", "erro");
+      this.mostrarNotificacao("Erro", "erro");
     } finally {
-      this.setLoading(btn, false, "Registrar Compra");
+      this.setLoading(btn, false, '<i class="fa-solid fa-plus"></i>');
     }
   },
 
-  // --- FIM ESTOQUE ---
+  excluirCustoRancho(id) {
+    this.abrirConfirmacao("Excluir", "Apagar despesa?", async () => {
+      try {
+        await ApiService.deleteData(`/api/gestao/custos/${id}`);
+        this.carregarDespesasRancho();
+        this.mostrarNotificacao("Apagado!"); // O saldo atualiza automaticamente ao recarregar a lista
+      } catch (e) {
+        this.mostrarNotificacao("Erro", "erro");
+      }
+    });
+  },
 
-  // ... (MANTENHA AS OUTRAS FUNÇÕES IGUAIS: carregarTabelaCavalos, carregarTabelaProprietarios, etc.)
+  // --- FIM GESTÃO RANCHO ---
+
+  // ... (MANTENHA O RESTANTE DAS FUNÇÕES ABAIXO IGUAIS) ...
+
   async carregarTabelaCavalos() {
     try {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
