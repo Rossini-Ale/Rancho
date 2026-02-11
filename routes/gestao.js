@@ -167,7 +167,6 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
 
     let valorMensalidade = 0;
 
-    // Se existir mensalidade, adiciona como item na lista de custos
     if (mensalidades.length > 0) {
       const m = mensalidades[0];
       valorMensalidade = parseFloat(m.valor);
@@ -196,7 +195,7 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
   }
 });
 
-// NOVO: Busca custos de Estoque por Mês
+// HISTÓRICO DE ESTOQUE (MENSAL)
 router.get("/custos/estoque", async (req, res) => {
   const { mes, ano } = req.query;
   try {
@@ -303,15 +302,43 @@ router.put("/custos/:id", async (req, res) => {
   }
 });
 
+// === EXCLUSÃO INTELIGENTE (ESTORNA O ESTOQUE) ===
 router.delete("/custos/:id", async (req, res) => {
   try {
-    await pool.query("DELETE FROM Custos WHERE id=? AND usuario_id=?", [
-      req.params.id,
-      req.user.id,
-    ]);
+    // 1. Busca o custo para saber se é Estoque
+    const [rows] = await pool.query(
+      "SELECT * FROM Custos WHERE id=? AND usuario_id=?",
+      [req.params.id, req.user.id],
+    );
+
+    if (rows.length > 0) {
+      const custo = rows[0];
+
+      // 2. Se for Estoque, tenta devolver a quantidade
+      if (custo.categoria === "Estoque") {
+        // Formato esperado da descrição: "Compra: 200 Kg de Feno"
+        const regex = /^Compra: ([\d\.]+) \S+ de (.+)$/i;
+        const match = custo.descricao.match(regex);
+
+        if (match) {
+          const qtd = parseFloat(match[1]);
+          const itemNome = match[2];
+
+          // Subtrai do estoque (estorna a entrada)
+          await pool.query(
+            "UPDATE Estoque SET quantidade = quantidade - ? WHERE item_nome = ? AND usuario_id = ?",
+            [qtd, itemNome, req.user.id],
+          );
+        }
+      }
+
+      // 3. Apaga o registro financeiro
+      await pool.query("DELETE FROM Custos WHERE id=?", [req.params.id]);
+    }
+
     res.json({ message: "Ok" });
   } catch (err) {
-    console.error(err);
+    console.error("Erro DELETE /custos:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -370,7 +397,7 @@ router.delete("/mensalidades/:id", async (req, res) => {
 });
 
 // =======================
-// ESTOQUE
+// ESTOQUE (SALDO E COMPRA)
 // =======================
 
 router.get("/estoque", async (req, res) => {
@@ -391,6 +418,7 @@ router.post("/estoque/compra", async (req, res) => {
   const usuario_id = req.user.id;
 
   try {
+    // 1. Atualiza Estoque (Insert ou Update)
     const sqlEstoque = `
       INSERT INTO Estoque (usuario_id, item_nome, quantidade, unidade) 
       VALUES (?, ?, ?, ?) 
@@ -404,9 +432,10 @@ router.post("/estoque/compra", async (req, res) => {
       item_nome,
       quantidade,
       unidade,
-      quantidade,
+      quantidade, // Soma na quantidade existente
     ]);
 
+    // 2. Gera Custo (com descrição padronizada para o delete funcionar depois)
     await pool.query(
       "INSERT INTO Custos (cavalo_id, proprietario_id, descricao, categoria, valor, data_despesa, usuario_id) VALUES (NULL, NULL, ?, 'Estoque', ?, NOW(), ?)",
       [

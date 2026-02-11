@@ -196,7 +196,7 @@ const RanchoApp = {
       titulo.textContent = "Estoque & Insumos";
       document.getElementById("navBtnEstoque").classList.add("active");
       this.carregarEstoque();
-      // Carrega o histórico do mês atual
+      // Inicializa histórico
       this.dataFiltroEstoque = new Date();
       this.atualizarLabelMesEstoque();
       this.carregarHistoricoEstoque();
@@ -211,7 +211,7 @@ const RanchoApp = {
     if (this.abaAtual === "cavalos") s = "#listaCavalosBody tr";
     else if (this.abaAtual === "proprietarios")
       s = "#listaProprietariosMainBody tr";
-    else if (this.abaAtual === "estoque") s = "#listaEstoqueBody tr"; // Filtra saldo, não histórico
+    else if (this.abaAtual === "estoque") s = "#listaEstoqueBody tr";
 
     document.querySelectorAll(s).forEach((r) => {
       r.style.display = r.textContent
@@ -242,7 +242,6 @@ const RanchoApp = {
 
   // --- GESTÃO ESTOQUE ---
 
-  // Saldo (Topo)
   async carregarEstoque() {
     try {
       const itens = await ApiService.fetchData("/api/gestao/estoque");
@@ -282,7 +281,6 @@ const RanchoApp = {
     }
   },
 
-  // Histórico Financeiro do Estoque
   async carregarHistoricoEstoque() {
     const mes = this.dataFiltroEstoque.getMonth() + 1;
     const ano = this.dataFiltroEstoque.getFullYear();
@@ -349,7 +347,6 @@ const RanchoApp = {
         .toUpperCase();
   },
 
-  // Edição Genérica (para estoque)
   abrirModalEditarCustoGen(id, desc, valor) {
     this.vibrar();
     document.getElementById("editCustoId").value = id;
@@ -371,7 +368,7 @@ const RanchoApp = {
     const body = {
       descricao: desc,
       valor: valor,
-      categoria: "Estoque", // Mantém categoria
+      categoria: "Estoque",
     };
 
     try {
@@ -386,19 +383,23 @@ const RanchoApp = {
 
   excluirCustoGenerico() {
     const id = document.getElementById("editCustoId").value;
-    this.abrirConfirmacao("Excluir", "Apagar registro?", async () => {
-      try {
-        await ApiService.deleteData(`/api/gestao/custos/${id}`);
-        this.bsModalEditarCusto.hide();
-        this.carregarHistoricoEstoque();
-        this.mostrarNotificacao("Apagado!");
-      } catch (e) {
-        this.mostrarNotificacao("Erro", "erro");
-      }
-    });
+    this.abrirConfirmacao(
+      "Excluir",
+      "Apagar? O saldo será estornado.",
+      async () => {
+        try {
+          await ApiService.deleteData(`/api/gestao/custos/${id}`);
+          this.bsModalEditarCusto.hide();
+          this.carregarHistoricoEstoque();
+          this.carregarEstoque(); // ATUALIZA O SALDO IMEDIATAMENTE
+          this.mostrarNotificacao("Apagado e devolvido!");
+        } catch (e) {
+          this.mostrarNotificacao("Erro", "erro");
+        }
+      },
+    );
   },
 
-  // Nova Compra
   abrirModalCompraEstoque() {
     this.vibrar();
     document.getElementById("formCompraEstoque").reset();
@@ -423,8 +424,8 @@ const RanchoApp = {
       await ApiService.postData("/api/gestao/estoque/compra", body);
       this.mostrarNotificacao("Compra registrada!");
       this.bsModalCompraEstoque.hide();
-      this.carregarEstoque(); // Atualiza saldo
-      this.carregarHistoricoEstoque(); // Atualiza histórico
+      this.carregarEstoque();
+      this.carregarHistoricoEstoque();
     } catch (err) {
       this.mostrarNotificacao("Erro ao salvar", "erro");
     } finally {
@@ -434,8 +435,7 @@ const RanchoApp = {
 
   // --- FIM ESTOQUE ---
 
-  // ... (MANTENHA AS OUTRAS FUNÇÕES DO SISTEMA: carregarTabelaCavalos, carregarTabelaProprietarios, salvarCusto, etc. IGUAIS AO ARQUIVO ORIGINAL) ...
-
+  // ... (MANTENHA AS OUTRAS FUNÇÕES IGUAIS: carregarTabelaCavalos, carregarTabelaProprietarios, etc.)
   async carregarTabelaCavalos() {
     try {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
