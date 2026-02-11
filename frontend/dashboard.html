@@ -68,6 +68,13 @@
             </div>
             <h3 class="fw-bold mb-0 text-dark" id="totalProprietarios">0</h3>
           </div>
+          <div class="card-resumo-mini" onclick="RanchoApp.mudarAba('estoque')">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="small-label">Estoque</span
+              ><i class="fa-solid fa-boxes-stacked text-success opacity-50"></i>
+            </div>
+            <h3 class="fw-bold mb-0 text-dark" id="totalItensEstoque">0</h3>
+          </div>
         </div>
       </div>
 
@@ -108,6 +115,12 @@
           >
             Clientes
           </button>
+          <button
+            class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+            onclick="RanchoApp.mudarAba('estoque')"
+          >
+            Estoque
+          </button>
         </div>
       </div>
 
@@ -118,10 +131,27 @@
           </table>
         </div>
       </div>
+
       <div id="tabProprietarios" class="d-none">
         <div class="table-responsive">
           <table class="table align-middle">
             <tbody id="listaProprietariosMainBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tabEstoque" class="d-none">
+        <div class="text-end mb-3">
+          <button
+            class="btn btn-success rounded-pill fw-bold shadow-sm"
+            onclick="RanchoApp.abrirModalCompraEstoque()"
+          >
+            <i class="fa-solid fa-plus me-1"></i> Nova Compra
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <tbody id="listaEstoqueBody"></tbody>
           </table>
         </div>
       </div>
@@ -138,6 +168,12 @@
         <button class="fab-btn-mini" onclick="RanchoApp.abrirModalNovoCavalo()">
           <i class="fa-solid fa-horse"></i> Novo Animal
         </button>
+        <button
+          class="fab-btn-mini"
+          onclick="RanchoApp.abrirModalCompraEstoque()"
+        >
+          <i class="fa-solid fa-cart-shopping"></i> Compra Estoque
+        </button>
       </div>
       <button class="fab-main"><i class="fa-solid fa-plus"></i></button>
     </div>
@@ -149,6 +185,13 @@
         onclick="RanchoApp.mudarAba('cavalos')"
       >
         <i class="fa-solid fa-horse-head"></i><span>Animais</span>
+      </button>
+      <button
+        class="nav-item-bottom"
+        id="navBtnEstoque"
+        onclick="RanchoApp.mudarAba('estoque')"
+      >
+        <i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span>
       </button>
       <button class="nav-btn-main" onclick="RanchoApp.adicionarItemAtual()">
         <i class="fa-solid fa-plus"></i>
@@ -347,7 +390,6 @@
                 class="d-flex gap-2 align-items-center bg-light p-2 rounded-3 border"
               >
                 <input type="hidden" id="custoIdEdit" />
-
                 <div class="flex-grow-1">
                   <select
                     class="form-select border-0 bg-transparent fw-bold shadow-none mb-1 text-brown"
@@ -355,16 +397,13 @@
                     required
                     style="font-size: 1rem"
                   >
-                    <option value="" disabled selected>
-                      Selecione a Categoria...
-                    </option>
+                    <option value="" disabled selected>Categoria...</option>
                     <option value="Exames">Exames</option>
                     <option value="Ferradura">Ferradura</option>
                     <option value="Frete">Frete</option>
                     <option value="Medicamento">Medicamento</option>
                     <option value="Outros">Outros</option>
                   </select>
-
                   <div class="d-flex gap-2 align-items-center">
                     <input
                       type="text"
@@ -373,7 +412,6 @@
                       placeholder="Descrição"
                       style="flex-grow: 1"
                     />
-
                     <input
                       type="text"
                       inputmode="decimal"
@@ -385,7 +423,6 @@
                     />
                   </div>
                 </div>
-
                 <button
                   type="submit"
                   id="btnSalvarCusto"
@@ -397,7 +434,6 @@
               </form>
             </div>
             <input type="hidden" id="finCavaloId" />
-
             <div
               class="d-flex align-items-center justify-content-between px-4 py-2 border-top border-bottom bg-light"
             >
@@ -415,19 +451,16 @@
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
             </div>
-
             <div class="px-3 py-2" id="areaGrafico" style="display: none">
               <div style="height: 150px; width: 100%; position: relative">
                 <canvas id="graficoFinanceiro"></canvas>
               </div>
             </div>
-
             <div class="px-3 pb-5">
               <table class="table mb-0">
                 <tbody id="tabelaCustosBody"></tbody>
               </table>
             </div>
-
             <div
               class="position-absolute bottom-0 w-100 bg-white border-top p-3 d-flex justify-content-between align-items-center"
             >
@@ -714,6 +747,80 @@
                 Sim
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="modalCompraEstoque" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold text-success">Compra de Insumo</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small mb-4">
+              Registra a entrada no estoque e gera um custo automático para o
+              Rancho.
+            </p>
+            <form id="formCompraEstoque">
+              <div class="mb-3">
+                <label class="small-label mb-1">Item (ex: Ração, Feno)</label>
+                <input
+                  type="text"
+                  class="form-control form-control-lg bg-light border-0 fw-bold"
+                  id="estItemNome"
+                  placeholder="Nome do produto"
+                  required
+                />
+              </div>
+              <div class="row mb-3">
+                <div class="col-6">
+                  <label class="small-label mb-1">Quantidade</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    class="form-control bg-light border-0"
+                    id="estQtd"
+                    required
+                  />
+                </div>
+                <div class="col-6">
+                  <label class="small-label mb-1">Unidade</label>
+                  <select class="form-select bg-light border-0" id="estUnidade">
+                    <option value="Unid">Unid</option>
+                    <option value="Sacos">Sacos</option>
+                    <option value="Kg">Kg</option>
+                    <option value="Fardos">Fardos</option>
+                    <option value="Litros">Litros</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-4">
+                <label class="small-label mb-1">Valor Total (R$)</label>
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  class="form-control form-control-lg bg-light border-0 text-success fw-bold"
+                  id="estValorTotal"
+                  placeholder="R$ 0,00"
+                  required
+                />
+              </div>
+              <div class="d-grid">
+                <button
+                  type="submit"
+                  class="btn btn-success btn-lg rounded-3 fw-bold"
+                >
+                  Registrar Compra
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

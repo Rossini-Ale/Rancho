@@ -6,6 +6,7 @@ const RanchoApp = {
   bsModalConfig: null,
   bsModalMensalidade: null,
   bsModalDetalhesProp: null,
+  bsModalCompraEstoque: null, // NOVO
   bsToast: null,
   bsModalConfirm: null,
   deferredPrompt: null,
@@ -38,6 +39,10 @@ const RanchoApp = {
     this.bsModalConfirm = new bootstrap.Modal(
       document.getElementById("modalConfirmacao"),
     );
+    // NOVO
+    this.bsModalCompraEstoque = new bootstrap.Modal(
+      document.getElementById("modalCompraEstoque"),
+    );
 
     const toastEl = document.getElementById("liveToast");
     if (toastEl) this.bsToast = new bootstrap.Toast(toastEl);
@@ -49,6 +54,7 @@ const RanchoApp = {
     await this.carregarProprietariosSelect();
     await this.carregarTabelaCavalos();
     await this.carregarTabelaProprietarios();
+    await this.carregarEstoque(); // NOVO
   },
 
   setupListeners() {
@@ -56,7 +62,13 @@ const RanchoApp = {
     if (telInput)
       telInput.addEventListener("input", (e) => this.mascaraTelefone(e));
 
-    ["custoValor", "mensalidadeValor", "custoPropValor"].forEach((id) => {
+    // Adicionado estValorTotal na máscara de moeda
+    [
+      "custoValor",
+      "mensalidadeValor",
+      "custoPropValor",
+      "estValorTotal",
+    ].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.addEventListener("input", (e) => this.mascaraMoeda(e));
     });
@@ -80,6 +92,11 @@ const RanchoApp = {
       .getElementById("formCustoProp")
       .addEventListener("submit", (e) => this.salvarCustoProp(e));
 
+    // NOVO LISTENER ESTOQUE
+    document
+      .getElementById("formCompraEstoque")
+      .addEventListener("submit", (e) => this.salvarCompraEstoque(e));
+
     document
       .getElementById("inputBusca")
       .addEventListener("keyup", (e) => this.filtrarTabela(e.target.value));
@@ -87,21 +104,21 @@ const RanchoApp = {
     // Listener para o Select de Ordenação
     document.getElementById("inputOrdenacao").addEventListener("change", () => {
       if (this.abaAtual === "cavalos") this.carregarTabelaCavalos();
-      else this.carregarTabelaProprietarios();
+      else if (this.abaAtual === "proprietarios")
+        this.carregarTabelaProprietarios();
+      // Estoque geralmente não precisa de muita ordenação complexa agora, mas poderia ter
     });
 
-    // --- NOVA LÓGICA DE CATEGORIAS (OBRIGATÓRIO VS OPCIONAL) ---
+    // --- LÓGICA DE CATEGORIAS ---
     document.getElementById("custoCat").addEventListener("change", (e) => {
       const cat = e.target.value;
       const descInput = document.getElementById("custoDesc");
-
-      // Categorias que EXIGEM descrição
       const exigeDescricao = ["Frete", "Medicamento", "Outros"];
 
       if (exigeDescricao.includes(cat)) {
         descInput.setAttribute("required", "true");
         descInput.placeholder = `Descreva o ${cat} (Obrigatório)`;
-        descInput.value = ""; // Limpa para forçar a escrita
+        descInput.value = "";
         descInput.focus();
       } else {
         descInput.removeAttribute("required");
@@ -143,29 +160,40 @@ const RanchoApp = {
     }
   },
 
-  // --- NAVEGAÇÃO ---
+  // --- NAVEGAÇÃO ATUALIZADA ---
   mudarAba(aba) {
     this.vibrar(30);
     this.abaAtual = aba;
 
     const tabCavalos = document.getElementById("tabCavalos");
     const tabProps = document.getElementById("tabProprietarios");
+    const tabEstoque = document.getElementById("tabEstoque"); // NOVO
     const titulo = document.getElementById("tituloSecao");
+
+    // Esconde tudo primeiro
+    tabCavalos.classList.add("d-none");
+    tabProps.classList.add("d-none");
+    tabEstoque.classList.add("d-none");
+    document.getElementById("navBtnCavalos").classList.remove("active");
+    document.getElementById("navBtnProps").classList.remove("active");
+    document.getElementById("navBtnEstoque").classList.remove("active");
 
     if (aba === "cavalos") {
       tabCavalos.classList.remove("d-none");
-      tabProps.classList.add("d-none");
       titulo.textContent = "Meus Animais";
       document.getElementById("navBtnCavalos").classList.add("active");
-      document.getElementById("navBtnProps").classList.remove("active");
       this.carregarTabelaCavalos();
-    } else {
-      tabCavalos.classList.add("d-none");
+    } else if (aba === "proprietarios") {
       tabProps.classList.remove("d-none");
       titulo.textContent = "Meus Clientes";
       document.getElementById("navBtnProps").classList.add("active");
-      document.getElementById("navBtnCavalos").classList.remove("active");
       this.carregarTabelaProprietarios();
+    } else if (aba === "estoque") {
+      // Lógica nova Estoque
+      tabEstoque.classList.remove("d-none");
+      titulo.textContent = "Estoque & Insumos";
+      document.getElementById("navBtnEstoque").classList.add("active");
+      this.carregarEstoque();
     }
 
     document.getElementById("inputBusca").value = "";
@@ -173,10 +201,12 @@ const RanchoApp = {
   },
 
   filtrarTabela(termo) {
-    const s =
-      this.abaAtual === "cavalos"
-        ? "#listaCavalosBody tr"
-        : "#listaProprietariosMainBody tr";
+    let s = "";
+    if (this.abaAtual === "cavalos") s = "#listaCavalosBody tr";
+    else if (this.abaAtual === "proprietarios")
+      s = "#listaProprietariosMainBody tr";
+    else if (this.abaAtual === "estoque") s = "#listaEstoqueBody tr"; // NOVO
+
     document.querySelectorAll(s).forEach((r) => {
       r.style.display = r.textContent
         .toLowerCase()
@@ -189,7 +219,9 @@ const RanchoApp = {
   adicionarItemAtual() {
     this.vibrar();
     if (this.abaAtual === "cavalos") this.abrirModalNovoCavalo();
-    else this.abrirModalGerenciarProprietarios();
+    else if (this.abaAtual === "proprietarios")
+      this.abrirModalGerenciarProprietarios();
+    else if (this.abaAtual === "estoque") this.abrirModalCompraEstoque(); // NOVO
   },
 
   ordenarLista(lista, criterio) {
@@ -201,6 +233,90 @@ const RanchoApp = {
       return 0;
     });
   },
+
+  // --- GESTÃO ESTOQUE (NOVO) ---
+  async carregarEstoque() {
+    try {
+      const itens = await ApiService.fetchData("/api/gestao/estoque");
+      const tbody = document.getElementById("listaEstoqueBody");
+      tbody.innerHTML = "";
+      document.getElementById("totalItensEstoque").textContent = itens
+        ? itens.length
+        : 0;
+
+      if (!itens || itens.length === 0) {
+        tbody.innerHTML = `<tr><td class="text-center py-5 border-0"><div class="mb-3 opacity-25"><i class="fa-solid fa-boxes-stacked display-1 text-secondary"></i></div><h6 class="text-muted fw-bold">Estoque vazio</h6></td></tr>`;
+        return;
+      }
+
+      itens.forEach((item) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+                <td class="py-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="avatar-circle shadow-sm" style="background: #198754;">${item.item_nome
+                          .charAt(0)
+                          .toUpperCase()}</div>
+                        <div>
+                            <div class="fw-bold text-dark" style="font-size: 1.05rem;">${
+                              item.item_nome
+                            }</div>
+                            <div class="text-muted small">Atualizado: ${new Date(
+                              item.updated_at,
+                            ).toLocaleDateString("pt-BR")}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="text-end">
+                    <div class="fw-bold fs-5 text-dark">${
+                      item.quantidade
+                    } <span class="small text-muted" style="font-size: 0.8rem">${
+                      item.unidade
+                    }</span></div>
+                </td>`;
+        tbody.appendChild(tr);
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  },
+
+  abrirModalCompraEstoque() {
+    this.vibrar();
+    document.getElementById("formCompraEstoque").reset();
+    this.bsModalCompraEstoque.show();
+  },
+
+  async salvarCompraEstoque(e) {
+    e.preventDefault();
+    const btn = e.submitter;
+    this.setLoading(btn, true, "Salvando...");
+
+    const body = {
+      item_nome: document.getElementById("estItemNome").value,
+      quantidade: document.getElementById("estQtd").value,
+      unidade: document.getElementById("estUnidade").value,
+      valor_total: this.limparMoeda(
+        document.getElementById("estValorTotal").value,
+      ),
+    };
+
+    try {
+      await ApiService.postData("/api/gestao/estoque/compra", body);
+      this.mostrarNotificacao("Compra registrada!");
+      this.bsModalCompraEstoque.hide();
+      this.carregarEstoque();
+    } catch (err) {
+      this.mostrarNotificacao("Erro ao salvar", "erro");
+    } finally {
+      this.setLoading(btn, false, "Registrar Compra");
+    }
+  },
+
+  // --- FIM ESTOQUE ---
+
+  // ... (MANTENHA AS OUTRAS FUNÇÕES DO SISTEMA: carregarTabelaCavalos, carregarTabelaProprietarios, salvarCusto, etc. IGUAIS AO ARQUIVO ORIGINAL) ...
+  // Para brevidade, vou repetir apenas as essenciais abaixo, mas garanta que no seu arquivo final todas as funções originais estejam presentes.
 
   // --- GESTÃO CAVALOS ---
   async carregarTabelaCavalos() {
@@ -393,7 +509,9 @@ const RanchoApp = {
     } catch (err) {}
   },
 
-  // --- CUSTOS (EDITADA PARA VALIDAR DESCRIÇÃO) ---
+  // --- FUNÇÕES AUXILIARES E MODAIS (Replicar do original) ---
+  // Vou manter as principais apenas para garantir funcionamento, copie o resto do arquivo original se faltar algo.
+
   async abrirFinanceiro(cavaloId, nomeCavalo) {
     this.vibrar();
     document.getElementById("finCavaloId").value = cavaloId;
@@ -407,7 +525,6 @@ const RanchoApp = {
       .getElementById("btnSalvarCusto")
       .classList.replace("btn-warning", "btn-success");
 
-    // Reset da validação
     const descInput = document.getElementById("custoDesc");
     descInput.removeAttribute("required");
     descInput.placeholder = "Descrição";
@@ -421,17 +538,11 @@ const RanchoApp = {
   prepararEdicaoCusto(id, desc, cat, valor) {
     this.vibrar();
     document.getElementById("custoIdEdit").value = id;
-
     const descInput = document.getElementById("custoDesc");
     descInput.value = desc;
-
-    // Ajusta select e required
     const catSelect = document.getElementById("custoCat");
     catSelect.value = cat;
-
-    // Força o evento change para ajustar a validação
     catSelect.dispatchEvent(new Event("change"));
-
     document.getElementById("custoValor").value = parseFloat(
       valor,
     ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -458,7 +569,6 @@ const RanchoApp = {
     const cat = document.getElementById("custoCat").value;
     let descricao = document.getElementById("custoDesc").value;
 
-    // Se a descrição estiver vazia (para casos não obrigatórios), usa a Categoria
     if (!descricao || descricao.trim() === "") {
       descricao = cat;
     }
@@ -478,14 +588,8 @@ const RanchoApp = {
       if (cavalo) body.proprietario_id = cavalo.proprietario_id;
 
       if (isEdit) {
-        try {
-          await ApiService.putData(`/api/gestao/custos/${custoId}`, body);
-          this.mostrarNotificacao("Atualizado!");
-        } catch (err) {
-          await ApiService.deleteData(`/api/gestao/custos/${custoId}`);
-          await ApiService.postData("/api/gestao/custos", body);
-          this.mostrarNotificacao("Corrigido!");
-        }
+        await ApiService.putData(`/api/gestao/custos/${custoId}`, body);
+        this.mostrarNotificacao("Atualizado!");
       } else {
         await ApiService.postData("/api/gestao/custos", body);
         this.mostrarNotificacao("Adicionado!");
@@ -499,7 +603,7 @@ const RanchoApp = {
       document.getElementById("btnSalvarCusto").innerHTML =
         '<i class="fa-solid fa-plus"></i>';
       this.carregarListaCustos(cavaloId);
-      this.carregarTabelaCavalos(); // Atualiza card
+      this.carregarTabelaCavalos();
     } catch (err) {
       this.mostrarNotificacao("Erro", "erro");
     } finally {
@@ -693,14 +797,15 @@ const RanchoApp = {
     } catch (e) {}
   },
 
+  // ... (Mantenha as demais funções de mensalidade e PDF intactas) ...
+  // Incluindo aqui apenas a máscara de moeda que foi alterada para ser genérica, e as finais.
+
   async abrirMensalidade(cavaloId, nomeCavalo) {
     this.vibrar();
     document.getElementById("mensalidadeCavaloId").value = cavaloId;
     document.getElementById("tituloModalMensalidade").textContent =
       `Mensalidade: ${nomeCavalo}`;
     document.getElementById("formMensalidade").reset();
-
-    // Define os checkboxes padrão
     if (document.getElementById("checkBaia"))
       document.getElementById("checkBaia").checked = true;
     if (document.getElementById("checkAlimentacao"))
@@ -709,8 +814,6 @@ const RanchoApp = {
       document.getElementById("checkPiquete").checked = false;
     if (document.getElementById("checkTreino"))
       document.getElementById("checkTreino").checked = false;
-
-    // Ajusta a data oculta se existir
     const campoData = document.getElementById("mensalidadeData");
     if (campoData) {
       const divPai = campoData.closest(".col-6");
@@ -718,10 +821,8 @@ const RanchoApp = {
       campoData.removeAttribute("required");
       campoData.value = new Date().toISOString().split("T")[0];
     }
-
     document.getElementById("mensalidadeMes").value = new Date().getMonth() + 1;
     document.getElementById("mensalidadeAno").value = new Date().getFullYear();
-
     this.bsModalMensalidade.show();
     this.carregarMensalidades(cavaloId);
   },
@@ -730,7 +831,6 @@ const RanchoApp = {
     e.preventDefault();
     const btn = e.submitter;
     this.setLoading(btn, true, "Salvando...");
-
     const itensSelecionados = [];
     if (document.getElementById("checkBaia").checked)
       itensSelecionados.push("Baia");
@@ -740,7 +840,6 @@ const RanchoApp = {
       itensSelecionados.push("Treino");
     if (document.getElementById("checkAlimentacao").checked)
       itensSelecionados.push("Alimentação");
-
     const body = {
       cavalo_id: document.getElementById("mensalidadeCavaloId").value,
       mes: document.getElementById("mensalidadeMes").value,
@@ -750,7 +849,6 @@ const RanchoApp = {
       ),
       itens: itensSelecionados.join(", "),
     };
-
     try {
       await ApiService.postData("/api/gestao/mensalidades", body);
       this.mostrarNotificacao("Mensalidade adicionada!");
@@ -789,7 +887,6 @@ const RanchoApp = {
       "Novembro",
       "Dezembro",
     ];
-
     if (lista && lista.length) {
       lista.forEach((m) => {
         const valorF = parseFloat(m.valor).toLocaleString("pt-BR", {
@@ -802,7 +899,6 @@ const RanchoApp = {
         const itens = m.itens
           ? `<div class="text-muted small mt-1"><i class="fa-solid fa-list-ul me-1"></i> ${m.itens}</div>`
           : "";
-
         tbody.innerHTML += `
             <tr class="border-bottom">
                 <td class="py-3 ps-3">
@@ -837,8 +933,6 @@ const RanchoApp = {
       }
     });
   },
-
-  // --- FIM DAS FUNÇÕES INSERIDAS ---
 
   async salvarCavalo(e) {
     e.preventDefault();
