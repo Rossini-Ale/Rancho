@@ -693,8 +693,6 @@ const RanchoApp = {
     } catch (e) {}
   },
 
-  // --- INSERI AS FUNÇÕES QUE FALTAVAM AQUI ---
-
   async abrirMensalidade(cavaloId, nomeCavalo) {
     this.vibrar();
     document.getElementById("mensalidadeCavaloId").value = cavaloId;
