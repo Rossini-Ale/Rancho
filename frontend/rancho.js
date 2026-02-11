@@ -10,6 +10,7 @@ const RanchoApp = {
   bsModalConfirm: null,
   deferredPrompt: null,
   chartInstance: null,
+  chartRanchoInstance: null, // Nova instância para o gráfico do rancho
 
   dataFiltro: new Date(),
   dataFiltroProp: new Date(),
@@ -225,7 +226,7 @@ const RanchoApp = {
     });
   },
 
-  // --- GESTÃO RANCHO (ATUALIZADO) ---
+  // --- GESTÃO RANCHO (ATUALIZADA COM GRÁFICO E CATEGORIAS) ---
 
   async carregarDespesasRancho() {
     const mes = this.dataFiltroRancho.getMonth() + 1;
@@ -241,7 +242,21 @@ const RanchoApp = {
       );
       tbody.innerHTML = "";
 
+      // Ícones para cada categoria
+      const icones = {
+        Alimentação: "fa-wheat",
+        Manutenção: "fa-hammer",
+        Funcionários: "fa-user-clock",
+        Energia: "fa-bolt",
+        Outros: "fa-circle-question",
+        Rancho: "fa-file-invoice-dollar", // Fallback
+      };
+
       if (dados && dados.custos && dados.custos.length > 0) {
+        // Exibe o gráfico
+        document.getElementById("areaGraficoRancho").style.display = "block";
+        this.renderizarGraficoRancho(dados.custos);
+
         const listaProcessada = dados.custos.map((c) => ({
           ...c,
           nome: c.descricao,
@@ -256,17 +271,18 @@ const RanchoApp = {
             style: "currency",
             currency: "BRL",
           });
+          const icone = icones[c.categoria] || icones["Outros"];
 
           tbody.innerHTML += `
             <tr class="border-bottom">
               <td class="py-3 ps-3">
                  <div class="d-flex align-items-center">
                     <div class="avatar-circle shadow-sm me-3" style="background: rgba(139, 69, 19, 0.1); color: #8b4513; width: 40px; height: 40px;">
-                       <i class="fa-solid fa-file-invoice-dollar"></i>
+                       <i class="fa-solid ${icone}"></i>
                     </div>
                     <div>
                        <div class="fw-bold text-dark">${c.descricao}</div>
-                       <div class="text-muted" style="font-size: 0.75rem;">Dia ${dia}</div>
+                       <div class="text-muted small">${c.categoria} • Dia ${dia}</div>
                     </div>
                  </div>
               </td>
@@ -285,17 +301,24 @@ const RanchoApp = {
           "pt-BR",
           { style: "currency", currency: "BRL" },
         );
-        // Atualiza o card grande
-        const displayTotal = document.getElementById("totalRanchoMesDisplay");
-        if (displayTotal) displayTotal.textContent = totalFormatado;
-
-        // Atualiza o card mini
+        document.getElementById("totalRanchoMesDisplay").textContent =
+          totalFormatado;
         document.getElementById("totalRanchoMes").textContent = totalFormatado;
       } else {
-        tbody.innerHTML =
-          '<tr><td colspan="2" class="text-center text-muted py-5 small">Nenhuma despesa neste mês.</td></tr>';
-        const displayTotal = document.getElementById("totalRanchoMesDisplay");
-        if (displayTotal) displayTotal.textContent = "R$ 0,00";
+        // ESTADO VAZIO BONITO
+        document.getElementById("areaGraficoRancho").style.display = "none";
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="2" class="text-center border-0 py-5">
+              <div class="opacity-25 mb-2">
+                <i class="fa-solid fa-clipboard-check display-3 text-secondary"></i>
+              </div>
+              <p class="text-muted fw-bold mb-0">Tudo tranquilo!</p>
+              <small class="text-muted">Nenhuma despesa lançada.</small>
+            </td>
+          </tr>`;
+        document.getElementById("totalRanchoMesDisplay").textContent =
+          "R$ 0,00";
         document.getElementById("totalRanchoMes").textContent = "R$ 0,00";
       }
     } catch (e) {
@@ -303,6 +326,56 @@ const RanchoApp = {
       tbody.innerHTML =
         '<tr><td colspan="2" class="text-center text-danger small">Erro ao carregar dados.</td></tr>';
     }
+  },
+
+  renderizarGraficoRancho(custos) {
+    const ctx = document.getElementById("graficoRancho");
+    const dados = {};
+    custos.forEach((c) => {
+      const cat = c.categoria || "Outros";
+      if (!dados[cat]) dados[cat] = 0;
+      dados[cat] += parseFloat(c.valor);
+    });
+
+    if (this.chartRanchoInstance) this.chartRanchoInstance.destroy();
+
+    this.chartRanchoInstance = new Chart(ctx, {
+      type: "doughnut",
+      data: {
+        labels: Object.keys(dados),
+        datasets: [
+          {
+            data: Object.values(dados),
+            backgroundColor: [
+              "#8B4513", // Marrom Principal
+              "#D2691E", // Chocolate
+              "#CD853F", // Peru
+              "#DEB887", // Burlywood
+              "#A0522D", // Sienna
+              "#F4A460", // SandyBrown
+            ],
+            borderWidth: 1,
+            hoverOffset: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "right",
+            labels: {
+              boxWidth: 12,
+              font: { size: 11, family: "'Segoe UI', sans-serif" },
+            },
+          },
+        },
+        layout: {
+          padding: 10,
+        },
+      },
+    });
   },
 
   mudarMesRancho(d) {
@@ -324,13 +397,16 @@ const RanchoApp = {
     const btn = e.submitter;
     this.setLoading(btn, true, '<i class="fa-solid fa-plus"></i>');
 
+    // Pegando a categoria do Select (fallback para Rancho se vazio)
+    const cat = document.getElementById("ranchoCat").value;
+
     const body = {
       proprietario_id: null,
       cavalo_id: null,
       descricao: document.getElementById("ranchoDesc").value,
       valor: this.limparMoeda(document.getElementById("ranchoValor").value),
       data_despesa: new Date().toISOString().split("T")[0],
-      categoria: "Rancho",
+      categoria: cat || "Rancho", // Salva a categoria correta
     };
 
     try {
