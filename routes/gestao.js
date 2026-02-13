@@ -6,7 +6,7 @@ const verificarToken = require("../middleware/authMiddleware");
 router.use(verificarToken);
 
 // =======================
-// CAVALOS
+// CAVALOS (Mantido igual)
 // =======================
 
 router.get("/cavalos", async (req, res) => {
@@ -79,7 +79,7 @@ router.delete("/cavalos/:id", async (req, res) => {
 });
 
 // =======================
-// PROPRIETÁRIOS
+// PROPRIETÁRIOS (Mantido igual)
 // =======================
 
 router.get("/proprietarios", async (req, res) => {
@@ -135,7 +135,7 @@ router.delete("/proprietarios/:id", async (req, res) => {
 });
 
 // =======================
-// CUSTOS
+// CUSTOS (Atualizado com Quantidade)
 // =======================
 
 router.get("/custos/resumo/:cavaloId", async (req, res) => {
@@ -147,19 +147,16 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
     );
     if (!check.length) return res.status(403).json({ msg: "Sem permissão" });
 
-    // 1. Busca os Custos Variáveis
     const [custos] = await pool.query(
       "SELECT * FROM Custos WHERE cavalo_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND usuario_id=?",
       [req.params.cavaloId, mes, ano, req.user.id],
     );
 
-    // 2. Busca a Mensalidade do mesmo mês
     const [mensalidades] = await pool.query(
       "SELECT * FROM Mensalidades WHERE cavalo_id=? AND mes=? AND ano=? AND usuario_id=?",
       [req.params.cavaloId, mes, ano, req.user.id],
     );
 
-    // 3. Calcula total dos custos normais
     const [totalCustos] = await pool.query(
       "SELECT SUM(valor) as total FROM Custos WHERE cavalo_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND usuario_id=?",
       [req.params.cavaloId, mes, ano, req.user.id],
@@ -182,6 +179,7 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
         data_despesa: m.data_pagamento,
         is_mensalidade: true,
         pago: m.pago,
+        quantidade: 1, // Padrão para mensalidade
       });
     }
 
@@ -195,7 +193,6 @@ router.get("/custos/resumo/:cavaloId", async (req, res) => {
   }
 });
 
-// NOVA ROTA: Despesas do Rancho (Geral)
 router.get("/custos/rancho", async (req, res) => {
   const { mes, ano } = req.query;
   try {
@@ -211,7 +208,6 @@ router.get("/custos/rancho", async (req, res) => {
     `;
     const [rows] = await pool.query(sql, [req.user.id, mes, ano]);
 
-    // Calcula total
     const sqlTotal = `
       SELECT SUM(valor) as total FROM Custos 
       WHERE usuario_id = ? 
@@ -239,17 +235,19 @@ router.post("/custos", async (req, res) => {
     descricao,
     categoria,
     valor,
+    quantidade, // Novo campo
     data_despesa,
   } = req.body;
   try {
     await pool.query(
-      "INSERT INTO Custos (cavalo_id, proprietario_id, descricao, categoria, valor, data_despesa, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO Custos (cavalo_id, proprietario_id, descricao, categoria, valor, quantidade, data_despesa, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [
         cavalo_id || null,
         proprietario_id || null,
         descricao,
         categoria,
         valor,
+        quantidade || 1, // Se não vier, assume 1
         data_despesa,
         req.user.id,
       ],
@@ -302,11 +300,18 @@ router.put("/custos/baixar-mes", async (req, res) => {
 });
 
 router.put("/custos/:id", async (req, res) => {
-  const { descricao, valor, categoria } = req.body;
+  const { descricao, valor, categoria, quantidade } = req.body;
   try {
     await pool.query(
-      "UPDATE Custos SET descricao=?, valor=?, categoria=? WHERE id=? AND usuario_id=?",
-      [descricao, valor, categoria, req.params.id, req.user.id],
+      "UPDATE Custos SET descricao=?, valor=?, categoria=?, quantidade=? WHERE id=? AND usuario_id=?",
+      [
+        descricao,
+        valor,
+        categoria,
+        quantidade || 1,
+        req.params.id,
+        req.user.id,
+      ],
     );
     res.json({ message: "Ok" });
   } catch (err) {
@@ -317,7 +322,6 @@ router.put("/custos/:id", async (req, res) => {
 
 router.delete("/custos/:id", async (req, res) => {
   try {
-    // Apenas deleta o custo, sem lógica de estoque
     await pool.query("DELETE FROM Custos WHERE id=? AND usuario_id=?", [
       req.params.id,
       req.user.id,
@@ -330,7 +334,7 @@ router.delete("/custos/:id", async (req, res) => {
 });
 
 // =======================
-// MENSALIDADES
+// MENSALIDADES (Mantido igual)
 // =======================
 
 router.post("/mensalidades", async (req, res) => {
@@ -383,7 +387,7 @@ router.delete("/mensalidades/:id", async (req, res) => {
 });
 
 // =======================
-// CONFIGURAÇÃO
+// CONFIGURAÇÃO (Mantido igual)
 // =======================
 
 router.get("/config", async (req, res) => {

@@ -10,7 +10,7 @@ const RanchoApp = {
   bsModalConfirm: null,
   deferredPrompt: null,
   chartInstance: null,
-  chartRanchoInstance: null, // Nova instância para o gráfico do rancho
+  chartRanchoInstance: null,
 
   dataFiltro: new Date(),
   dataFiltroProp: new Date(),
@@ -226,7 +226,7 @@ const RanchoApp = {
     });
   },
 
-  // --- GESTÃO RANCHO (ATUALIZADA COM GRÁFICO E CATEGORIAS) ---
+  // --- GESTÃO RANCHO (ATUALIZADA) ---
 
   async carregarDespesasRancho() {
     const mes = this.dataFiltroRancho.getMonth() + 1;
@@ -242,18 +242,16 @@ const RanchoApp = {
       );
       tbody.innerHTML = "";
 
-      // Ícones para cada categoria
       const icones = {
         Alimentação: "fa-wheat",
         Manutenção: "fa-hammer",
         Funcionários: "fa-user-clock",
         Energia: "fa-bolt",
         Outros: "fa-circle-question",
-        Rancho: "fa-file-invoice-dollar", // Fallback
+        Rancho: "fa-file-invoice-dollar",
       };
 
       if (dados && dados.custos && dados.custos.length > 0) {
-        // Exibe o gráfico
         document.getElementById("areaGraficoRancho").style.display = "block";
         this.renderizarGraficoRancho(dados.custos);
 
@@ -272,6 +270,9 @@ const RanchoApp = {
             currency: "BRL",
           });
           const icone = icones[c.categoria] || icones["Outros"];
+          // Mostra a quantidade se for maior que 1 ou se existir
+          const qtd =
+            c.quantidade && c.quantidade > 1 ? `${c.quantidade}x ` : "";
 
           tbody.innerHTML += `
             <tr class="border-bottom">
@@ -281,7 +282,7 @@ const RanchoApp = {
                        <i class="fa-solid ${icone}"></i>
                     </div>
                     <div>
-                       <div class="fw-bold text-dark">${c.descricao}</div>
+                       <div class="fw-bold text-dark"><span class="fw-bold text-primary">${qtd}</span>${c.descricao}</div>
                        <div class="text-muted small">${c.categoria} • Dia ${dia}</div>
                     </div>
                  </div>
@@ -305,7 +306,6 @@ const RanchoApp = {
           totalFormatado;
         document.getElementById("totalRanchoMes").textContent = totalFormatado;
       } else {
-        // ESTADO VAZIO BONITO
         document.getElementById("areaGraficoRancho").style.display = "none";
         tbody.innerHTML = `
           <tr>
@@ -347,12 +347,12 @@ const RanchoApp = {
           {
             data: Object.values(dados),
             backgroundColor: [
-              "#8B4513", // Marrom Principal
-              "#D2691E", // Chocolate
-              "#CD853F", // Peru
-              "#DEB887", // Burlywood
-              "#A0522D", // Sienna
-              "#F4A460", // SandyBrown
+              "#8B4513",
+              "#D2691E",
+              "#CD853F",
+              "#DEB887",
+              "#A0522D",
+              "#F4A460",
             ],
             borderWidth: 1,
             hoverOffset: 4,
@@ -397,8 +397,8 @@ const RanchoApp = {
     const btn = e.submitter;
     this.setLoading(btn, true, '<i class="fa-solid fa-plus"></i>');
 
-    // Pegando a categoria do Select (fallback para Rancho se vazio)
     const cat = document.getElementById("ranchoCat").value;
+    const qtd = document.getElementById("ranchoQtd").value; // NOVO
 
     const body = {
       proprietario_id: null,
@@ -406,7 +406,8 @@ const RanchoApp = {
       descricao: document.getElementById("ranchoDesc").value,
       valor: this.limparMoeda(document.getElementById("ranchoValor").value),
       data_despesa: new Date().toISOString().split("T")[0],
-      categoria: cat || "Rancho", // Salva a categoria correta
+      categoria: cat || "Rancho",
+      quantidade: qtd ? parseInt(qtd) : 1, // Envia quantidade
     };
 
     try {
