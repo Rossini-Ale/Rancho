@@ -92,7 +92,6 @@ const RanchoApp = {
       .getElementById("inputBusca")
       .addEventListener("keyup", (e) => this.filtrarTabela(e.target.value));
 
-    // ATUALIZADO: Agora atualiza também a tabela Rancho ao mudar a ordenação
     document.getElementById("inputOrdenacao").addEventListener("change", () => {
       if (this.abaAtual === "cavalos") this.carregarTabelaCavalos();
       else if (this.abaAtual === "proprietarios")
@@ -226,7 +225,7 @@ const RanchoApp = {
     });
   },
 
-  // --- GESTÃO RANCHO (ATUALIZADA) ---
+  // --- GESTÃO RANCHO ---
 
   async carregarDespesasRancho() {
     const mes = this.dataFiltroRancho.getMonth() + 1;
@@ -247,6 +246,7 @@ const RanchoApp = {
         Manutenção: "fa-hammer",
         Funcionários: "fa-user-clock",
         Energia: "fa-bolt",
+        Combustível: "fa-gas-pump",
         Outros: "fa-circle-question",
         Rancho: "fa-file-invoice-dollar",
       };
@@ -269,8 +269,10 @@ const RanchoApp = {
             style: "currency",
             currency: "BRL",
           });
-          const icone = icones[c.categoria] || icones["Outros"];
-          // Mostra a quantidade se for maior que 1 ou se existir
+
+          // Se a categoria não estiver nos ícones pré-definidos, usa uma etiqueta genérica
+          const icone = icones[c.categoria] || "fa-tag";
+
           const qtd =
             c.quantidade && c.quantidade > 1 ? `${c.quantidade}x ` : "";
 
@@ -397,8 +399,15 @@ const RanchoApp = {
     const btn = e.submitter;
     this.setLoading(btn, true, '<i class="fa-solid fa-plus"></i>');
 
-    const cat = document.getElementById("ranchoCat").value;
-    const qtd = document.getElementById("ranchoQtd").value; // NOVO
+    // Pega o texto digitado e formata a primeira letra para maiúscula para o gráfico não duplicar
+    let cat = document.getElementById("ranchoCat").value.trim();
+    if (cat) {
+      cat = cat.charAt(0).toUpperCase() + cat.slice(1);
+    } else {
+      cat = "Geral";
+    }
+
+    const qtd = document.getElementById("ranchoQtd").value;
 
     const body = {
       proprietario_id: null,
@@ -406,8 +415,8 @@ const RanchoApp = {
       descricao: document.getElementById("ranchoDesc").value,
       valor: this.limparMoeda(document.getElementById("ranchoValor").value),
       data_despesa: new Date().toISOString().split("T")[0],
-      categoria: cat || "Rancho",
-      quantidade: qtd ? parseInt(qtd) : 1, // Envia quantidade
+      categoria: cat, // Categoria livre
+      quantidade: qtd ? parseInt(qtd) : 1,
     };
 
     try {
