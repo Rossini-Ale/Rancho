@@ -466,10 +466,6 @@ body {
   background-color: #198754;
 }
 
-/* ========================================================
-   NOVAS ADIÇÕES: ANIMAÇÕES, DARK MODE E PULL-TO-REFRESH
-   ======================================================== */
-
 /* 1. Animação de Entrada (Fade-In Up) */
 .fade-in-up {
   animation: fadeInUp 0.4s ease-out forwards;
@@ -488,7 +484,7 @@ body {
 /* 2. Pull To Refresh (Puxar para Atualizar) */
 main {
   position: relative;
-} /* Garante que o indicador fique preso ao main */
+}
 .ptr-indicator {
   position: absolute;
   top: -50px;
@@ -511,38 +507,109 @@ main {
   opacity: 1 !important;
 }
 
-/* 3. Dark Mode */
+/* ========================================================
+   3. DARK MODE - APRIMORADO E CORRIGIDO
+   ======================================================== */
 [data-theme="dark"] {
   --cor-fundo: #121212;
   --cor-texto: #e0e0e0;
   --cor-borda: #2c2c2c;
 }
-[data-theme="dark"] .bg-white,
-[data-theme="dark"] .bg-light {
-  background-color: #1e1e1e !important;
+
+[data-theme="dark"] body {
+  background-color: var(--cor-fundo) !important;
+  color: var(--cor-texto) !important;
 }
-[data-theme="dark"] .card-resumo-mini,
+
+/* Forçar os fundos em todas as caixas que antes eram brancas/claras */
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-light,
+[data-theme="dark"] .card,
 [data-theme="dark"] .modal-content,
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-body,
+[data-theme="dark"] .fixed-bottom-modal-panel,
+[data-theme="dark"] .card-resumo-mini,
 [data-theme="dark"] .search-input-wrapper,
 [data-theme="dark"] .bottom-nav {
   background-color: #1e1e1e !important;
   border-color: #333 !important;
 }
-[data-theme="dark"] .table tr {
-  background-color: #1e1e1e !important;
+
+/* ----------------------------------------------------
+   CORREÇÃO DE TEXTOS: Modais, Listas, Títulos e Labels
+   ---------------------------------------------------- */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] .text-dark,
+[data-theme="dark"] .modal-title,
+[data-theme="dark"] .fw-bold {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] label,
+[data-theme="dark"] .small-label,
+[data-theme="dark"] .text-muted {
+  color: #9aa0a6 !important;
+}
+
+/* ----------------------------------------------------
+   CORREÇÃO DOS INPUTS: Caixas de texto, textareas e selects
+   ---------------------------------------------------- */
+[data-theme="dark"] input.form-control,
+[data-theme="dark"] select.form-select,
+[data-theme="dark"] textarea.form-control,
+[data-theme="dark"] .search-input {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+  border-color: #444 !important;
+}
+
+[data-theme="dark"] .form-select option {
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+
+/* CORREÇÃO DOS PLACEHOLDERS (Texto fantasma que estava escuro) */
+[data-theme="dark"] .form-control::placeholder,
+[data-theme="dark"] .search-input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #888888 !important;
+  opacity: 1; /* Necessário para o Firefox não esbater a cor */
+}
+
+/* ----------------------------------------------------
+   CORREÇÃO DAS TABELAS (Evitar blocos brancos nos cartões)
+   ---------------------------------------------------- */
+[data-theme="dark"] .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: #e0e0e0;
+}
+[data-theme="dark"] .table tr,
+[data-theme="dark"] .table td,
+[data-theme="dark"] .table th {
+  background-color: #1e1e1e !important; /* Força o dark background nas células */
+  color: #e0e0e0 !important;
   border-color: #2c2c2c !important;
 }
+
+/* Linha separadora de botões nos cartões mobile */
+[data-theme="dark"] .table td:last-child {
+  border-top-color: #333 !important;
+}
+
+/* Outras Bordas Gerais */
 [data-theme="dark"] .border,
 [data-theme="dark"] .border-bottom,
 [data-theme="dark"] .border-top {
   border-color: #333 !important;
 }
-[data-theme="dark"] .text-dark {
-  color: #ffffff !important;
-}
-[data-theme="dark"] .text-muted {
-  color: #9aa0a6 !important;
-}
+
+/* Chips de Categoria */
 [data-theme="dark"] .chip {
   background-color: #2d2d2d;
   color: #e0e0e0;
@@ -553,20 +620,29 @@ main {
   color: white;
   border-color: var(--cor-primaria);
 }
-[data-theme="dark"] input.form-control,
-[data-theme="dark"] select.form-select,
-[data-theme="dark"] textarea.form-control {
-  background-color: #2d2d2d !important;
-  color: #ffffff !important;
+
+/* Botões Cinzentos/Ação */
+[data-theme="dark"] .btn-action,
+[data-theme="dark"] .btn-light {
+  background-color: #333 !important;
+  color: #e0e0e0 !important;
   border-color: #444 !important;
 }
-[data-theme="dark"] .form-select option {
-  background-color: #2d2d2d;
-  color: #fff;
+
+/* Pílulas de Status Suavizadas para o Dark Mode */
+[data-theme="dark"] .bg-soft-success {
+  background-color: rgba(25, 135, 84, 0.15) !important;
+  color: #81c7a1 !important;
 }
-[data-theme="dark"] .btn-action {
-  background-color: #2d2d2d;
+[data-theme="dark"] .bg-soft-danger {
+  background-color: rgba(220, 53, 69, 0.15) !important;
+  color: #ff8a96 !important;
 }
+[data-theme="dark"] .text-danger {
+  color: #ff8a96 !important;
+}
+
+/* Skeleton Loaders Adaptados ao Fundo Escuro */
 [data-theme="dark"] .skeleton {
   background: #2d2d2d;
   background-image: linear-gradient(
@@ -575,22 +651,4 @@ main {
     rgba(255, 255, 255, 0.05),
     rgba(255, 255, 255, 0)
   );
-}
-[data-theme="dark"] .btn-light {
-  background-color: #333 !important;
-  color: #e0e0e0 !important;
-  border-color: #444 !important;
-}
-[data-theme="dark"] .fixed-bottom-modal-panel {
-  background-color: #1e1e1e !important;
-  border-top-color: #333 !important;
-}
-[data-theme="dark"] .modal-header {
-  background-color: #1e1e1e !important;
-}
-[data-theme="dark"] .modal-body.bg-light {
-  background-color: #121212 !important;
-}
-[data-theme="dark"] .table td:last-child {
-  border-top-color: #2c2c2c !important;
 }
