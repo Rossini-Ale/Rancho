@@ -3,6 +3,13 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
+process.on("uncaughtException", (err) => {
+  console.error("ERRO NÃO TRATADO:", err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("REJEIÇÃO NÃO TRATADA em:", promise, "razão:", reason);
+});
 // Importa as rotas (auth e gestao da pasta routes/index.js)
 const routes = require("./routes/index");
 
