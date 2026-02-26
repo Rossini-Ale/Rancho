@@ -16,7 +16,7 @@ const RanchoApp = {
   dataFiltroRancho: new Date(),
   abaAtual: "cavalos",
   proprietarioAtualId: null,
-  categoriaFiltroRancho: "", // Novo filtro por Chip
+  categoriaFiltroRancho: "",
 
   async init() {
     this.bsModalProp = new bootstrap.Modal(
@@ -41,12 +41,124 @@ const RanchoApp = {
     const toastEl = document.getElementById("liveToast");
     if (toastEl) this.bsToast = new bootstrap.Toast(toastEl);
 
+    this.initDarkMode();
+    this.setupPullToRefresh();
     this.setupPWA();
     this.setupListeners();
 
     await this.carregarProprietariosSelect();
     await this.carregarTabelaCavalos();
     await this.carregarTabelaProprietarios();
+  },
+
+  // --- UX: Modo Escuro ---
+  initDarkMode() {
+    const toggleBtn = document.getElementById("btnDarkMode");
+    const currentTheme = localStorage.getItem("theme") || "light";
+
+    if (currentTheme === "dark") {
+      document.body.setAttribute("data-theme", "dark");
+      toggleBtn.classList.replace("fa-moon", "fa-sun");
+    }
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        this.vibrar();
+        if (document.body.getAttribute("data-theme") === "dark") {
+          document.body.removeAttribute("data-theme");
+          localStorage.setItem("theme", "light");
+          toggleBtn.classList.replace("fa-sun", "fa-moon");
+        } else {
+          document.body.setAttribute("data-theme", "dark");
+          localStorage.setItem("theme", "dark");
+          toggleBtn.classList.replace("fa-moon", "fa-sun");
+        }
+      });
+    }
+  },
+
+  // --- UX: Puxar para Atualizar ---
+  setupPullToRefresh() {
+    let startY = 0;
+    let currentY = 0;
+    let isPulling = false;
+    const ptrIndicator = document.getElementById("ptrIndicator");
+
+    document.addEventListener(
+      "touchstart",
+      (e) => {
+        if (window.scrollY === 0) {
+          startY = e.touches[0].clientY;
+          isPulling = true;
+        }
+      },
+      { passive: true },
+    );
+
+    document.addEventListener(
+      "touchmove",
+      (e) => {
+        if (!isPulling) return;
+        currentY = e.touches[0].clientY;
+        const pullDistance = currentY - startY;
+
+        if (pullDistance > 0 && window.scrollY === 0) {
+          if (e.cancelable) e.preventDefault();
+          ptrIndicator.style.transform = `translateY(${Math.min(pullDistance / 2, 70)}px)`;
+          ptrIndicator.style.opacity = Math.min(pullDistance / 100, 1);
+        } else {
+          isPulling = false;
+        }
+      },
+      { passive: false },
+    );
+
+    document.addEventListener("touchend", async () => {
+      if (!isPulling) return;
+      isPulling = false;
+      const pullDistance = currentY - startY;
+
+      if (pullDistance > 60) {
+        this.vibrar(30);
+        ptrIndicator.classList.add("refreshing");
+        ptrIndicator.style.transform = `translateY(50px)`;
+        ptrIndicator.style.opacity = 1;
+
+        await this.recarregarAbaAtual();
+
+        ptrIndicator.classList.remove("refreshing");
+        ptrIndicator.style.transform = `translateY(-50px)`;
+        ptrIndicator.style.opacity = 0;
+      } else {
+        ptrIndicator.style.transform = `translateY(-50px)`;
+        ptrIndicator.style.opacity = 0;
+      }
+    });
+  },
+
+  async recarregarAbaAtual() {
+    if (this.abaAtual === "cavalos") await this.carregarTabelaCavalos();
+    else if (this.abaAtual === "proprietarios")
+      await this.carregarTabelaProprietarios();
+    else if (this.abaAtual === "rancho") await this.carregarDespesasRancho();
+  },
+
+  // --- UX: Skeleton Loader ---
+  getSkeletonRow() {
+    return `
+      <tr>
+        <td class="py-3">
+          <div class="d-flex align-items-center gap-3">
+             <div class="skeleton skeleton-avatar"></div>
+             <div class="w-100">
+                <div class="skeleton skeleton-text medium"></div>
+                <div class="skeleton skeleton-text short"></div>
+             </div>
+          </div>
+        </td>
+        <td class="d-none d-md-table-cell"><div class="skeleton skeleton-text short"></div></td>
+        <td class="text-end"><div class="skeleton skeleton-text short ms-auto mb-2"></div><div class="skeleton skeleton-text ms-auto" style="width: 30px"></div></td>
+      </tr>`;
   },
 
   setupListeners() {
@@ -99,10 +211,7 @@ const RanchoApp = {
     }
 
     document.getElementById("inputOrdenacao").addEventListener("change", () => {
-      if (this.abaAtual === "cavalos") this.carregarTabelaCavalos();
-      else if (this.abaAtual === "proprietarios")
-        this.carregarTabelaProprietarios();
-      else if (this.abaAtual === "rancho") this.carregarDespesasRancho();
+      this.recarregarAbaAtual();
     });
 
     document.getElementById("custoCat").addEventListener("change", (e) => {
@@ -132,25 +241,6 @@ const RanchoApp = {
       });
   },
 
-  // --- UX: HTML do Skeleton Loader ---
-  getSkeletonRow() {
-    return `
-      <tr>
-        <td class="py-3">
-          <div class="d-flex align-items-center gap-3">
-             <div class="skeleton skeleton-avatar"></div>
-             <div class="w-100">
-                <div class="skeleton skeleton-text medium"></div>
-                <div class="skeleton skeleton-text short"></div>
-             </div>
-          </div>
-        </td>
-        <td class="d-none d-md-table-cell"><div class="skeleton skeleton-text short"></div></td>
-        <td class="text-end"><div class="skeleton skeleton-text short ms-auto mb-2"></div><div class="skeleton skeleton-text ms-auto" style="width: 30px"></div></td>
-      </tr>`;
-  },
-
-  // --- PWA ---
   setupPWA() {
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
@@ -173,7 +263,7 @@ const RanchoApp = {
     }
   },
 
-  // --- NAVEGAÇÃO ---
+  // --- UX: Navegação com Animações ---
   mudarAba(aba) {
     this.vibrar(30);
     this.abaAtual = aba;
@@ -186,22 +276,32 @@ const RanchoApp = {
     tabCavalos.classList.add("d-none");
     tabProps.classList.add("d-none");
     tabRancho.classList.add("d-none");
+
+    // Reseta as animações
+    tabCavalos.classList.remove("fade-in-up");
+    tabProps.classList.remove("fade-in-up");
+    tabRancho.classList.remove("fade-in-up");
+    void tabCavalos.offsetWidth; // Trigger reflow para reiniciar animação
+
     document.getElementById("navBtnCavalos").classList.remove("active");
     document.getElementById("navBtnProps").classList.remove("active");
     document.getElementById("navBtnRancho").classList.remove("active");
 
     if (aba === "cavalos") {
       tabCavalos.classList.remove("d-none");
+      tabCavalos.classList.add("fade-in-up");
       titulo.textContent = "Meus Animais";
       document.getElementById("navBtnCavalos").classList.add("active");
       this.carregarTabelaCavalos();
     } else if (aba === "proprietarios") {
       tabProps.classList.remove("d-none");
+      tabProps.classList.add("fade-in-up");
       titulo.textContent = "Meus Clientes";
       document.getElementById("navBtnProps").classList.add("active");
       this.carregarTabelaProprietarios();
     } else if (aba === "rancho") {
       tabRancho.classList.remove("d-none");
+      tabRancho.classList.add("fade-in-up");
       titulo.textContent = "Despesas do Rancho";
       document.getElementById("navBtnRancho").classList.add("active");
       this.dataFiltroRancho = new Date();
@@ -249,12 +349,10 @@ const RanchoApp = {
     });
   },
 
-  // --- UX: Filtro de Categoria Rancho (Chips) ---
   filtrarCategoriaRancho(cat, elementoEl) {
     this.vibrar(20);
     this.categoriaFiltroRancho = cat;
 
-    // Atualiza visual dos chips
     document
       .querySelectorAll("#chipsCategoriaRancho .chip")
       .forEach((c) => c.classList.remove("active"));
@@ -269,14 +367,12 @@ const RanchoApp = {
     this.carregarDespesasRancho();
   },
 
-  // --- GESTÃO RANCHO ---
   async carregarDespesasRancho() {
     const mes = this.dataFiltroRancho.getMonth() + 1;
     const ano = this.dataFiltroRancho.getFullYear();
     const ordem = document.getElementById("inputOrdenacao").value;
     const tbody = document.getElementById("listaRanchoBody");
 
-    // Skeletons ao invés de spinner vazio
     tbody.innerHTML = this.getSkeletonRow().repeat(3);
 
     try {
@@ -296,7 +392,6 @@ const RanchoApp = {
       };
 
       if (dados && dados.custos && dados.custos.length > 0) {
-        // Filtragem por Categoria (Chips)
         let listaFiltrada = dados.custos;
         if (this.categoriaFiltroRancho) {
           listaFiltrada = listaFiltrada.filter(
@@ -357,7 +452,6 @@ const RanchoApp = {
             </tr>`;
         });
 
-        // Atualiza valor total filtrado
         const totalFormatado = totalFiltrado.toLocaleString("pt-BR", {
           style: "currency",
           currency: "BRL",
@@ -365,7 +459,6 @@ const RanchoApp = {
         document.getElementById("totalRanchoMesDisplay").textContent =
           totalFormatado;
 
-        // Mantém o resumo geral (mini card) com o total geral, não apenas o filtrado
         const totalGeralFormatado = parseFloat(
           dados.total_gasto,
         ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -475,8 +568,6 @@ const RanchoApp = {
       await ApiService.postData("/api/gestao/custos", body);
       this.mostrarNotificacao("Adicionado!");
       document.getElementById("formCustoRancho").reset();
-
-      // Reseta o filtro ao adicionar uma nova para garantir que a vejamos
       this.filtrarCategoriaRancho("");
     } catch (err) {
       this.mostrarNotificacao("Erro", "erro");
@@ -497,10 +588,9 @@ const RanchoApp = {
     });
   },
 
-  // --- GESTÃO ANIMAIS ---
   async carregarTabelaCavalos() {
     const tbody = document.getElementById("listaCavalosBody");
-    tbody.innerHTML = this.getSkeletonRow().repeat(4); // UX Skeleton
+    tbody.innerHTML = this.getSkeletonRow().repeat(4);
 
     try {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
@@ -524,12 +614,9 @@ const RanchoApp = {
           const dadosFin = await ApiService.fetchData(
             `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
           );
-
-          // UX: Indicador de status
           const temPendente =
             dadosFin.custos &&
             dadosFin.custos.some((c) => c.pago == 0 || c.pago === false);
-
           return {
             ...cavalo,
             totalSort: parseFloat(dadosFin.total_gasto || 0),
@@ -546,8 +633,6 @@ const RanchoApp = {
       listaOrdenada.forEach((cavalo) => {
         const ns = cavalo.nome.replace(/'/g, "\\'");
         let avatarHtml = `<div class="avatar-circle avatar-cavalo shadow-sm">${cavalo.nome.charAt(0).toUpperCase()}</div>`;
-
-        // UX: Bolinha verde ou vermelha
         const dotStatus = cavalo.temPendente
           ? '<span class="status-dot red" title="Atrasado/Pendente"></span>'
           : '<span class="status-dot green" title="Em dia"></span>';
@@ -573,7 +658,7 @@ const RanchoApp = {
 
   async carregarTabelaProprietarios() {
     const tbody = document.getElementById("listaProprietariosMainBody");
-    tbody.innerHTML = this.getSkeletonRow().repeat(3); // UX Skeleton
+    tbody.innerHTML = this.getSkeletonRow().repeat(3);
 
     try {
       const props = await ApiService.fetchData("/api/gestao/proprietarios");

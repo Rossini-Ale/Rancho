@@ -15,6 +15,9 @@ body {
     sans-serif;
   color: var(--cor-texto);
   padding-bottom: 90px;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* --- Tipografia e Utilitários --- */
@@ -63,8 +66,10 @@ body {
   padding: 15px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s;
-  cursor: pointer; /* Adicionado cursor pointer aqui */
+  transition:
+    transform 0.2s,
+    background-color 0.3s;
+  cursor: pointer;
 }
 .card-resumo-mini:active {
   transform: scale(0.97);
@@ -145,6 +150,9 @@ body {
     border: 1px solid rgba(0, 0, 0, 0.03);
     padding: 12px;
     position: relative;
+    transition:
+      background-color 0.3s,
+      border-color 0.3s;
   }
   .table td {
     padding: 4px 0;
@@ -238,6 +246,9 @@ body {
   padding: 10px 0 calc(10px + env(safe-area-inset-bottom)) 0;
   z-index: 1050;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+  transition:
+    background-color 0.3s,
+    border-color 0.3s;
 }
 @media (max-width: 768px) {
   .bottom-nav {
@@ -320,10 +331,6 @@ body {
 .avatar-circle i {
   font-size: 1.1rem;
 }
-
-/* ========================================================
-   NOVAS ADIÇÕES DE UX/UI (Skeletons, Chips, Busca)
-   ======================================================== */
 
 /* Skeleton Loaders (Carregamento Fantasma) */
 .skeleton {
@@ -457,4 +464,133 @@ body {
 }
 .status-dot.green {
   background-color: #198754;
+}
+
+/* ========================================================
+   NOVAS ADIÇÕES: ANIMAÇÕES, DARK MODE E PULL-TO-REFRESH
+   ======================================================== */
+
+/* 1. Animação de Entrada (Fade-In Up) */
+.fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 2. Pull To Refresh (Puxar para Atualizar) */
+main {
+  position: relative;
+} /* Garante que o indicador fique preso ao main */
+.ptr-indicator {
+  position: absolute;
+  top: -50px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--cor-primaria);
+  font-size: 1.5rem;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.ptr-indicator.refreshing {
+  transition:
+    transform 0.3s ease-out,
+    opacity 0.3s;
+  opacity: 1 !important;
+}
+
+/* 3. Dark Mode */
+[data-theme="dark"] {
+  --cor-fundo: #121212;
+  --cor-texto: #e0e0e0;
+  --cor-borda: #2c2c2c;
+}
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-light {
+  background-color: #1e1e1e !important;
+}
+[data-theme="dark"] .card-resumo-mini,
+[data-theme="dark"] .modal-content,
+[data-theme="dark"] .search-input-wrapper,
+[data-theme="dark"] .bottom-nav {
+  background-color: #1e1e1e !important;
+  border-color: #333 !important;
+}
+[data-theme="dark"] .table tr {
+  background-color: #1e1e1e !important;
+  border-color: #2c2c2c !important;
+}
+[data-theme="dark"] .border,
+[data-theme="dark"] .border-bottom,
+[data-theme="dark"] .border-top {
+  border-color: #333 !important;
+}
+[data-theme="dark"] .text-dark {
+  color: #ffffff !important;
+}
+[data-theme="dark"] .text-muted {
+  color: #9aa0a6 !important;
+}
+[data-theme="dark"] .chip {
+  background-color: #2d2d2d;
+  color: #e0e0e0;
+  border-color: #444;
+}
+[data-theme="dark"] .chip.active {
+  background-color: var(--cor-primaria);
+  color: white;
+  border-color: var(--cor-primaria);
+}
+[data-theme="dark"] input.form-control,
+[data-theme="dark"] select.form-select,
+[data-theme="dark"] textarea.form-control {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+  border-color: #444 !important;
+}
+[data-theme="dark"] .form-select option {
+  background-color: #2d2d2d;
+  color: #fff;
+}
+[data-theme="dark"] .btn-action {
+  background-color: #2d2d2d;
+}
+[data-theme="dark"] .skeleton {
+  background: #2d2d2d;
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0)
+  );
+}
+[data-theme="dark"] .btn-light {
+  background-color: #333 !important;
+  color: #e0e0e0 !important;
+  border-color: #444 !important;
+}
+[data-theme="dark"] .fixed-bottom-modal-panel {
+  background-color: #1e1e1e !important;
+  border-top-color: #333 !important;
+}
+[data-theme="dark"] .modal-header {
+  background-color: #1e1e1e !important;
+}
+[data-theme="dark"] .modal-body.bg-light {
+  background-color: #121212 !important;
+}
+[data-theme="dark"] .table td:last-child {
+  border-top-color: #2c2c2c !important;
 }
