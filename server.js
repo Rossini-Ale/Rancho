@@ -1,29 +1,32 @@
-// Arquivo: server.js
-require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
-const cookieParser = require("cookie-parser");
 const path = require("path");
+const cookieParser = require("cookie-parser");
+require("dotenv").config();
+
+// Importa as rotas (auth e gestao da pasta routes/index.js)
+const routes = require("./routes/index");
 
 const app = express();
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  }),
-);
-
-app.use(cookieParser());
+// Middlewares
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-// Servir os arquivos do Frontend (HTML, CSS, JS) estaticamente
-app.use(express.static(path.join(__dirname, "frontend")));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Rotas da API
-app.use("/api", require("./routes/index"));
+app.use("/api", routes);
 
+// Servir arquivos estáticos da pasta 'frontend'
+app.use(express.static(path.join(__dirname, "frontend")));
+
+// Rota de fallback: Se o usuário acessar uma URL que não existe, manda para o login
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "frontend", "login.html"));
+});
+
+// Configuração da Porta exigida pela Hostinger
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-  console.log(`Sistema Rancho rodando em: http://localhost:${PORT}/login.html`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });

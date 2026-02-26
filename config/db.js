@@ -1,6 +1,5 @@
-// Arquivo: config/db.js
-const mysql = require("mysql2");
-require("dotenv").config();
+const mysql = require("mysql2/promise");
+require("dotenv").config(); // Garante que lê as variáveis de ambiente (.env)
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -12,4 +11,4 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-module.exports = pool.promise();
+module.exports = pool;
