@@ -5,6 +5,7 @@ const RanchoApp = {
   bsModalFin: null,
   bsModalMensalidade: null,
   bsModalDetalhesProp: null,
+  bsModalConfig: null, // Novo modal de Config
   bsToast: null,
   bsModalConfirm: null,
   deferredPrompt: null,
@@ -17,6 +18,7 @@ const RanchoApp = {
   abaAtual: "cavalos",
   proprietarioAtualId: null,
   categoriaFiltroRancho: "",
+  chavePixCache: "", // Guarda a chave PIX em cache
 
   async init() {
     this.bsModalProp = new bootstrap.Modal(
@@ -37,6 +39,9 @@ const RanchoApp = {
     this.bsModalConfirm = new bootstrap.Modal(
       document.getElementById("modalConfirmacao"),
     );
+    this.bsModalConfig = new bootstrap.Modal(
+      document.getElementById("modalConfig"),
+    ); // Inicia o Modal Config
 
     const toastEl = document.getElementById("liveToast");
     if (toastEl) this.bsToast = new bootstrap.Toast(toastEl);
@@ -46,6 +51,7 @@ const RanchoApp = {
     this.setupPWA();
     this.setupListeners();
 
+    await this.carregarConfiguracoes(); // Carrega a Chave PIX
     await this.carregarProprietariosSelect();
     await this.carregarTabelaCavalos();
     await this.carregarTabelaProprietarios();
@@ -191,6 +197,9 @@ const RanchoApp = {
     document
       .getElementById("formCustoRancho")
       .addEventListener("submit", (e) => this.salvarCustoRancho(e));
+    document
+      .getElementById("formConfig")
+      .addEventListener("submit", (e) => this.salvarConfig(e)); // Evento para salvar o PIX
 
     // Nova Lógica de Busca com Botão Limpar (X)
     const inputBusca = document.getElementById("inputBusca");
@@ -263,7 +272,41 @@ const RanchoApp = {
     }
   },
 
-  // --- UX: Navegação com Animações ---
+  // --- CONFIGURAÇÕES E PIX ---
+  abrirModalConfig() {
+    this.vibrar();
+    this.bsModalConfig.show();
+  },
+
+  async salvarConfig(e) {
+    e.preventDefault();
+    const btn = e.submitter;
+    this.setLoading(btn, true, "Salvando...");
+    try {
+      const pix = document.getElementById("configChavePix").value;
+      await ApiService.putData("/api/gestao/config", { chave_pix: pix });
+      this.chavePixCache = pix;
+      this.bsModalConfig.hide();
+      this.mostrarNotificacao("Chave PIX salva com sucesso!");
+    } catch (e) {
+      this.mostrarNotificacao("Erro ao salvar.", "erro");
+    } finally {
+      this.setLoading(btn, false, "Salvar Configuração");
+    }
+  },
+
+  async carregarConfiguracoes() {
+    try {
+      const r = await ApiService.fetchData("/api/gestao/config");
+      if (r) {
+        this.chavePixCache = r.chave_pix || "";
+        const inputPix = document.getElementById("configChavePix");
+        if (inputPix) inputPix.value = this.chavePixCache;
+      }
+    } catch (e) {}
+  },
+
+  // --- NAVEGAÇÃO ---
   mudarAba(aba) {
     this.vibrar(30);
     this.abaAtual = aba;
@@ -1402,6 +1445,8 @@ const RanchoApp = {
       console.error(err);
     }
   },
+
+  // --- UX/BIZ: Geração de Mensagem do WhatsApp COM CHAVE PIX ---
   async compartilharFaturaZap(propId, nomeProp, totalTexto, telefone) {
     this.mostrarNotificacao("Gerando texto...", "sucesso");
     const periodo = document.getElementById("labelMesAnoProp").textContent;
@@ -1436,7 +1481,15 @@ const RanchoApp = {
           msg += `${c.descricao} (Avulso): ${valorF}\n`;
         });
       }
-      msg += `\n*TOTAL: ${totalTexto}*`;
+
+      // INJETANDO A CHAVE PIX NO FINAL DA MENSAGEM
+      msg += `\n*TOTAL: ${totalTexto}*\n`;
+
+      if (this.chavePixCache && this.chavePixCache.trim() !== "") {
+        msg += `\n*Chave PIX para pagamento:*\n${this.chavePixCache}\n`;
+        msg += `\nQualquer dúvida, estou à disposição!`;
+      }
+
       const cleanTel = telefone.replace(/\D/g, "");
       const url = `https://wa.me/55${cleanTel}?text=${encodeURIComponent(msg)}`;
       window.open(url, "_blank");
@@ -1445,6 +1498,7 @@ const RanchoApp = {
       this.mostrarNotificacao("Erro ao gerar Zap.", "erro");
     }
   },
+
   async _gerarDocPDFDados(propId, nomeProp, periodo, mes, ano) {
     if (!window.jspdf) return null;
     const { jsPDF } = window.jspdf;

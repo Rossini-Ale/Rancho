@@ -40,14 +40,23 @@
             <i class="fa-solid fa-download me-1"></i> App
           </button>
           <i
+            class="fa-solid fa-gear text-white-50 fs-5"
+            id="btnConfig"
+            onclick="RanchoApp.abrirModalConfig()"
+            style="cursor: pointer"
+            title="Configurações PIX"
+          ></i>
+          <i
             class="fa-solid fa-moon text-white-50 fs-5"
             id="btnDarkMode"
             style="cursor: pointer"
+            title="Modo Escuro"
           ></i>
           <i
             class="fa-solid fa-right-from-bracket text-white-50 fs-5"
             id="logoutButton"
             style="cursor: pointer"
+            title="Sair"
           ></i>
         </div>
       </div>
@@ -337,6 +346,49 @@
         <i class="fa-solid fa-plus"></i>
       </button>
     </nav>
+
+    <div class="modal fade" id="modalConfig" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold text-brown">Configurações</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="formConfig">
+              <div class="mb-4">
+                <label class="small-label mb-1"
+                  >Sua Chave PIX (Para cobranças)</label
+                >
+                <input
+                  type="text"
+                  class="form-control form-control-lg bg-light border-0"
+                  id="configChavePix"
+                  placeholder="CPF, E-mail, Celular..."
+                />
+                <small class="text-muted mt-1 d-block"
+                  >A chave será adicionada automaticamente no fundo da mensagem
+                  de cobrança enviada por WhatsApp.</small
+                >
+              </div>
+              <div class="d-grid">
+                <button
+                  type="submit"
+                  class="btn btn-primary btn-lg rounded-3 fw-bold"
+                  id="btnSalvarConfig"
+                >
+                  Salvar Configuração
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="modal fade" id="modalProprietario" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
