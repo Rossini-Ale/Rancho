@@ -1,9 +1,9 @@
 {
-  "name": "Rancho Control",
-  "short_name": "Rancho",
-  "start_url": "./dashboard.html",
+  "name": "HF Controll",
+  "short_name": "HF Controll",
+  "start_url": "/login.html",
   "display": "standalone",
-  "background_color": "#F5F5DC",
+  "background_color": "#f8f9fa",
   "theme_color": "#8B4513",
   "icons": [
     {
