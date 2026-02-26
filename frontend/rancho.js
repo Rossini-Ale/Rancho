@@ -43,7 +43,7 @@ const RanchoApp = {
     this.setupPWA();
     this.setupListeners();
 
-    await this.carregarConfiguracoes();
+    // A busca de configurações foi removida para fixar o nome HTML
     await this.carregarProprietariosSelect();
     await this.carregarTabelaCavalos();
     await this.carregarTabelaProprietarios();
@@ -868,17 +868,6 @@ const RanchoApp = {
       document.getElementById("btnExcluirProp").classList.add("d-none");
     }
     this.bsModalProp.show();
-  },
-
-  // Função mantida para o nome carregar normalmente se estiver no banco de dados
-  async carregarConfiguracoes() {
-    try {
-      const r = await ApiService.fetchData("/api/gestao/config");
-      if (r && r.nome_rancho) {
-        document.getElementById("brandName").textContent = r.nome_rancho;
-        document.title = r.nome_rancho;
-      }
-    } catch (e) {}
   },
 
   async carregarProprietariosSelect() {
