@@ -16,6 +16,7 @@ const RanchoApp = {
   dataFiltroRancho: new Date(),
   abaAtual: "cavalos",
   proprietarioAtualId: null,
+  categoriaFiltroRancho: "", // Novo filtro por Chip
 
   async init() {
     this.bsModalProp = new bootstrap.Modal(
@@ -43,7 +44,6 @@ const RanchoApp = {
     this.setupPWA();
     this.setupListeners();
 
-    // A busca de configurações foi removida para fixar o nome HTML
     await this.carregarProprietariosSelect();
     await this.carregarTabelaCavalos();
     await this.carregarTabelaProprietarios();
@@ -76,14 +76,27 @@ const RanchoApp = {
     document
       .getElementById("formCustoProp")
       .addEventListener("submit", (e) => this.salvarCustoProp(e));
-
     document
       .getElementById("formCustoRancho")
       .addEventListener("submit", (e) => this.salvarCustoRancho(e));
 
-    document
-      .getElementById("inputBusca")
-      .addEventListener("keyup", (e) => this.filtrarTabela(e.target.value));
+    // Nova Lógica de Busca com Botão Limpar (X)
+    const inputBusca = document.getElementById("inputBusca");
+    const btnLimpar = document.getElementById("btnLimparBusca");
+    if (inputBusca && btnLimpar) {
+      inputBusca.addEventListener("input", (e) => {
+        const val = e.target.value;
+        if (val.length > 0) btnLimpar.classList.add("visible");
+        else btnLimpar.classList.remove("visible");
+        this.filtrarTabela(val);
+      });
+      btnLimpar.addEventListener("click", () => {
+        inputBusca.value = "";
+        btnLimpar.classList.remove("visible");
+        this.filtrarTabela("");
+        inputBusca.focus();
+      });
+    }
 
     document.getElementById("inputOrdenacao").addEventListener("change", () => {
       if (this.abaAtual === "cavalos") this.carregarTabelaCavalos();
@@ -117,6 +130,24 @@ const RanchoApp = {
         localStorage.removeItem("token");
         window.location.href = "login.html";
       });
+  },
+
+  // --- UX: HTML do Skeleton Loader ---
+  getSkeletonRow() {
+    return `
+      <tr>
+        <td class="py-3">
+          <div class="d-flex align-items-center gap-3">
+             <div class="skeleton skeleton-avatar"></div>
+             <div class="w-100">
+                <div class="skeleton skeleton-text medium"></div>
+                <div class="skeleton skeleton-text short"></div>
+             </div>
+          </div>
+        </td>
+        <td class="d-none d-md-table-cell"><div class="skeleton skeleton-text short"></div></td>
+        <td class="text-end"><div class="skeleton skeleton-text short ms-auto mb-2"></div><div class="skeleton skeleton-text ms-auto" style="width: 30px"></div></td>
+      </tr>`;
   },
 
   // --- PWA ---
@@ -179,6 +210,7 @@ const RanchoApp = {
     }
 
     document.getElementById("inputBusca").value = "";
+    document.getElementById("btnLimparBusca").classList.remove("visible");
     this.filtrarTabela("");
   },
 
@@ -203,9 +235,8 @@ const RanchoApp = {
     if (this.abaAtual === "cavalos") this.abrirModalNovoCavalo();
     else if (this.abaAtual === "proprietarios")
       this.abrirModalGerenciarProprietarios();
-    else if (this.abaAtual === "rancho") {
+    else if (this.abaAtual === "rancho")
       document.getElementById("ranchoDesc").focus();
-    }
   },
 
   ordenarLista(lista, criterio) {
@@ -218,15 +249,35 @@ const RanchoApp = {
     });
   },
 
-  // --- GESTÃO RANCHO ---
+  // --- UX: Filtro de Categoria Rancho (Chips) ---
+  filtrarCategoriaRancho(cat, elementoEl) {
+    this.vibrar(20);
+    this.categoriaFiltroRancho = cat;
 
+    // Atualiza visual dos chips
+    document
+      .querySelectorAll("#chipsCategoriaRancho .chip")
+      .forEach((c) => c.classList.remove("active"));
+    if (elementoEl) {
+      elementoEl.classList.add("active");
+    } else {
+      document
+        .querySelector("#chipsCategoriaRancho .chip")
+        .classList.add("active");
+    }
+
+    this.carregarDespesasRancho();
+  },
+
+  // --- GESTÃO RANCHO ---
   async carregarDespesasRancho() {
     const mes = this.dataFiltroRancho.getMonth() + 1;
     const ano = this.dataFiltroRancho.getFullYear();
     const ordem = document.getElementById("inputOrdenacao").value;
     const tbody = document.getElementById("listaRanchoBody");
-    tbody.innerHTML =
-      '<tr><td colspan="2" class="text-center py-4"><span class="spinner-border spinner-border-sm text-secondary"></span></td></tr>';
+
+    // Skeletons ao invés de spinner vazio
+    tbody.innerHTML = this.getSkeletonRow().repeat(3);
 
     try {
       const dados = await ApiService.fetchData(
@@ -245,24 +296,41 @@ const RanchoApp = {
       };
 
       if (dados && dados.custos && dados.custos.length > 0) {
-        document.getElementById("areaGraficoRancho").style.display = "block";
-        this.renderizarGraficoRancho(dados.custos);
+        // Filtragem por Categoria (Chips)
+        let listaFiltrada = dados.custos;
+        if (this.categoriaFiltroRancho) {
+          listaFiltrada = listaFiltrada.filter(
+            (c) => c.categoria === this.categoriaFiltroRancho,
+          );
+        }
 
-        const listaProcessada = dados.custos.map((c) => ({
+        if (listaFiltrada.length === 0) {
+          document.getElementById("areaGraficoRancho").style.display = "none";
+          tbody.innerHTML = `<tr><td colspan="2" class="text-center text-muted py-5 small">Nenhuma despesa para esta categoria.</td></tr>`;
+          document.getElementById("totalRanchoMesDisplay").textContent =
+            "R$ 0,00";
+          return;
+        }
+
+        document.getElementById("areaGraficoRancho").style.display = "block";
+        this.renderizarGraficoRancho(listaFiltrada);
+
+        const listaProcessada = listaFiltrada.map((c) => ({
           ...c,
           nome: c.descricao,
           totalSort: parseFloat(c.valor),
         }));
 
         const listaOrdenada = this.ordenarLista(listaProcessada, ordem);
+        let totalFiltrado = 0;
 
         listaOrdenada.forEach((c) => {
+          totalFiltrado += parseFloat(c.valor);
           const dia = new Date(c.data_despesa).getDate();
           const valorF = parseFloat(c.valor).toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
           });
-
           const icone = icones[c.categoria] || "fa-tag";
 
           tbody.innerHTML += `
@@ -289,21 +357,26 @@ const RanchoApp = {
             </tr>`;
         });
 
-        const totalFormatado = parseFloat(dados.total_gasto).toLocaleString(
-          "pt-BR",
-          { style: "currency", currency: "BRL" },
-        );
+        // Atualiza valor total filtrado
+        const totalFormatado = totalFiltrado.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
         document.getElementById("totalRanchoMesDisplay").textContent =
           totalFormatado;
-        document.getElementById("totalRanchoMes").textContent = totalFormatado;
+
+        // Mantém o resumo geral (mini card) com o total geral, não apenas o filtrado
+        const totalGeralFormatado = parseFloat(
+          dados.total_gasto,
+        ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        document.getElementById("totalRanchoMes").textContent =
+          totalGeralFormatado;
       } else {
         document.getElementById("areaGraficoRancho").style.display = "none";
         tbody.innerHTML = `
           <tr>
             <td colspan="2" class="text-center border-0 py-5">
-              <div class="opacity-25 mb-2">
-                <i class="fa-solid fa-clipboard-check display-3 text-secondary"></i>
-              </div>
+              <div class="opacity-25 mb-2"><i class="fa-solid fa-clipboard-check display-3 text-secondary"></i></div>
               <p class="text-muted fw-bold mb-0">Tudo tranquilo!</p>
               <small class="text-muted">Nenhuma despesa lançada.</small>
             </td>
@@ -313,9 +386,8 @@ const RanchoApp = {
         document.getElementById("totalRanchoMes").textContent = "R$ 0,00";
       }
     } catch (e) {
-      console.error(e);
       tbody.innerHTML =
-        '<tr><td colspan="2" class="text-center text-danger small">Erro ao carregar dados.</td></tr>';
+        '<tr><td colspan="2" class="text-center text-danger py-4">Erro ao carregar dados.</td></tr>';
     }
   },
 
@@ -362,9 +434,7 @@ const RanchoApp = {
             },
           },
         },
-        layout: {
-          padding: 10,
-        },
+        layout: { padding: 10 },
       },
     });
   },
@@ -389,11 +459,8 @@ const RanchoApp = {
     this.setLoading(btn, true, '<i class="fa-solid fa-plus"></i>');
 
     let cat = document.getElementById("ranchoCat").value.trim();
-    if (cat) {
-      cat = cat.charAt(0).toUpperCase() + cat.slice(1);
-    } else {
-      cat = "Geral";
-    }
+    if (cat) cat = cat.charAt(0).toUpperCase() + cat.slice(1);
+    else cat = "Geral";
 
     const body = {
       proprietario_id: null,
@@ -408,7 +475,9 @@ const RanchoApp = {
       await ApiService.postData("/api/gestao/custos", body);
       this.mostrarNotificacao("Adicionado!");
       document.getElementById("formCustoRancho").reset();
-      this.carregarDespesasRancho();
+
+      // Reseta o filtro ao adicionar uma nova para garantir que a vejamos
+      this.filtrarCategoriaRancho("");
     } catch (err) {
       this.mostrarNotificacao("Erro", "erro");
     } finally {
@@ -428,12 +497,13 @@ const RanchoApp = {
     });
   },
 
-  // --- FIM GESTÃO RANCHO ---
-
+  // --- GESTÃO ANIMAIS ---
   async carregarTabelaCavalos() {
+    const tbody = document.getElementById("listaCavalosBody");
+    tbody.innerHTML = this.getSkeletonRow().repeat(4); // UX Skeleton
+
     try {
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
-      const tbody = document.getElementById("listaCavalosBody");
       tbody.innerHTML = "";
       document.getElementById("totalCavalos").textContent = cavalos
         ? cavalos.length
@@ -454,9 +524,16 @@ const RanchoApp = {
           const dadosFin = await ApiService.fetchData(
             `/api/gestao/custos/resumo/${cavalo.id}?mes=${mesAtual}&ano=${anoAtual}`,
           );
+
+          // UX: Indicador de status
+          const temPendente =
+            dadosFin.custos &&
+            dadosFin.custos.some((c) => c.pago == 0 || c.pago === false);
+
           return {
             ...cavalo,
             totalSort: parseFloat(dadosFin.total_gasto || 0),
+            temPendente: temPendente,
             totalFormatado: parseFloat(
               dadosFin.total_gasto || 0,
             ).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
@@ -468,55 +545,39 @@ const RanchoApp = {
 
       listaOrdenada.forEach((cavalo) => {
         const ns = cavalo.nome.replace(/'/g, "\\'");
-        let avatarHtml = `<div class="avatar-circle avatar-cavalo shadow-sm">${cavalo.nome
-          .charAt(0)
-          .toUpperCase()}</div>`;
+        let avatarHtml = `<div class="avatar-circle avatar-cavalo shadow-sm">${cavalo.nome.charAt(0).toUpperCase()}</div>`;
+
+        // UX: Bolinha verde ou vermelha
+        const dotStatus = cavalo.temPendente
+          ? '<span class="status-dot red" title="Atrasado/Pendente"></span>'
+          : '<span class="status-dot green" title="Em dia"></span>';
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
-                <td class="nome-clicavel" onclick="RanchoApp.abrirModalEditar(${
-                  cavalo.id
-                }, '${ns}', '${(cavalo.lugar || "").replace(
-                  /'/g,
-                  "\\'",
-                )}', '${cavalo.proprietario_id || ""}', '${(
-                  cavalo.observacoes || ""
-                ).replace(/'/g, "\\'")}')">
+                <td class="nome-clicavel" onclick="RanchoApp.abrirModalEditar(${cavalo.id}, '${ns}', '${(cavalo.lugar || "").replace(/'/g, "\\'")}', '${cavalo.proprietario_id || ""}', '${(cavalo.observacoes || "").replace(/'/g, "\\'")}')">
                     <div class="d-flex align-items-center gap-3">
                         ${avatarHtml}
-                        <div><div class="fw-bold text-dark" style="font-size: 1.05rem;">${
-                          cavalo.nome
-                        }</div><div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> ${
-                          cavalo.lugar || "Sem local"
-                        }</div></div>
+                        <div><div class="fw-bold text-dark" style="font-size: 1.05rem;">${cavalo.nome} ${dotStatus}</div><div class="text-muted small"><i class="fa-solid fa-location-dot me-1"></i> ${cavalo.lugar || "Sem local"}</div></div>
                     </div>
                 </td>
-                <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-user me-1"></i> ${
-                  cavalo.nome_proprietario || "Sem dono"
-                }</td>
-                <td class="text-nowrap"><div class="d-flex flex-column align-items-end align-items-md-start"><span class="d-md-none small-label mb-1">Gasto Mês</span><span class="text-danger fw-bold bg-soft-danger px-2 py-1 rounded-3">${
-                  cavalo.totalFormatado
-                }</span></div></td>
+                <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-user me-1"></i> ${cavalo.nome_proprietario || "Sem dono"}</td>
+                <td class="text-nowrap"><div class="d-flex flex-column align-items-end align-items-md-start"><span class="d-md-none small-label mb-1">Gasto Mês</span><span class="text-danger fw-bold bg-soft-danger px-2 py-1 rounded-3">${cavalo.totalFormatado}</span></div></td>
                 <td class="text-end">
-                    <button class="btn-action btn-light text-primary me-2 shadow-sm" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${
-                      cavalo.id
-                    },'${ns}')"><i class="fa-solid fa-calendar-plus"></i></button>
-                    <button class="btn-action icon-gold shadow-sm" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${
-                      cavalo.id
-                    },'${ns}')"><i class="fa-solid fa-coins"></i></button>
+                    <button class="btn-action btn-light text-primary me-2 shadow-sm" onclick="event.stopPropagation();RanchoApp.abrirMensalidade(${cavalo.id},'${ns}')"><i class="fa-solid fa-calendar-plus"></i></button>
+                    <button class="btn-action icon-gold shadow-sm" onclick="event.stopPropagation();RanchoApp.abrirFinanceiro(${cavalo.id},'${ns}')"><i class="fa-solid fa-coins"></i></button>
                 </td>`;
         tbody.appendChild(tr);
       });
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (error) {}
   },
 
   async carregarTabelaProprietarios() {
+    const tbody = document.getElementById("listaProprietariosMainBody");
+    tbody.innerHTML = this.getSkeletonRow().repeat(3); // UX Skeleton
+
     try {
       const props = await ApiService.fetchData("/api/gestao/proprietarios");
       const cavalos = (await ApiService.fetchData("/api/gestao/cavalos")) || [];
-      const tbody = document.getElementById("listaProprietariosMainBody");
       tbody.innerHTML = "";
       document.getElementById("totalProprietarios").textContent = props
         ? props.length
@@ -573,6 +634,7 @@ const RanchoApp = {
               totalDivida > 0
                 ? "bg-soft-danger text-danger"
                 : "bg-soft-success text-success",
+            temPendencia: totalDivida > 0,
           };
         }),
       );
@@ -580,37 +642,25 @@ const RanchoApp = {
       const listaOrdenada = this.ordenarLista(listaProcessada, ordem);
 
       listaOrdenada.forEach((p) => {
-        let avatarHtml = `<div class="avatar-circle avatar-dono shadow-sm">${p.nome
-          .charAt(0)
-          .toUpperCase()}</div>`;
+        let avatarHtml = `<div class="avatar-circle avatar-dono shadow-sm">${p.nome.charAt(0).toUpperCase()}</div>`;
+        const dotStatus = p.temPendencia
+          ? '<span class="status-dot red" title="Atrasado/Pendente"></span>'
+          : '<span class="status-dot green" title="Em dia"></span>';
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <tr>
-            <td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${
-              p.id
-            },'${p.nome}','${p.telefone || ""}')">
+            <td class="nome-clicavel" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
                 <div class="d-flex align-items-center gap-3">
                     ${avatarHtml}
-                    <div><div class="fw-bold text-dark">${
-                      p.nome
-                    }</div><div class="text-primary small fw-bold"><i class="fa-solid fa-horse-head me-1"></i> ${
-                      p.txtAnimais
-                    }</div></div>
+                    <div><div class="fw-bold text-dark">${p.nome} ${dotStatus}</div><div class="text-primary small fw-bold"><i class="fa-solid fa-horse-head me-1"></i> ${p.txtAnimais}</div></div>
                 </div>
             </td>
-            <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${
-              p.telefone || "-"
-            }</td>
+            <td class="d-none d-md-table-cell text-muted"><i class="fa-solid fa-phone me-1"></i> ${p.telefone || "-"}</td>
             <td class="text-end">
                 <div class="d-flex align-items-center justify-content-end gap-3">
-                    <span class="badge-status ${p.badgeClass}">${
-                      p.txtValor
-                    }</span>
-                    <button class="btn-action icon-brown shadow-sm btn-edit" onclick="event.stopPropagation(); RanchoApp.abrirModalGerenciarProprietarios(${
-                      p.id
-                    }, '${p.nome}', '${
-                      p.telefone
-                    }')"><i class="fa-solid fa-pen"></i></button>
+                    <span class="badge-status ${p.badgeClass}">${p.txtValor}</span>
+                    <button class="btn-action icon-brown shadow-sm btn-edit" onclick="event.stopPropagation(); RanchoApp.abrirModalGerenciarProprietarios(${p.id}, '${p.nome}', '${p.telefone}')"><i class="fa-solid fa-pen"></i></button>
                 </div>
             </td>
             </tr>`;

@@ -83,6 +83,9 @@
             id="inputBusca"
             placeholder="Buscar..."
           />
+          <button class="btn-clear-search" id="btnLimparBusca">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
         <select
           id="inputOrdenacao"
@@ -186,7 +189,6 @@
               <option value="Energia"></option>
               <option value="Combustível"></option>
             </datalist>
-
             <input
               type="text"
               class="form-control border-0 bg-light"
@@ -212,6 +214,45 @@
               <i class="fa-solid fa-plus"></i>
             </button>
           </form>
+        </div>
+
+        <div class="filter-chips mb-3" id="chipsCategoriaRancho">
+          <div
+            class="chip active"
+            onclick="RanchoApp.filtrarCategoriaRancho('', this)"
+          >
+            Todas
+          </div>
+          <div
+            class="chip"
+            onclick="RanchoApp.filtrarCategoriaRancho('Alimentação', this)"
+          >
+            Alimentação
+          </div>
+          <div
+            class="chip"
+            onclick="RanchoApp.filtrarCategoriaRancho('Manutenção', this)"
+          >
+            Manutenção
+          </div>
+          <div
+            class="chip"
+            onclick="RanchoApp.filtrarCategoriaRancho('Funcionários', this)"
+          >
+            Funcionários
+          </div>
+          <div
+            class="chip"
+            onclick="RanchoApp.filtrarCategoriaRancho('Energia', this)"
+          >
+            Energia
+          </div>
+          <div
+            class="chip"
+            onclick="RanchoApp.filtrarCategoriaRancho('Combustível', this)"
+          >
+            Combustível
+          </div>
         </div>
 
         <div
@@ -301,8 +342,8 @@
             <form id="formProprietario">
               <input type="hidden" id="propId" />
               <div class="mb-3">
-                <label class="small-label mb-1">Nome</label
-                ><input
+                <label class="small-label mb-1">Nome</label>
+                <input
                   type="text"
                   class="form-control form-control-lg bg-light border-0 fw-bold"
                   id="propNome"
@@ -310,8 +351,8 @@
                 />
               </div>
               <div class="mb-4">
-                <label class="small-label mb-1">WhatsApp</label
-                ><input
+                <label class="small-label mb-1">WhatsApp</label>
+                <input
                   type="tel"
                   class="form-control form-control-lg bg-light border-0"
                   id="propTelefone"
@@ -326,8 +367,9 @@
                   class="btn btn-light text-danger px-3 d-none"
                   onclick="RanchoApp.excluirProprietarioAtual()"
                 >
-                  <i class="fa-solid fa-trash"></i></button
-                ><button
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+                <button
                   type="submit"
                   class="btn btn-primary btn-lg rounded-3 px-5 fw-bold ms-auto"
                 >
@@ -357,8 +399,8 @@
             <form id="formCavalo">
               <input type="hidden" id="cavaloId" />
               <div class="mb-3">
-                <label class="small-label mb-1">Nome do Animal</label
-                ><input
+                <label class="small-label mb-1">Nome do Animal</label>
+                <input
                   type="text"
                   class="form-control form-control-lg bg-light border-0 fw-bold text-brown"
                   id="cavaloNome"
@@ -367,16 +409,16 @@
               </div>
               <div class="row mb-3">
                 <div class="col-6">
-                  <label class="small-label mb-1">Baia / Local</label
-                  ><input
+                  <label class="small-label mb-1">Baia / Local</label>
+                  <input
                     type="text"
                     class="form-control bg-light border-0"
                     id="cavaloLugar"
                   />
                 </div>
                 <div class="col-6">
-                  <label class="small-label mb-1">Proprietário</label
-                  ><select
+                  <label class="small-label mb-1">Proprietário</label>
+                  <select
                     class="form-select bg-light border-0"
                     id="cavaloProprietario"
                     required
@@ -384,8 +426,8 @@
                 </div>
               </div>
               <div class="mb-4">
-                <label class="small-label mb-1">Observações</label
-                ><textarea
+                <label class="small-label mb-1">Observações</label>
+                <textarea
                   class="form-control bg-light border-0"
                   id="cavaloObs"
                   rows="2"
@@ -398,8 +440,9 @@
                   class="btn btn-light text-danger px-3 d-none"
                   onclick="RanchoApp.excluirCavaloAtual()"
                 >
-                  <i class="fa-solid fa-trash"></i></button
-                ><button
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+                <button
                   type="submit"
                   class="btn btn-primary btn-lg rounded-3 px-5 fw-bold ms-auto"
                 >
@@ -678,13 +721,15 @@
           <div class="modal-body p-0 bg-light">
             <div class="bg-white p-3 mb-2 shadow-sm">
               <form id="formCustoProp" class="d-flex gap-2">
-                <input type="hidden" id="custoPropIdEdit" /><input
+                <input type="hidden" id="custoPropIdEdit" />
+                <input
                   type="text"
                   class="form-control border-0 bg-light"
                   id="custoPropDesc"
                   placeholder="Item avulso..."
                   required
-                /><input
+                />
+                <input
                   type="text"
                   inputmode="decimal"
                   class="form-control border-0 bg-light text-end"
@@ -692,7 +737,8 @@
                   placeholder="R$"
                   style="width: 80px"
                   required
-                /><button
+                />
+                <button
                   type="submit"
                   id="btnSalvarCustoProp"
                   class="btn btn-success rounded-circle"
@@ -709,10 +755,12 @@
                 class="btn btn-sm text-muted"
                 onclick="RanchoApp.mudarMesProp(-1)"
               >
-                <i class="fa-solid fa-chevron-left"></i></button
-              ><span class="fw-bold text-brown small" id="labelMesAnoProp"
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <span class="fw-bold text-brown small" id="labelMesAnoProp"
                 >MÊS</span
-              ><button
+              >
+              <button
                 class="btn btn-sm text-muted"
                 onclick="RanchoApp.mudarMesProp(1)"
               >
@@ -747,8 +795,9 @@
                     class="btn btn-success flex-grow-1 rounded-4 fw-bold"
                     id="btnZapCobranca"
                   >
-                    <i class="fa-brands fa-whatsapp me-1"></i> Cobrar</button
-                  ><button
+                    <i class="fa-brands fa-whatsapp me-1"></i> Cobrar
+                  </button>
+                  <button
                     class="btn btn-outline-dark rounded-4"
                     onclick="RanchoApp.gerarPDFProprietario()"
                   >
@@ -780,8 +829,9 @@
                 class="btn btn-light rounded-pill px-4"
                 data-bs-dismiss="modal"
               >
-                Não</button
-              ><button
+                Não
+              </button>
+              <button
                 type="button"
                 id="btnConfirmarAcao"
                 class="btn btn-danger rounded-pill px-4"
