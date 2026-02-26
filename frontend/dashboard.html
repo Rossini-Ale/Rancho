@@ -40,10 +40,6 @@
             <i class="fa-solid fa-download me-1"></i> App
           </button>
           <i
-            class="fa-solid fa-gear text-white-50 fs-5"
-            onclick="RanchoApp.abrirModalConfig()"
-          ></i>
-          <i
             class="fa-solid fa-right-from-bracket text-white-50 fs-5"
             id="logoutButton"
           ></i>
@@ -192,16 +188,6 @@
             </datalist>
 
             <input
-              type="number"
-              class="form-control border-0 bg-light text-center"
-              id="ranchoQtd"
-              placeholder="Qtd"
-              min="1"
-              value=""
-              style="width: 70px"
-            />
-
-            <input
               type="text"
               class="form-control border-0 bg-light"
               id="ranchoDesc"
@@ -297,43 +283,6 @@
         <i class="fa-solid fa-plus"></i>
       </button>
     </nav>
-
-    <div class="modal fade" id="modalConfig" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-          <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold text-brown">Configurações</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <form id="formConfig">
-              <div class="mb-3">
-                <label class="small-label mb-1">Nome do Rancho</label
-                ><input
-                  type="text"
-                  class="form-control form-control-lg bg-light border-0"
-                  id="configNomeRancho"
-                  required
-                />
-              </div>
-              <div class="d-grid">
-                <button
-                  type="submit"
-                  class="btn btn-primary btn-lg rounded-3 fw-bold"
-                  id="btnSalvarConfig"
-                >
-                  Salvar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div class="modal fade" id="modalProprietario" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">

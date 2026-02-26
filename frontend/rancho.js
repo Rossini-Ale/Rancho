@@ -3,7 +3,6 @@ const RanchoApp = {
   bsModalProp: null,
   bsModalCavalo: null,
   bsModalFin: null,
-  bsModalConfig: null,
   bsModalMensalidade: null,
   bsModalDetalhesProp: null,
   bsToast: null,
@@ -27,9 +26,6 @@ const RanchoApp = {
     );
     this.bsModalFin = new bootstrap.Modal(
       document.getElementById("modalFinanceiro"),
-    );
-    this.bsModalConfig = new bootstrap.Modal(
-      document.getElementById("modalConfig"),
     );
     this.bsModalMensalidade = new bootstrap.Modal(
       document.getElementById("modalMensalidade"),
@@ -71,9 +67,6 @@ const RanchoApp = {
     document
       .getElementById("formCavalo")
       .addEventListener("submit", (e) => this.salvarCavalo(e));
-    document
-      .getElementById("formConfig")
-      .addEventListener("submit", (e) => this.salvarConfig(e));
     document
       .getElementById("formMensalidade")
       .addEventListener("submit", (e) => this.salvarMensalidade(e));
@@ -270,11 +263,7 @@ const RanchoApp = {
             currency: "BRL",
           });
 
-          // Se a categoria não estiver nos ícones pré-definidos, usa uma etiqueta genérica
           const icone = icones[c.categoria] || "fa-tag";
-
-          const qtd =
-            c.quantidade && c.quantidade > 1 ? `${c.quantidade}x ` : "";
 
           tbody.innerHTML += `
             <tr class="border-bottom">
@@ -284,7 +273,7 @@ const RanchoApp = {
                        <i class="fa-solid ${icone}"></i>
                     </div>
                     <div>
-                       <div class="fw-bold text-dark"><span class="fw-bold text-primary">${qtd}</span>${c.descricao}</div>
+                       <div class="fw-bold text-dark">${c.descricao}</div>
                        <div class="text-muted small">${c.categoria} • Dia ${dia}</div>
                     </div>
                  </div>
@@ -399,7 +388,6 @@ const RanchoApp = {
     const btn = e.submitter;
     this.setLoading(btn, true, '<i class="fa-solid fa-plus"></i>');
 
-    // Pega o texto digitado e formata a primeira letra para maiúscula para o gráfico não duplicar
     let cat = document.getElementById("ranchoCat").value.trim();
     if (cat) {
       cat = cat.charAt(0).toUpperCase() + cat.slice(1);
@@ -407,16 +395,13 @@ const RanchoApp = {
       cat = "Geral";
     }
 
-    const qtd = document.getElementById("ranchoQtd").value;
-
     const body = {
       proprietario_id: null,
       cavalo_id: null,
       descricao: document.getElementById("ranchoDesc").value,
       valor: this.limparMoeda(document.getElementById("ranchoValor").value),
       data_despesa: new Date().toISOString().split("T")[0],
-      categoria: cat, // Categoria livre
-      quantidade: qtd ? parseInt(qtd) : 1,
+      categoria: cat,
     };
 
     try {
@@ -884,20 +869,8 @@ const RanchoApp = {
     }
     this.bsModalProp.show();
   },
-  abrirModalConfig() {
-    this.bsModalConfig.show();
-  },
-  async salvarConfig(e) {
-    e.preventDefault();
-    try {
-      await ApiService.putData("/api/gestao/config", {
-        nome_rancho: document.getElementById("configNomeRancho").value,
-      });
-      this.carregarConfiguracoes();
-      this.bsModalConfig.hide();
-      this.mostrarNotificacao("Salvo!");
-    } catch (e) {}
-  },
+
+  // Função mantida para o nome carregar normalmente se estiver no banco de dados
   async carregarConfiguracoes() {
     try {
       const r = await ApiService.fetchData("/api/gestao/config");
@@ -907,6 +880,7 @@ const RanchoApp = {
       }
     } catch (e) {}
   },
+
   async carregarProprietariosSelect() {
     try {
       const p = await ApiService.fetchData("/api/gestao/proprietarios");
