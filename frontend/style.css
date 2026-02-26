@@ -64,6 +64,7 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.02);
   transition: transform 0.2s;
+  cursor: pointer; /* Adicionado cursor pointer aqui */
 }
 .card-resumo-mini:active {
   transform: scale(0.97);
