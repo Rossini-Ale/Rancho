@@ -3,36 +3,40 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
-process.on("uncaughtException", (err) => {
-  console.error("ERRO NÃO TRATADO:", err);
-});
-
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("REJEIÇÃO NÃO TRATADA em:", promise, "razão:", reason);
-});
-// Importa as rotas (auth e gestao da pasta routes/index.js)
-const routes = require("./routes/index");
-
 const app = express();
 
-// Middlewares
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Rotas da API
-app.use("/api", routes);
-
-// Servir arquivos estáticos da pasta 'frontend'
+// Servir arquivos estáticos (Frontend)
 app.use(express.static(path.join(__dirname, "frontend")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// Rota de fallback: Se o usuário acessar uma URL que não existe, manda para o login
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "frontend", "login.html"));
+// Importação das Rotas
+const indexRoutes = require("./routes/index");
+const authRoutes = require("./routes/auth");
+const gestaoRoutes = require("./routes/gestao");
+
+// Definição das Rotas
+app.use("/", indexRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/gestao", gestaoRoutes);
+
+// Tratamento de erros não capturados para evitar queda do processo
+process.on("uncaughtException", (err) => {
+  console.error("Exceção não capturada:", err);
 });
 
-// IMPORTANTE: Adicionar '0.0.0.0'
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Rejeição não tratada em:", promise, "motivo:", reason);
+});
+
+// CONFIGURAÇÃO DE PORTA PARA HOSTINGER
+// A Hostinger define a porta dinamicamente; se não houver, usa 3000
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Aplicação ativa na porta ${PORT}`);
+  console.log(`Servidor Rancho rodando em: http://localhost:${PORT}`);
 });

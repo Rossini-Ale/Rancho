@@ -1,8 +1,9 @@
 const mysql = require("mysql2/promise");
 require("dotenv").config();
 
+// Configurações de banco de dados otimizadas para Hostinger
 const dbConfig = {
-  host: process.env.DB_HOST,
+  host: process.env.DB_HOST || "localhost", // Hostinger geralmente usa localhost
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
@@ -13,15 +14,18 @@ const dbConfig = {
 
 const pool = mysql.createPool(dbConfig);
 
-// Teste a conexão imediatamente ao iniciar
+// Verificação de conexão simplificada para evitar crash silencioso no log da Hostinger
 pool
   .getConnection()
   .then((conn) => {
-    console.log("Conectado ao banco com sucesso!");
+    console.log("Banco de Dados Conectado com sucesso!");
     conn.release();
   })
   .catch((err) => {
-    console.error("ERRO CRÍTICO NO BANCO:", err.message);
+    console.error(
+      "Erro Crítico: Não foi possível conectar ao banco de dados:",
+      err.message,
+    );
   });
 
 module.exports = pool;
