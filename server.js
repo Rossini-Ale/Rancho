@@ -24,6 +24,11 @@ app.use("/", indexRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/gestao", gestaoRoutes);
 
+// Redireciona raiz para login
+app.get("/", (req, res) => {
+  res.redirect("/login.html");
+});
+
 // Tratamento de erros não capturados para evitar queda do processo
 process.on("uncaughtException", (err) => {
   console.error("Exceção não capturada:", err);
@@ -33,9 +38,8 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("Rejeição não tratada em:", promise, "motivo:", reason);
 });
 
-// CONFIGURAÇÃO DE PORTA PARA HOSTINGER
-// A Hostinger define a porta dinamicamente; se não houver, usa 3000
-const PORT = process.env.PORT || 3000;
+// Railway usa PORT do ambiente, fallback 8080
+const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Servidor Rancho rodando em: http://localhost:${PORT}`);
