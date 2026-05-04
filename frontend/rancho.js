@@ -444,35 +444,25 @@ const RanchoApp = {
     const wrap = document.getElementById("listaAnimaisHome");
     if (!wrap) return;
     try {
+      // Reutiliza o GET /cavalos que já traz total_gasto_mes e tem_pendente — sem chamada extra
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
       if (!cavalos || !cavalos.length) {
         wrap.innerHTML = `<div style="padding:0 14px 12px;color:var(--texto-suave);font-size:0.82rem;">Nenhum animal cadastrado.</div>`;
         return;
       }
-      const hoje = new Date();
-      const mes = hoje.getMonth() + 1;
-      const ano = hoje.getFullYear();
-      const lista = await Promise.all(
-        cavalos.slice(0, 4).map(async (c) => {
-          const fin = await ApiService.fetchData(
-            `/api/gestao/custos/resumo/${c.id}?mes=${mes}&ano=${ano}`,
-          );
-          const pendente =
-            fin.custos &&
-            fin.custos.some((x) => x.pago == 0 || x.pago === false);
-          return { ...c, total: parseFloat(fin.total_gasto || 0), pendente };
-        }),
-      );
-      wrap.innerHTML = lista
+      wrap.innerHTML = cavalos
+        .slice(0, 4)
         .map((c) => {
           const ns = c.nome.replace(/'/g, "\\'");
-          const totalF = c.total.toLocaleString("pt-BR", {
+          const total = parseFloat(c.total_gasto_mes || 0);
+          const totalF = total.toLocaleString("pt-BR", {
             style: "currency",
             currency: "BRL",
           });
-          const dotClr = c.pendente ? "#E53935" : "var(--verde)";
-          const badgeC = c.total > 0 ? "badge-pendente" : "badge-pago";
-          const badgeTx = c.total > 0 ? `${totalF} pend.` : "Em dia";
+          const pendente = c.tem_pendente == 1;
+          const dotClr = pendente ? "#E53935" : "var(--verde)";
+          const badgeC = total > 0 ? "badge-pendente" : "badge-pago";
+          const badgeTx = total > 0 ? `${totalF} pend.` : "Em dia";
           return `
           <div class="animal-card">
             <div class="animal-card-top" onclick="RanchoApp.abrirModalEditar(${c.id},'${ns}','${(c.lugar || "").replace(/'/g, "\\'")}','${c.proprietario_id || ""}','${(c.observacoes || "").replace(/'/g, "\\'")}')">
@@ -480,7 +470,7 @@ const RanchoApp = {
               <div style="flex:1;min-width:0;">
                 <div class="animal-nome">
                   ${c.nome}
-                  <span class="status-dot" style="background:${dotClr};${c.pendente ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span>
+                  <span class="status-dot" style="background:${dotClr};${pendente ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span>
                 </div>
                 <div class="animal-sub">
                   <span class="tag-local"><i class="fa-solid fa-location-dot" style="font-size:0.62rem;color:var(--marrom-claro);"></i>${c.lugar || "Sem local"}</span>
@@ -495,15 +485,19 @@ const RanchoApp = {
                 <div class="gasto-valor">${totalF}</div>
               </div>
               <div style="display:flex;gap:8px;">
-                <button class="btn-action icon-brown" onclick="RanchoApp.abrirMensalidade(${c.id},'${ns}')" title="Mensalidade"><i class="fa-solid fa-calendar-plus" style="font-size:0.82rem;"></i></button>
-                <button class="btn-action icon-gold" onclick="RanchoApp.abrirFinanceiro(${c.id},'${ns}')" title="Custos"><i class="fa-solid fa-coins" style="font-size:0.82rem;"></i></button>
+                <button class="btn-action icon-brown" onclick="RanchoApp.abrirMensalidade(${c.id},'${ns}')" title="Mensalidade">
+                  <i class="fa-solid fa-calendar-plus" style="font-size:0.82rem;"></i>
+                </button>
+                <button class="btn-action icon-gold" onclick="RanchoApp.abrirFinanceiro(${c.id},'${ns}')" title="Custos">
+                  <i class="fa-solid fa-coins" style="font-size:0.82rem;"></i>
+                </button>
               </div>
             </div>
           </div>`;
         })
         .join("");
     } catch (e) {
-      console.error("AnimaisHome:", e);
+      console.error("carregarAnimaisHome:", e);
     }
   },
 
@@ -793,47 +787,46 @@ const RanchoApp = {
     if (!wrap) return;
     wrap.innerHTML = `<div style="padding:0 14px;">${this.skeletonRows(4)}</div>`;
     try {
+      // UMA única chamada — backend já retorna total_gasto_mes e tem_pendente
       const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
       wrap.innerHTML = "";
       if (!cavalos || !cavalos.length) {
-        wrap.innerHTML = `<div style="text-align:center;padding:3rem 1rem;"><div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-horse-head"></i></div><p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum animal cadastrado</p><button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalNovoCavalo()"><i class="fa-solid fa-plus me-1"></i> Cadastrar</button></div>`;
+        wrap.innerHTML = `
+          <div style="text-align:center;padding:3rem 1rem;">
+            <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-horse-head"></i></div>
+            <p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum animal cadastrado</p>
+            <button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalNovoCavalo()">
+              <i class="fa-solid fa-plus me-1"></i> Cadastrar
+            </button>
+          </div>`;
         return;
       }
-      const hoje = new Date(),
-        mes = hoje.getMonth() + 1,
-        ano = hoje.getFullYear();
       const ordem = document.getElementById("inputOrdenacao")?.value || "az";
-      const lista = await Promise.all(
-        cavalos.map(async (c) => {
-          const fin = await ApiService.fetchData(
-            `/api/gestao/custos/resumo/${c.id}?mes=${mes}&ano=${ano}`,
-          );
-          const pendente =
-            fin.custos &&
-            fin.custos.some((x) => x.pago == 0 || x.pago === false);
-          return {
-            ...c,
-            totalSort: parseFloat(fin.total_gasto || 0),
-            pendente,
-            totalFormatado: parseFloat(fin.total_gasto || 0).toLocaleString(
-              "pt-BR",
-              { style: "currency", currency: "BRL" },
-            ),
-          };
-        }),
-      );
+      const lista = cavalos.map((c) => ({
+        ...c,
+        totalSort: parseFloat(c.total_gasto_mes || 0),
+        totalFormatado: parseFloat(c.total_gasto_mes || 0).toLocaleString(
+          "pt-BR",
+          { style: "currency", currency: "BRL" },
+        ),
+        temPendente: c.tem_pendente == 1,
+      }));
       this.ordenarLista(lista, ordem).forEach((c) => {
-        const ns = c.nome.replace(/'/g, "\\'"),
-          ls = (c.lugar || "").replace(/'/g, "\\'"),
-          os = (c.observacoes || "").replace(/'/g, "\\'");
-        const dotClr = c.pendente ? "#E53935" : "var(--verde)";
+        const ns = c.nome.replace(/'/g, "\\'");
+        const ls = (c.lugar || "").replace(/'/g, "\\'");
+        const os = (c.observacoes || "").replace(/'/g, "\\'");
+        const dotClr = c.temPendente ? "#E53935" : "var(--verde)";
+        const pid = c.proprietario_id || "";
         const el = document.createElement("div");
         el.innerHTML = `
           <div class="animal-card">
-            <div class="animal-card-top" onclick="RanchoApp.abrirModalEditar(${c.id},'${ns}','${ls}','${c.proprietario_id || ""}','${os}')">
+            <div class="animal-card-top" onclick="RanchoApp.abrirModalEditar(${c.id},'${ns}','${ls}','${pid}','${os}')">
               <div class="avatar-circle avatar-cavalo">${c.nome.charAt(0).toUpperCase()}</div>
               <div style="flex:1;min-width:0;">
-                <div class="animal-nome">${c.nome}<span class="status-dot" style="background:${dotClr};${c.pendente ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span></div>
+                <div class="animal-nome">
+                  ${c.nome}
+                  <span class="status-dot" style="background:${dotClr};${c.temPendente ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span>
+                </div>
                 <div class="animal-sub">
                   <span class="tag-local"><i class="fa-solid fa-location-dot" style="font-size:0.62rem;color:var(--marrom-claro);"></i>${c.lugar || "Sem local"}</span>
                   ${c.nome_proprietario ? `<span class="tag-prop"><i class="fa-solid fa-user" style="font-size:0.62rem;"></i>${c.nome_proprietario}</span>` : ""}
@@ -841,17 +834,24 @@ const RanchoApp = {
               </div>
             </div>
             <div class="animal-card-base">
-              <div><div class="gasto-label">Gasto no mês</div><div class="gasto-valor">${c.totalFormatado}</div></div>
+              <div>
+                <div class="gasto-label">Gasto no mês</div>
+                <div class="gasto-valor">${c.totalFormatado}</div>
+              </div>
               <div style="display:flex;gap:8px;">
-                <button class="btn-action icon-brown" onclick="RanchoApp.abrirMensalidade(${c.id},'${ns}')" title="Mensalidade"><i class="fa-solid fa-calendar-plus" style="font-size:0.82rem;"></i></button>
-                <button class="btn-action icon-gold" onclick="RanchoApp.abrirFinanceiro(${c.id},'${ns}')" title="Custos"><i class="fa-solid fa-coins" style="font-size:0.82rem;"></i></button>
+                <button class="btn-action icon-brown" onclick="RanchoApp.abrirMensalidade(${c.id},'${ns}')" title="Mensalidade">
+                  <i class="fa-solid fa-calendar-plus" style="font-size:0.82rem;"></i>
+                </button>
+                <button class="btn-action icon-gold" onclick="RanchoApp.abrirFinanceiro(${c.id},'${ns}')" title="Custos">
+                  <i class="fa-solid fa-coins" style="font-size:0.82rem;"></i>
+                </button>
               </div>
             </div>
           </div>`;
         wrap.appendChild(el.firstElementChild);
       });
     } catch (e) {
-      console.error(e);
+      console.error("carregarTabelaCavalos:", e);
     }
   },
 
@@ -861,53 +861,35 @@ const RanchoApp = {
     if (!wrap) return;
     wrap.innerHTML = `<div style="padding:0 14px;">${this.skeletonRows(3)}</div>`;
     try {
+      // UMA única chamada — backend já retorna total_divida e total_animais
       const props = await ApiService.fetchData("/api/gestao/proprietarios");
-      const cavalos = (await ApiService.fetchData("/api/gestao/cavalos")) || [];
       wrap.innerHTML = "";
       if (!props || !props.length) {
-        wrap.innerHTML = `<div style="text-align:center;padding:3rem 1rem;"><div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-users"></i></div><p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum cliente</p><button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalGerenciarProprietarios()"><i class="fa-solid fa-plus me-1"></i> Novo Cliente</button></div>`;
+        wrap.innerHTML = `
+          <div style="text-align:center;padding:3rem 1rem;">
+            <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-users"></i></div>
+            <p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum cliente</p>
+            <button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalGerenciarProprietarios()">
+              <i class="fa-solid fa-plus me-1"></i> Novo Cliente
+            </button>
+          </div>`;
         return;
       }
-      const hoje = new Date(),
-        mes = hoje.getMonth() + 1,
-        ano = hoje.getFullYear();
       const ordem = document.getElementById("inputOrdenacao")?.value || "az";
-      const lista = await Promise.all(
-        props.map(async (p) => {
-          const meus = cavalos.filter((c) => c.proprietario_id == p.id);
-          let divida = 0;
-          for (const c of meus) {
-            const r = await ApiService.fetchData(
-              `/api/gestao/custos/resumo/${c.id}?mes=${mes}&ano=${ano}`,
-            );
-            if (r.custos)
-              r.custos.forEach((x) => {
-                if (!x.pago) divida += parseFloat(x.valor);
-              });
-          }
-          const dir = await ApiService.fetchData(
-            `/api/gestao/custos/diretos/${p.id}?mes=${mes}&ano=${ano}`,
-          );
-          if (dir)
-            dir.forEach((x) => {
-              if (!x.pago) divida += parseFloat(x.valor);
-            });
-          return {
-            ...p,
-            totalSort: divida,
-            txtAnimais:
-              meus.length === 1 ? "1 animal" : `${meus.length} animais`,
-            temPendencia: divida > 0,
-            txtValor:
-              divida > 0
-                ? divida.toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  })
-                : "Pago",
-          };
-        }),
-      );
+      const lista = props.map((p) => ({
+        ...p,
+        totalSort: parseFloat(p.total_divida || 0),
+        temPendencia: parseFloat(p.total_divida || 0) > 0,
+        txtAnimais:
+          p.total_animais == 1 ? "1 animal" : `${p.total_animais} animais`,
+        txtValor:
+          parseFloat(p.total_divida || 0) > 0
+            ? parseFloat(p.total_divida).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })
+            : "Pago",
+      }));
       this.ordenarLista(lista, ordem).forEach((p) => {
         const dotClr = p.temPendencia ? "#E53935" : "var(--verde)";
         const badgeBg = p.temPendencia
@@ -918,22 +900,34 @@ const RanchoApp = {
         el.innerHTML = `
           <div class="animal-card" style="display:flex;align-items:center;gap:12px;">
             <div class="avatar-circle avatar-dono" style="flex-shrink:0;">${p.nome.charAt(0).toUpperCase()}</div>
-            <div style="flex:1;min-width:0;cursor:pointer;" onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
-              <div class="animal-nome">${p.nome}<span class="status-dot" style="background:${dotClr};${p.temPendencia ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span></div>
+            <div style="flex:1;min-width:0;cursor:pointer;"
+              onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
+              <div class="animal-nome">
+                ${p.nome}
+                <span class="status-dot" style="background:${dotClr};${p.temPendencia ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span>
+              </div>
               <div class="animal-sub">
-                <span style="font-size:0.72rem;color:var(--marrom-claro);font-weight:600;"><i class="fa-solid fa-horse-head" style="font-size:0.62rem;"></i> ${p.txtAnimais}</span>
+                <span style="font-size:0.72rem;color:var(--marrom-claro);font-weight:600;">
+                  <i class="fa-solid fa-horse-head" style="font-size:0.62rem;"></i> ${p.txtAnimais}
+                </span>
                 ${p.telefone ? `<span class="tag-prop"><i class="fa-solid fa-phone" style="font-size:0.62rem;"></i>${p.telefone}</span>` : ""}
               </div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;">
-              <span style="background:${badgeBg};color:${badgeClr};border-radius:10px;padding:3px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;">${p.txtValor}</span>
-              <button class="btn-action icon-brown" style="width:32px;height:32px;" onclick="RanchoApp.abrirModalGerenciarProprietarios(${p.id},'${p.nome}','${p.telefone || ""}')" title="Editar"><i class="fa-solid fa-pen" style="font-size:0.72rem;"></i></button>
+              <span style="background:${badgeBg};color:${badgeClr};border-radius:10px;padding:3px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;">
+                ${p.txtValor}
+              </span>
+              <button class="btn-action icon-brown" style="width:32px;height:32px;"
+                onclick="RanchoApp.abrirModalGerenciarProprietarios(${p.id},'${p.nome}','${p.telefone || ""}')"
+                title="Editar">
+                <i class="fa-solid fa-pen" style="font-size:0.72rem;"></i>
+              </button>
             </div>
           </div>`;
         wrap.appendChild(el.firstElementChild);
       });
     } catch (e) {
-      console.error(e);
+      console.error("carregarTabelaProprietarios:", e);
     }
   },
 

@@ -1096,12 +1096,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="dashboard_parts/api.js"></script>
     <script src="rancho.js"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("sw.js")
-          .catch((e) => console.log("Erro SW:", e));
-      }
-    </script>
+    <script src="sw-controller.js"></script>
   </body>
 </html>
