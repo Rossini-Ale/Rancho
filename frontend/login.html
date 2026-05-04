@@ -16,19 +16,21 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     />
     <link rel="stylesheet" href="auth.css" />
-    <meta name="theme-color" content="#8B4513" />
+    <meta name="theme-color" content="#4A2410" />
   </head>
   <body>
     <div class="container px-4">
-      <div class="auth-container login-card">
+      <div class="login-card">
+        <!-- Logo -->
         <div class="text-center mb-4">
-          <div class="brand-icon mb-2" style="font-size: 4rem; color: #8b4513">
+          <div class="brand-icon mb-2">
             <i class="fa-solid fa-horse-head"></i>
           </div>
           <h3 class="auth-title">Bem-vindo</h3>
-          <p class="text-muted small">HF Controll</p>
+          <p class="auth-subtitle mt-1">HF Controll — Gestão do Rancho</p>
         </div>
 
+        <!-- Formulário -->
         <form id="formLogin">
           <div class="input-group mb-3">
             <span class="input-group-text"
@@ -38,7 +40,7 @@
               type="text"
               class="form-control"
               id="username"
-              placeholder="Nome de Usuário"
+              placeholder="Nome de usuário"
               required
               autocapitalize="none"
             />
@@ -59,7 +61,7 @@
 
           <div
             id="msgErro"
-            class="alert alert-danger d-none py-2 small text-center"
+            class="alert alert-danger d-none py-2 small text-center rounded-3"
             role="alert"
           ></div>
 
@@ -68,9 +70,20 @@
             class="btn btn-primary w-100 btn-login"
             id="btnEntrar"
           >
-            Entrar
+            <i class="fa-solid fa-right-to-bracket me-2"></i> Entrar
           </button>
         </form>
+
+        <!-- Rodapé -->
+        <div class="divider mt-4">
+          <span>HF Controll</span>
+        </div>
+        <p
+          class="text-center mb-0"
+          style="font-size: 0.78rem; color: var(--texto-suave)"
+        >
+          Gestão inteligente do seu rancho
+        </p>
       </div>
     </div>
 

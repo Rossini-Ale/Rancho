@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"
     />
-    <title>HF Controll</title>
+    <title>HF Controll v2</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -17,14 +17,15 @@
     />
     <link rel="stylesheet" href="style.css" />
     <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#8B4513" />
+    <meta name="theme-color" content="#3D1E0A" />
     <link rel="apple-touch-icon" href="icon.png" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
-    <nav class="navbar navbar-dark sticky-top">
+    <!-- ══ NAVBAR ══ -->
+    <nav class="navbar sticky-top">
       <div
         class="container-fluid d-flex justify-content-between align-items-center"
       >
@@ -35,277 +36,364 @@
         <div class="d-flex gap-3 align-items-center">
           <button
             id="btnInstalarApp"
-            class="btn btn-sm btn-outline-light d-none rounded-pill fw-bold"
+            class="btn btn-sm btn-outline-light d-none rounded-pill"
+            style="
+              font-size: 0.75rem;
+              border-color: rgba(196, 154, 74, 0.4);
+              color: var(--dourado-claro);
+            "
           >
             <i class="fa-solid fa-download me-1"></i> App
           </button>
-          <i
-            class="fa-solid fa-gear text-white-50 fs-5"
-            id="btnConfig"
+          <button
+            class="navbar-icon-btn"
             onclick="RanchoApp.abrirModalConfig()"
-            style="cursor: pointer"
-            title="Configurações PIX"
-          ></i>
-          <i
-            class="fa-solid fa-moon text-white-50 fs-5"
-            id="btnDarkMode"
-            style="cursor: pointer"
-            title="Modo Escuro"
-          ></i>
-          <i
-            class="fa-solid fa-right-from-bracket text-white-50 fs-5"
-            id="logoutButton"
-            style="cursor: pointer"
-            title="Sair"
-          ></i>
+            title="Configurações"
+          >
+            <i class="fa-solid fa-gear"></i>
+          </button>
+          <button class="navbar-icon-btn" id="btnDarkMode" title="Modo Escuro">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+          <button class="navbar-icon-btn" id="logoutButton" title="Sair">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
         </div>
       </div>
     </nav>
 
-    <main class="container pb-5">
+    <!-- ══ CONTEÚDO PRINCIPAL ══ -->
+    <main class="pb-5">
       <div class="ptr-indicator" id="ptrIndicator">
         <i class="fa-solid fa-arrow-rotate-right fa-spin"></i>
       </div>
 
-      <div class="mt-3">
-        <div class="scrolling-wrapper">
-          <div class="card-resumo-mini" onclick="RanchoApp.mudarAba('cavalos')">
-            <div class="d-flex justify-content-between mb-2">
-              <span class="small-label">Animais</span
-              ><i class="fa-solid fa-horse text-primary opacity-50"></i>
-            </div>
-            <h3 class="fw-bold mb-0 text-dark" id="totalCavalos">0</h3>
+      <!-- ── ABA HOME ── -->
+      <div id="tabHome" class="fade-in-up">
+        <!-- Saudação -->
+        <div style="padding: 16px 14px 4px">
+          <div
+            style="
+              font-size: 0.75rem;
+              color: var(--texto-suave);
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.6px;
+            "
+            id="saudacaoLabel"
+          >
+            Bom dia
           </div>
           <div
-            class="card-resumo-mini"
-            onclick="RanchoApp.mudarAba('proprietarios')"
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.3rem;
+              color: var(--texto-titulo);
+              margin-top: 2px;
+            "
           >
-            <div class="d-flex justify-content-between mb-2">
-              <span class="small-label">Clientes</span
-              ><i class="fa-solid fa-users text-secondary opacity-50"></i>
-            </div>
-            <h3 class="fw-bold mb-0 text-dark" id="totalProprietarios">0</h3>
-          </div>
-          <div class="card-resumo-mini" onclick="RanchoApp.mudarAba('rancho')">
-            <div class="d-flex justify-content-between mb-2">
-              <span class="small-label">Rancho</span
-              ><i class="fa-solid fa-coins text-danger opacity-50"></i>
-            </div>
-            <h3 class="fw-bold mb-0 text-dark" id="totalRanchoMes">0</h3>
+            Visão geral do rancho
           </div>
         </div>
-      </div>
 
-      <div class="mt-4 mb-4 d-flex gap-2">
-        <div class="search-input-wrapper flex-grow-1">
-          <i class="fa-solid fa-magnifying-glass text-muted me-2"></i>
-          <input
-            type="text"
-            class="search-input"
-            id="inputBusca"
-            placeholder="Buscar..."
-          />
-          <button class="btn-clear-search" id="btnLimparBusca">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-        <select
-          id="inputOrdenacao"
-          class="form-select border-0 shadow-sm fw-bold text-secondary"
-          style="width: auto; border-radius: 12px"
-        >
-          <option value="az">A-Z</option>
-          <option value="za">Z-A</option>
-          <option value="maior_valor">Maior Valor</option>
-          <option value="menor_valor">Menor Valor</option>
-        </select>
-      </div>
-
-      <div class="d-flex align-items-center justify-content-between mb-3">
-        <h5 class="fw-bold text-dark mb-0" id="tituloSecao">Meus Animais</h5>
-        <div class="d-none d-md-flex gap-2">
-          <button
-            class="btn btn-sm btn-primary rounded-pill px-3"
+        <!-- KPIs -->
+        <div class="kpi-grid">
+          <div
+            class="kpi-card k-marrom"
             onclick="RanchoApp.mudarAba('cavalos')"
           >
-            Animais
-          </button>
-          <button
-            class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+            <div class="kpi-label">Animais</div>
+            <div class="kpi-value" id="kpiAnimais">—</div>
+            <div class="kpi-trend neu" id="kpiAnimaisTrend">carregando...</div>
+          </div>
+          <div class="kpi-card k-verde" onclick="RanchoApp.mudarAba('home')">
+            <div class="kpi-label">Receita mês</div>
+            <div class="kpi-value sm" id="kpiReceita">—</div>
+            <div class="kpi-trend neu" id="kpiReceitaTrend">carregando...</div>
+          </div>
+          <div
+            class="kpi-card k-roxo"
             onclick="RanchoApp.mudarAba('proprietarios')"
           >
-            Clientes
-          </button>
-          <button
-            class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+            <div class="kpi-label">Clientes</div>
+            <div class="kpi-value" id="kpiClientes">—</div>
+            <div class="kpi-trend neu" id="kpiClientesTrend">carregando...</div>
+          </div>
+          <div
+            class="kpi-card k-vermelho"
             onclick="RanchoApp.mudarAba('rancho')"
           >
-            Despesas
-          </button>
+            <div class="kpi-label">Despesas</div>
+            <div class="kpi-value sm" id="kpiDespesas">—</div>
+            <div class="kpi-trend neu" id="kpiDespesasTrend">carregando...</div>
+          </div>
         </div>
+
+        <!-- Gráfico histórico -->
+        <div class="section-header">
+          <span class="section-title">Receita vs Despesas</span>
+        </div>
+        <div class="card-v2" style="padding: 12px 14px">
+          <div style="position: relative; height: 160px">
+            <canvas
+              id="graficoHistorico"
+              role="img"
+              aria-label="Gráfico de receita e despesas dos últimos 6 meses"
+              >Histórico de receita e despesas mensais.</canvas
+            >
+          </div>
+        </div>
+
+        <!-- Despesas por categoria -->
+        <div class="section-header">
+          <span class="section-title">Despesas por categoria</span
+          ><span class="section-link" onclick="RanchoApp.mudarAba('rancho')"
+            >Ver tudo</span
+          >
+        </div>
+        <div class="card-v2" id="graficoCategorias">
+          <div
+            style="
+              color: var(--texto-suave);
+              font-size: 0.82rem;
+              text-align: center;
+              padding: 12px 0;
+            "
+          >
+            Carregando...
+          </div>
+        </div>
+
+        <!-- Alertas -->
+        <div class="section-header">
+          <span class="section-title">Lembretes</span
+          ><span class="section-link" id="linkTodosAlertas">Ver todos</span>
+        </div>
+        <div id="listaAlertas">
+          <div
+            style="
+              padding: 0 14px;
+              color: var(--texto-suave);
+              font-size: 0.82rem;
+            "
+          >
+            Carregando...
+          </div>
+        </div>
+
+        <!-- Animais recentes -->
+        <div class="section-header">
+          <span class="section-title">Meus animais</span
+          ><span class="section-link" onclick="RanchoApp.mudarAba('cavalos')"
+            >Ver todos</span
+          >
+        </div>
+        <div id="listaAnimaisHome"></div>
       </div>
 
-      <div id="tabCavalos" class="fade-in-up">
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <tbody id="listaCavalosBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div id="tabProprietarios" class="d-none">
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <tbody id="listaProprietariosMainBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div id="tabRancho" class="d-none">
+      <!-- ── ABA CAVALOS ── -->
+      <div id="tabCavalos" class="d-none">
         <div
-          class="card border-0 shadow-sm mb-3"
           style="
-            background: linear-gradient(135deg, #8b4513, #a0522d);
-            border-radius: 20px;
+            padding: 14px 14px 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
           "
         >
-          <div class="card-body p-4 text-white text-center">
-            <span class="small-label text-white-50 d-block mb-1"
-              >TOTAL GASTO NO MÊS</span
+          <div
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.15rem;
+              color: var(--texto-titulo);
+            "
+          >
+            Meus Animais
+          </div>
+          <div class="d-flex gap-2">
+            <div class="search-wrapper flex-grow-1" style="min-width: 140px">
+              <i
+                class="fa-solid fa-magnifying-glass me-2"
+                style="font-size: 0.8rem; color: var(--texto-suave)"
+              ></i>
+              <input
+                type="text"
+                class="search-input"
+                id="inputBusca"
+                placeholder="Buscar..."
+              />
+              <button class="btn-clear" id="btnLimparBusca">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <select
+              id="inputOrdenacao"
+              class="form-select"
+              style="
+                width: auto;
+                border-radius: 20px !important;
+                font-size: 0.82rem;
+                font-weight: 600;
+              "
             >
-            <h2 class="display-5 fw-bold mb-0" id="totalRanchoMesDisplay">
-              R$ 0,00
-            </h2>
+              <option value="az">A-Z</option>
+              <option value="za">Z-A</option>
+              <option value="maior_valor">Maior Valor</option>
+              <option value="menor_valor">Menor Valor</option>
+            </select>
           </div>
         </div>
+        <div id="listaCavalosBody"></div>
+      </div>
 
+      <!-- ── ABA CLIENTES ── -->
+      <div id="tabProprietarios" class="d-none">
         <div
-          class="bg-white p-3 mb-4 rounded-4 shadow-sm border"
-          id="areaGraficoRancho"
-          style="display: none"
+          style="
+            padding: 14px 14px 4px;
+            font-family: &quot;Lora&quot;, serif;
+            font-size: 1.15rem;
+            color: var(--texto-titulo);
+          "
         >
-          <h6 class="text-muted small fw-bold mb-3 text-center">
-            DISTRIBUIÇÃO
-          </h6>
-          <div style="height: 200px; width: 100%; position: relative">
-            <canvas id="graficoRancho"></canvas>
-          </div>
+          Meus Clientes
         </div>
+        <div id="listaProprietariosMainBody"></div>
+      </div>
 
-        <div class="bg-white p-3 mb-3 rounded-4 shadow-sm border">
-          <h6 class="text-muted small fw-bold mb-2">NOVA DESPESA</h6>
-          <form id="formCustoRancho" class="d-flex flex-wrap gap-2">
-            <input
-              type="text"
-              class="form-control border-0 bg-light fw-bold text-secondary"
-              id="ranchoCat"
-              placeholder="Categoria"
-              list="sugestoesCategorias"
-              required
-              style="flex: 1; min-width: 120px"
-            />
-            <datalist id="sugestoesCategorias">
-              <option value="Alimentação"></option>
-              <option value="Manutenção"></option>
-              <option value="Funcionários"></option>
-              <option value="Energia"></option>
-              <option value="Combustível"></option>
-            </datalist>
-            <input
-              type="text"
-              class="form-control border-0 bg-light"
-              id="ranchoDesc"
-              placeholder="Descrição do item"
-              required
-              style="flex: 2; min-width: 150px"
-            />
-            <input
-              type="text"
-              inputmode="decimal"
-              class="form-control border-0 bg-light text-end"
-              id="ranchoValor"
-              placeholder="R$"
-              style="width: 90px"
-              required
-            />
-            <button
-              type="submit"
-              class="btn btn-success rounded-circle shadow-sm"
-              style="width: 38px; height: 38px; padding: 0"
+      <!-- ── ABA RANCHO ── -->
+      <div id="tabRancho" class="d-none">
+        <div style="padding: 14px">
+          <div class="card-total-rancho mb-3">
+            <div class="ct-label">Total gasto no mês</div>
+            <div class="ct-valor" id="totalRanchoMesDisplay">R$ 0,00</div>
+          </div>
+
+          <div
+            class="card-v2 mb-3"
+            id="areaGraficoRancho"
+            style="display: none"
+          >
+            <p class="small-label text-center mb-3">Distribuição</p>
+            <div style="height: 180px; position: relative">
+              <canvas
+                id="graficoRancho"
+                role="img"
+                aria-label="Gráfico de distribuição de despesas por categoria"
+                >Distribuição por categoria.</canvas
+              >
+            </div>
+          </div>
+
+          <div class="form-despesa-wrap mb-3">
+            <div class="small-label mb-2">Nova Despesa</div>
+            <form id="formCustoRancho" class="d-flex flex-wrap gap-2">
+              <input
+                type="text"
+                class="form-control border-0"
+                id="ranchoCat"
+                placeholder="Categoria"
+                list="sugestoesCategorias"
+                required
+                style="flex: 1; min-width: 110px"
+              />
+              <datalist id="sugestoesCategorias">
+                <option value="Alimentação" />
+                <option value="Manutenção" />
+                <option value="Funcionários" />
+                <option value="Energia" />
+                <option value="Combustível" />
+              </datalist>
+              <input
+                type="text"
+                class="form-control border-0"
+                id="ranchoDesc"
+                placeholder="Descrição"
+                required
+                style="flex: 2; min-width: 140px"
+              />
+              <input
+                type="text"
+                inputmode="decimal"
+                class="form-control border-0 text-end"
+                id="ranchoValor"
+                placeholder="R$"
+                style="width: 85px"
+                required
+              />
+              <button
+                type="submit"
+                class="btn btn-success rounded-circle"
+                style="width: 38px; height: 38px; padding: 0; flex-shrink: 0"
+              >
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </form>
+          </div>
+
+          <div class="filter-chips mb-3" id="chipsCategoriaRancho">
+            <div
+              class="chip active"
+              onclick="RanchoApp.filtrarCategoriaRancho('', this)"
             >
-              <i class="fa-solid fa-plus"></i>
+              Todas
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Alimentação', this)"
+            >
+              Alimentação
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Manutenção', this)"
+            >
+              Manutenção
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Funcionários', this)"
+            >
+              Funcionários
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Energia', this)"
+            >
+              Energia
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Combustível', this)"
+            >
+              Combustível
+            </div>
+          </div>
+
+          <div class="mes-nav mb-3">
+            <button class="mes-nav-btn" onclick="RanchoApp.mudarMesRancho(-1)">
+              <i class="fa-solid fa-chevron-left"></i>
             </button>
-          </form>
-        </div>
+            <span class="mes-nav-label" id="labelMesAnoRancho">MÊS</span>
+            <button class="mes-nav-btn" onclick="RanchoApp.mudarMesRancho(1)">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
 
-        <div class="filter-chips mb-3" id="chipsCategoriaRancho">
-          <div
-            class="chip active"
-            onclick="RanchoApp.filtrarCategoriaRancho('', this)"
-          >
-            Todas
+          <div class="card-v2" style="padding: 0; overflow: hidden">
+            <table class="table mb-0 align-middle">
+              <tbody id="listaRanchoBody"></tbody>
+            </table>
           </div>
-          <div
-            class="chip"
-            onclick="RanchoApp.filtrarCategoriaRancho('Alimentação', this)"
-          >
-            Alimentação
-          </div>
-          <div
-            class="chip"
-            onclick="RanchoApp.filtrarCategoriaRancho('Manutenção', this)"
-          >
-            Manutenção
-          </div>
-          <div
-            class="chip"
-            onclick="RanchoApp.filtrarCategoriaRancho('Funcionários', this)"
-          >
-            Funcionários
-          </div>
-          <div
-            class="chip"
-            onclick="RanchoApp.filtrarCategoriaRancho('Energia', this)"
-          >
-            Energia
-          </div>
-          <div
-            class="chip"
-            onclick="RanchoApp.filtrarCategoriaRancho('Combustível', this)"
-          >
-            Combustível
-          </div>
-        </div>
-
-        <div
-          class="d-flex align-items-center justify-content-between px-3 py-2 bg-white rounded-3 shadow-sm mb-3 border"
-        >
-          <button
-            class="btn btn-sm text-secondary"
-            onclick="RanchoApp.mudarMesRancho(-1)"
-          >
-            <i class="fa-solid fa-chevron-left"></i>
-          </button>
-          <span class="fw-bold text-brown small" id="labelMesAnoRancho"
-            >MÊS</span
-          >
-          <button
-            class="btn btn-sm text-secondary"
-            onclick="RanchoApp.mudarMesRancho(1)"
-          >
-            <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-
-        <div class="bg-white rounded-4 shadow-sm overflow-hidden border">
-          <table class="table mb-0 align-middle">
-            <tbody id="listaRanchoBody"></tbody>
-          </table>
         </div>
       </div>
     </main>
 
-    <div class="fab-container" onclick="this.classList.toggle('active')">
+    <!-- ══ FAB ══ -->
+    <div
+      class="fab-container d-none d-md-block"
+      onclick="this.classList.toggle('active')"
+    >
       <div class="fab-options">
         <button
           class="fab-btn-mini"
@@ -320,13 +408,24 @@
       <button class="fab-main"><i class="fa-solid fa-plus"></i></button>
     </div>
 
+    <!-- ══ BOTTOM NAV ══ -->
     <nav class="bottom-nav">
       <button
         class="nav-item-bottom active"
+        id="navBtnHome"
+        onclick="RanchoApp.mudarAba('home')"
+      >
+        <i class="fa-solid fa-house-chimney"></i><span>Início</span>
+      </button>
+      <button
+        class="nav-item-bottom"
         id="navBtnCavalos"
         onclick="RanchoApp.mudarAba('cavalos')"
       >
         <i class="fa-solid fa-horse-head"></i><span>Animais</span>
+      </button>
+      <button class="nav-btn-fab" onclick="RanchoApp.adicionarItemAtual()">
+        <i class="fa-solid fa-plus"></i>
       </button>
       <button
         class="nav-item-bottom"
@@ -342,16 +441,16 @@
       >
         <i class="fa-solid fa-file-invoice-dollar"></i><span>Despesas</span>
       </button>
-      <button class="nav-btn-main" onclick="RanchoApp.adicionarItemAtual()">
-        <i class="fa-solid fa-plus"></i>
-      </button>
     </nav>
 
+    <!-- ══ MODAIS ══ -->
+
+    <!-- Config -->
     <div class="modal fade" id="modalConfig" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
+        <div class="modal-content border-0">
           <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold text-brown">Configurações</h5>
+            <h5 class="modal-title fw-bold">Configurações</h5>
             <button
               type="button"
               class="btn-close"
@@ -361,27 +460,25 @@
           <div class="modal-body">
             <form id="formConfig">
               <div class="mb-4">
-                <label class="small-label mb-1"
-                  >Sua Chave PIX (Para cobranças)</label
-                >
+                <label class="small-label mb-2">Chave PIX para cobranças</label>
                 <input
                   type="text"
-                  class="form-control form-control-lg bg-light border-0"
+                  class="form-control form-control-lg"
                   id="configChavePix"
                   placeholder="CPF, E-mail, Celular..."
                 />
                 <small class="text-muted mt-1 d-block"
-                  >A chave será adicionada automaticamente no fundo da mensagem
-                  de cobrança enviada por WhatsApp.</small
+                  >Adicionada automaticamente na mensagem de cobrança via
+                  WhatsApp.</small
                 >
               </div>
               <div class="d-grid">
                 <button
                   type="submit"
-                  class="btn btn-primary btn-lg rounded-3 fw-bold"
+                  class="btn btn-primary btn-lg fw-bold"
                   id="btnSalvarConfig"
                 >
-                  Salvar Configuração
+                  Salvar
                 </button>
               </div>
             </form>
@@ -390,11 +487,12 @@
       </div>
     </div>
 
+    <!-- Proprietário -->
     <div class="modal fade" id="modalProprietario" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
+        <div class="modal-content border-0">
           <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold text-brown" id="tituloModalProp">
+            <h5 class="modal-title fw-bold" id="tituloModalProp">
               Novo Cliente
             </h5>
             <button
@@ -407,19 +505,19 @@
             <form id="formProprietario">
               <input type="hidden" id="propId" />
               <div class="mb-3">
-                <label class="small-label mb-1">Nome</label>
-                <input
+                <label class="small-label mb-1">Nome</label
+                ><input
                   type="text"
-                  class="form-control form-control-lg bg-light border-0 fw-bold"
+                  class="form-control form-control-lg fw-bold"
                   id="propNome"
                   required
                 />
               </div>
               <div class="mb-4">
-                <label class="small-label mb-1">WhatsApp</label>
-                <input
+                <label class="small-label mb-1">WhatsApp</label
+                ><input
                   type="tel"
-                  class="form-control form-control-lg bg-light border-0"
+                  class="form-control form-control-lg"
                   id="propTelefone"
                   placeholder="(99) 99999-9999"
                   maxlength="15"
@@ -436,7 +534,7 @@
                 </button>
                 <button
                   type="submit"
-                  class="btn btn-primary btn-lg rounded-3 px-5 fw-bold ms-auto"
+                  class="btn btn-primary btn-lg px-5 fw-bold ms-auto"
                 >
                   Salvar
                 </button>
@@ -447,11 +545,12 @@
       </div>
     </div>
 
+    <!-- Cavalo -->
     <div class="modal fade" id="modalCavalo" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
+        <div class="modal-content border-0">
           <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold text-brown" id="tituloModalCavalo">
+            <h5 class="modal-title fw-bold" id="tituloModalCavalo">
               Novo Animal
             </h5>
             <button
@@ -464,36 +563,32 @@
             <form id="formCavalo">
               <input type="hidden" id="cavaloId" />
               <div class="mb-3">
-                <label class="small-label mb-1">Nome do Animal</label>
-                <input
+                <label class="small-label mb-1">Nome do Animal</label
+                ><input
                   type="text"
-                  class="form-control form-control-lg bg-light border-0 fw-bold text-brown"
+                  class="form-control form-control-lg fw-bold text-brown"
                   id="cavaloNome"
                   required
                 />
               </div>
               <div class="row mb-3">
                 <div class="col-6">
-                  <label class="small-label mb-1">Baia / Local</label>
-                  <input
-                    type="text"
-                    class="form-control bg-light border-0"
-                    id="cavaloLugar"
-                  />
+                  <label class="small-label mb-1">Baia / Local</label
+                  ><input type="text" class="form-control" id="cavaloLugar" />
                 </div>
                 <div class="col-6">
-                  <label class="small-label mb-1">Proprietário</label>
-                  <select
-                    class="form-select bg-light border-0"
+                  <label class="small-label mb-1">Proprietário</label
+                  ><select
+                    class="form-select"
                     id="cavaloProprietario"
                     required
                   ></select>
                 </div>
               </div>
               <div class="mb-4">
-                <label class="small-label mb-1">Observações</label>
-                <textarea
-                  class="form-control bg-light border-0"
+                <label class="small-label mb-1">Observações</label
+                ><textarea
+                  class="form-control"
                   id="cavaloObs"
                   rows="2"
                 ></textarea>
@@ -509,7 +604,7 @@
                 </button>
                 <button
                   type="submit"
-                  class="btn btn-primary btn-lg rounded-3 px-5 fw-bold ms-auto"
+                  class="btn btn-primary btn-lg px-5 fw-bold ms-auto"
                 >
                   Salvar
                 </button>
@@ -520,13 +615,12 @@
       </div>
     </div>
 
+    <!-- Financeiro -->
     <div class="modal fade" id="modalFinanceiro" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content border-0">
           <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold text-brown" id="tituloModalFin">
-              Financeiro
-            </h5>
+            <h5 class="modal-title fw-bold" id="tituloModalFin">Financeiro</h5>
             <button
               type="button"
               class="btn-close"
@@ -537,7 +631,11 @@
             <div class="px-3 pb-3">
               <form
                 id="formCusto"
-                class="d-flex gap-2 align-items-center bg-light p-2 rounded-3 border"
+                class="d-flex gap-2 align-items-center p-2 rounded-3"
+                style="
+                  background: var(--bege-fundo);
+                  border: 0.5px solid var(--bege-borda);
+                "
               >
                 <input type="hidden" id="custoIdEdit" />
                 <div class="flex-grow-1">
@@ -545,7 +643,7 @@
                     class="form-select border-0 bg-transparent fw-bold shadow-none mb-1 text-brown"
                     id="custoCat"
                     required
-                    style="font-size: 1rem"
+                    style="font-size: 0.95rem"
                   >
                     <option value="" disabled selected>Categoria...</option>
                     <option value="Exames">Exames</option>
@@ -554,10 +652,10 @@
                     <option value="Medicamento">Medicamento</option>
                     <option value="Outros">Outros</option>
                   </select>
-                  <div class="d-flex gap-2 align-items-center">
+                  <div class="d-flex gap-2">
                     <input
                       type="text"
-                      class="form-control form-control-sm border-0 bg-white shadow-sm"
+                      class="form-control form-control-sm border-0 shadow-sm"
                       id="custoDesc"
                       placeholder="Descrição"
                       style="flex-grow: 1"
@@ -565,7 +663,7 @@
                     <input
                       type="text"
                       inputmode="decimal"
-                      class="form-control form-control-sm border-0 bg-white shadow-sm text-end"
+                      class="form-control form-control-sm border-0 shadow-sm text-end"
                       id="custoValor"
                       placeholder="R$ 0,00"
                       required
@@ -576,7 +674,7 @@
                 <button
                   type="submit"
                   id="btnSalvarCusto"
-                  class="btn btn-success rounded-3 shadow-sm"
+                  class="btn btn-success rounded-3"
                   style="width: 45px; height: 45px"
                 >
                   <i class="fa-solid fa-plus"></i>
@@ -585,25 +683,38 @@
             </div>
             <input type="hidden" id="finCavaloId" />
             <div
-              class="d-flex align-items-center justify-content-between px-4 py-2 border-top border-bottom bg-light"
+              class="d-flex align-items-center justify-content-between px-4 py-2 border-top border-bottom"
+              style="
+                background: var(--bege-fundo);
+                border-color: var(--bege-borda) !important;
+              "
             >
               <button
-                class="btn btn-sm text-secondary"
+                class="btn btn-sm"
+                style="color: var(--texto-suave)"
                 onclick="RanchoApp.mudarMes(-1)"
               >
                 <i class="fa-solid fa-chevron-left"></i>
               </button>
-              <span class="fw-bold text-brown small" id="labelMesAno">MÊS</span>
+              <span class="fw-bold text-brown small font-serif" id="labelMesAno"
+                >MÊS</span
+              >
               <button
-                class="btn btn-sm text-secondary"
+                class="btn btn-sm"
+                style="color: var(--texto-suave)"
                 onclick="RanchoApp.mudarMes(1)"
               >
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
             </div>
             <div class="px-3 py-2" id="areaGrafico" style="display: none">
-              <div style="height: 150px; width: 100%; position: relative">
-                <canvas id="graficoFinanceiro"></canvas>
+              <div style="height: 140px; position: relative">
+                <canvas
+                  id="graficoFinanceiro"
+                  role="img"
+                  aria-label="Gráfico de custos por categoria"
+                  >Custos por categoria.</canvas
+                >
               </div>
             </div>
             <div class="px-3 pb-5">
@@ -612,7 +723,7 @@
               </table>
             </div>
             <div
-              class="position-absolute bottom-0 w-100 bg-white border-top p-3 d-flex justify-content-between align-items-center"
+              class="position-absolute bottom-0 w-100 border-top p-3 d-flex justify-content-between align-items-center fixed-bottom-modal-panel"
             >
               <button
                 class="btn btn-sm btn-light text-danger"
@@ -622,7 +733,11 @@
               </button>
               <div class="text-end">
                 <div class="small-label">Total</div>
-                <div class="text-danger fw-bold fs-4 lh-1" id="totalGastoModal">
+                <div
+                  class="fw-bold fs-4 lh-1 font-serif"
+                  id="totalGastoModal"
+                  style="color: var(--vermelho)"
+                >
                   R$ 0,00
                 </div>
               </div>
@@ -632,14 +747,12 @@
       </div>
     </div>
 
+    <!-- Mensalidade -->
     <div class="modal fade" id="modalMensalidade" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow bg-primary-subtle">
+        <div class="modal-content border-0">
           <div class="modal-header border-0">
-            <h5
-              class="modal-title fw-bold text-primary-emphasis"
-              id="tituloModalMensalidade"
-            >
+            <h5 class="modal-title fw-bold" id="tituloModalMensalidade">
               Mensalidade
             </h5>
             <button
@@ -649,7 +762,13 @@
             ></button>
           </div>
           <div class="modal-body p-0">
-            <div class="bg-white m-3 p-3 rounded-4 shadow-sm">
+            <div
+              class="m-3 p-3 rounded-4"
+              style="
+                background: var(--bege-fundo);
+                border: 0.5px solid var(--bege-borda);
+              "
+            >
               <form id="formMensalidade">
                 <input type="hidden" id="mensalidadeCavaloId" />
                 <div style="display: none">
@@ -658,7 +777,7 @@
                 <div class="row g-2 mb-3">
                   <div class="col-6">
                     <select
-                      class="form-select fw-bold border-0 bg-light"
+                      class="form-select fw-bold"
                       id="mensalidadeMes"
                       required
                     >
@@ -678,7 +797,7 @@
                   </div>
                   <div class="col-6">
                     <select
-                      class="form-select fw-bold border-0 bg-light"
+                      class="form-select fw-bold"
                       id="mensalidadeAno"
                       required
                     >
@@ -691,13 +810,20 @@
                   <input
                     type="text"
                     inputmode="decimal"
-                    class="form-control form-control-lg fw-bold text-center border-0 bg-light text-primary"
+                    class="form-control form-control-lg fw-bold text-center font-serif"
                     id="mensalidadeValor"
                     placeholder="R$ 0,00"
                     required
+                    style="font-size: 1.5rem"
                   />
                 </div>
-                <div class="mb-3 bg-light p-3 rounded-3">
+                <div
+                  class="mb-3 p-3 rounded-3"
+                  style="
+                    background: var(--bege-card);
+                    border: 0.5px solid var(--bege-borda);
+                  "
+                >
                   <label class="small-label d-block mb-2 text-center"
                     >Incluso</label
                   >
@@ -753,8 +879,14 @@
               </form>
             </div>
             <div class="px-4 pb-4">
-              <div class="small-label mb-2 ms-2">Histórico</div>
-              <div class="bg-white rounded-4 overflow-hidden shadow-sm">
+              <div class="small-label mb-2 ms-1">Histórico</div>
+              <div
+                class="rounded-4 overflow-hidden"
+                style="
+                  background: var(--bege-card);
+                  border: 0.5px solid var(--bege-borda);
+                "
+              >
                 <table class="table mb-0 align-middle">
                   <tbody id="tabelaMensalidadeBody"></tbody>
                 </table>
@@ -765,14 +897,16 @@
       </div>
     </div>
 
+    <!-- Detalhes Proprietário -->
     <div class="modal fade" id="modalDetalhesProprietario" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content border-0">
-          <div class="modal-header border-0 bg-white pb-0">
+          <div
+            class="modal-header border-0 pb-0"
+            style="background: var(--bege-card)"
+          >
             <div>
-              <h5 class="modal-title fw-bold text-dark" id="tituloDetalhesProp">
-                Nome
-              </h5>
+              <h5 class="modal-title fw-bold" id="tituloDetalhesProp">Nome</h5>
               <small class="text-muted" id="subtituloDetalhesProp"
                 >Extrato</small
               >
@@ -783,13 +917,19 @@
               data-bs-dismiss="modal"
             ></button>
           </div>
-          <div class="modal-body p-0 bg-light">
-            <div class="bg-white p-3 mb-2 shadow-sm">
+          <div class="modal-body p-0" style="background: var(--bege-fundo)">
+            <div
+              class="p-3 mb-2"
+              style="
+                background: var(--bege-card);
+                border-bottom: 0.5px solid var(--bege-borda);
+              "
+            >
               <form id="formCustoProp" class="d-flex gap-2">
                 <input type="hidden" id="custoPropIdEdit" />
                 <input
                   type="text"
-                  class="form-control border-0 bg-light"
+                  class="form-control border-0"
                   id="custoPropDesc"
                   placeholder="Item avulso..."
                   required
@@ -797,7 +937,7 @@
                 <input
                   type="text"
                   inputmode="decimal"
-                  class="form-control border-0 bg-light text-end"
+                  class="form-control border-0 text-end"
                   id="custoPropValor"
                   placeholder="R$"
                   style="width: 80px"
@@ -814,35 +954,58 @@
               </form>
             </div>
             <div
-              class="d-flex justify-content-center align-items-center gap-3 py-2 bg-white mb-2 shadow-sm"
+              class="d-flex justify-content-center align-items-center gap-3 py-2 mb-2"
+              style="
+                background: var(--bege-card);
+                border-bottom: 0.5px solid var(--bege-borda);
+              "
             >
               <button
-                class="btn btn-sm text-muted"
+                class="btn btn-sm"
+                style="color: var(--texto-suave)"
                 onclick="RanchoApp.mudarMesProp(-1)"
               >
                 <i class="fa-solid fa-chevron-left"></i>
               </button>
-              <span class="fw-bold text-brown small" id="labelMesAnoProp"
+              <span
+                class="fw-bold text-brown small font-serif"
+                id="labelMesAnoProp"
                 >MÊS</span
               >
               <button
-                class="btn btn-sm text-muted"
+                class="btn btn-sm"
+                style="color: var(--texto-suave)"
                 onclick="RanchoApp.mudarMesProp(1)"
               >
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
             </div>
             <div class="px-3 pb-3">
-              <div class="bg-white rounded-4 shadow-sm p-3">
+              <div
+                class="rounded-4 overflow-hidden"
+                style="
+                  background: var(--bege-card);
+                  border: 0.5px solid var(--bege-borda);
+                "
+              >
                 <table class="table mb-0 align-middle table-borderless">
                   <tbody id="listaCavalosPropBody"></tbody>
                 </table>
               </div>
             </div>
-            <div class="p-3 bg-white fixed-bottom-modal-panel border-top">
+            <div
+              class="p-3 fixed-bottom-modal-panel border-top"
+              style="border-color: var(--bege-borda) !important"
+            >
               <div class="d-flex justify-content-between align-items-end mb-3">
-                <span class="text-muted small fw-bold">TOTAL A PAGAR</span
-                ><span class="display-6 fw-bold text-dark" id="totalGeralProp"
+                <span class="small-label">Total a pagar</span>
+                <span
+                  style="
+                    font-family: &quot;Lora&quot;, serif;
+                    font-size: 1.8rem;
+                    color: var(--texto-titulo);
+                  "
+                  id="totalGeralProp"
                   >R$ 0,00</span
                 >
               </div>
@@ -863,7 +1026,7 @@
                     <i class="fa-brands fa-whatsapp me-1"></i> Cobrar
                   </button>
                   <button
-                    class="btn btn-outline-dark rounded-4"
+                    class="btn btn-outline-secondary rounded-4"
                     onclick="RanchoApp.gerarPDFProprietario()"
                   >
                     <i class="fa-solid fa-file-pdf"></i>
@@ -871,20 +1034,23 @@
                 </div>
               </div>
             </div>
-            <div style="height: 180px"></div>
+            <div style="height: 200px"></div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Confirmação -->
     <div class="modal fade" id="modalConfirmacao" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content border-0 shadow rounded-4">
           <div class="modal-body text-center py-4">
-            <div class="mb-3 text-warning display-4">
+            <div class="mb-3" style="font-size: 2.5rem; color: var(--dourado)">
               <i class="fa-solid fa-circle-question"></i>
             </div>
-            <h5 class="fw-bold mb-3" id="tituloConfirmacao">Tem certeza?</h5>
+            <h5 class="fw-bold mb-2 font-serif" id="tituloConfirmacao">
+              Tem certeza?
+            </h5>
             <p class="text-muted small mb-4" id="msgConfirmacao">
               Ação irreversível.
             </p>
@@ -909,9 +1075,10 @@
       </div>
     </div>
 
+    <!-- Toast -->
     <div
       class="toast-container position-fixed bottom-0 end-0 p-3"
-      style="z-index: 1100; margin-bottom: 70px"
+      style="z-index: 1100; margin-bottom: 75px"
     >
       <div
         id="liveToast"
@@ -933,7 +1100,7 @@
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker
           .register("sw.js")
-          .catch((err) => console.log("Erro SW:", err));
+          .catch((e) => console.log("Erro SW:", e));
       }
     </script>
   </body>
