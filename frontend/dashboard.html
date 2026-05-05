@@ -445,6 +445,22 @@
           >
             Gerar PDF
           </button>
+          <button
+            onclick="RanchoApp.compartilharResumoMes()"
+            title="Compartilhar resumo"
+            style="
+              background: rgba(37, 211, 102, 0.12);
+              color: #25d366;
+              border: 0.5px solid rgba(37, 211, 102, 0.25);
+              border-radius: 10px;
+              padding: 7px 10px;
+              font-size: 0.82rem;
+              cursor: pointer;
+              flex-shrink: 0;
+            "
+          >
+            <i class="fa-brands fa-whatsapp"></i>
+          </button>
         </div>
       </div>
 
@@ -1834,7 +1850,7 @@
                     class="btn btn-success flex-grow-1 rounded-4 fw-bold"
                     id="btnZapCobranca"
                   >
-                    <i class="fa-brands fa-whatsapp me-1"></i> Cobrar
+                    <i class="fa-brands fa-whatsapp me-1"></i> Enviar card
                   </button>
                   <button
                     class="btn btn-outline-secondary rounded-4"

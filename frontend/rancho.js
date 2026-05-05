@@ -1614,39 +1614,284 @@ const RanchoApp = {
   },
 
   async compartilharFaturaZap(propId, nomeProp, totalTexto, telefone) {
-    this.mostrarNotificacao("Gerando texto...", "sucesso");
+    this.vibrar();
+    this.mostrarNotificacao("Gerando card...");
     const periodo = document.getElementById("labelMesAnoProp").textContent;
-    const mes = this.dataFiltroProp.getMonth() + 1,
-      ano = this.dataFiltroProp.getFullYear();
-    let msg = `Ola *${nomeProp}*.\nSegue o fechamento de *${periodo}*:\n\n`;
+    const mes = this.dataFiltroProp.getMonth() + 1;
+    const ano = this.dataFiltroProp.getFullYear();
+    const nomesMeses = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
+
     try {
+      // Busca dados da fatura
       const allCavalos = await ApiService.fetchData("/api/gestao/cavalos");
       const meus = allCavalos.filter((c) => c.proprietario_id == propId);
+      const historico = await ApiService.fetchData(
+        `/api/dashboard/historico-cliente/${propId}`,
+      );
+      const pix = this.chavePixCache?.trim() || "";
+
+      // Monta itens da fatura
+      const itens = [];
       for (const c of meus) {
-        const d = await ApiService.fetchData(
+        // Mensalidade
+        const resumo = await ApiService.fetchData(
           `/api/gestao/custos/resumo/${c.id}?mes=${mes}&ano=${ano}`,
         );
-        let sub = 0;
-        if (d.custos) d.custos.forEach((x) => (sub += parseFloat(x.valor)));
-        if (sub > 0)
-          msg += `*${c.nome}*: ${sub.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+        if (resumo?.mensalidade) {
+          itens.push({
+            nome: `${c.nome} — Mensalidade`,
+            valor: parseFloat(resumo.mensalidade.valor),
+            pago: resumo.mensalidade.pago == 1,
+            inicial: c.nome.charAt(0).toUpperCase(),
+          });
+        }
+        // Custos extras
+        if (resumo?.custos) {
+          resumo.custos
+            .filter((x) => !x.is_mensalidade)
+            .forEach((x) => {
+              itens.push({
+                nome: `${c.nome} — ${x.descricao}`,
+                valor: parseFloat(x.valor),
+                pago: x.pago == 1,
+                inicial: c.nome.charAt(0).toUpperCase(),
+              });
+            });
+        }
       }
-      const dir = await ApiService.fetchData(
+      // Custos diretos
+      const diretos = await ApiService.fetchData(
         `/api/gestao/custos/diretos/${propId}?mes=${mes}&ano=${ano}`,
       );
-      if (dir)
-        dir.forEach((c) => {
-          msg += `${c.descricao} (Avulso): ${parseFloat(c.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n`;
+      if (diretos)
+        diretos.forEach((x) =>
+          itens.push({
+            nome: x.descricao,
+            valor: parseFloat(x.valor),
+            pago: x.pago == 1,
+            inicial: "•",
+          }),
+        );
+
+      const totalPendente = itens
+        .filter((i) => !i.pago)
+        .reduce((s, i) => s + i.valor, 0);
+      const totalGeral = itens.reduce((s, i) => s + i.valor, 0);
+      const temPendente = totalPendente > 0;
+
+      // Histórico últimos 6 meses
+      const hist6 =
+        historico?.historico?.filter((h) => h.totalMes > 0).slice(-6) || [];
+
+      // ── Gera o HTML do card ──
+      const card = document.createElement("div");
+      card.style.cssText =
+        "position:fixed;left:-9999px;top:0;width:340px;font-family:'DM Sans',sans-serif;background:#2C1206;border-radius:18px;overflow:hidden;";
+
+      const dataGeracao =
+        new Date().toLocaleDateString("pt-BR") +
+        " · " +
+        new Date().toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
         });
-      msg += `\n*TOTAL: ${totalTexto}*\n`;
-      if (this.chavePixCache?.trim())
-        msg += `\n*Chave PIX:*\n${this.chavePixCache}\n\nQualquer dúvida, estou à disposição!`;
-      window.open(
-        `https://wa.me/55${telefone}?text=${encodeURIComponent(msg)}`,
-        "_blank",
-      );
+      const itenHtml = itens
+        .map((i) => {
+          const valF = i.valor.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+          const cor = i.pago ? "#5FBF90" : "#E06060";
+          const bgAv = i.pago ? "rgba(95,191,144,0.2)" : "rgba(224,96,96,0.15)";
+          const badge = i.pago ? "Pago" : "Pendente";
+          const bgBadge = i.pago
+            ? "rgba(95,191,144,0.12)"
+            : "rgba(224,96,96,0.12)";
+          return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid rgba(255,255,255,0.05);">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+              <div style="width:26px;height:26px;border-radius:50%;background:${bgAv};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${cor};flex-shrink:0;">${i.inicial}</div>
+              <div style="min-width:0;">
+                <div style="font-size:11px;color:#E8C97A;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i.nome}</div>
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;margin-left:8px;">
+              <div style="font-size:11px;font-weight:500;color:${cor};">${valF}</div>
+              <div style="font-size:8px;padding:1px 6px;border-radius:4px;background:${bgBadge};color:${cor};margin-top:2px;">${badge}</div>
+            </div>
+          </div>`;
+        })
+        .join("");
+
+      const histHtml = hist6
+        .map((h) => {
+          const bg = h.temPendente
+            ? "rgba(224,96,96,0.12)"
+            : "rgba(95,191,144,0.15)";
+          const ico = h.temPendente
+            ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="#E06060"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`
+            : `<svg width="10" height="10" viewBox="0 0 24 24" fill="#5FBF90"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+          const lbl = [
+            "Jan",
+            "Fev",
+            "Mar",
+            "Abr",
+            "Mai",
+            "Jun",
+            "Jul",
+            "Ago",
+            "Set",
+            "Out",
+            "Nov",
+            "Dez",
+          ][h.mes - 1];
+          return `
+          <div style="text-align:center;">
+            <div style="font-size:8px;color:rgba(232,201,122,0.35);margin-bottom:4px;">${lbl}</div>
+            <div style="width:100%;height:22px;border-radius:5px;background:${bg};display:flex;align-items:center;justify-content:center;">${ico}</div>
+          </div>`;
+        })
+        .join("");
+
+      card.innerHTML = `
+        <div style="background:#3D1E0A;padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:28px;height:28px;border-radius:9px;background:rgba(232,201,122,0.15);display:flex;align-items:center;justify-content:center;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="#E8C97A"><path d="M19 5c-1.5 0-2.8.8-3.5 2H12c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7v-2.5c1.2-.7 2-2 2-3.5C21 6.1 20.1 5 19 5z"/></svg>
+            </div>
+            <span style="font-size:13px;color:#E8C97A;font-weight:500;">HF Controll</span>
+          </div>
+          <span style="font-size:10px;color:rgba(232,201,122,0.45);">Fatura · ${nomesMeses[mes - 1]} ${ano}</span>
+        </div>
+
+        <div style="padding:14px 18px 12px;border-bottom:0.5px solid rgba(255,255,255,0.07);">
+          <div style="width:38px;height:38px;border-radius:50%;background:rgba(232,201,122,0.12);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#E8C97A;margin-bottom:8px;">${nomeProp.charAt(0).toUpperCase()}</div>
+          <div style="font-size:1.05rem;color:#E8C97A;font-weight:500;">${nomeProp}</div>
+          <div style="font-size:10px;color:rgba(232,201,122,0.45);margin-top:2px;">${meus.length} animal${meus.length !== 1 ? "is" : ""} · ${periodo}</div>
+          <div style="background:rgba(232,201,122,0.07);border:0.5px solid rgba(232,201,122,0.15);border-radius:12px;padding:11px 13px;margin-top:10px;">
+            <div style="font-size:9px;color:rgba(232,201,122,0.4);text-transform:uppercase;letter-spacing:0.6px;">Total do mês</div>
+            <div style="font-size:1.7rem;color:#E8C97A;margin-top:3px;font-weight:500;">${totalGeral.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+            ${temPendente ? `<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(224,96,96,0.15);border-radius:6px;padding:2px 8px;font-size:9px;color:#E06060;margin-top:5px;">⚠ Pagamento pendente</div>` : `<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(95,191,144,0.12);border-radius:6px;padding:2px 8px;font-size:9px;color:#5FBF90;margin-top:5px;">✓ Quitado</div>`}
+          </div>
+        </div>
+
+        <div style="padding:12px 18px 4px;">
+          <div style="font-size:9px;color:rgba(232,201,122,0.35);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;">Detalhamento</div>
+          ${itenHtml || `<div style="font-size:11px;color:rgba(232,201,122,0.3);padding:8px 0;">Nenhum item neste mês.</div>`}
+        </div>
+
+        ${
+          hist6.length > 0
+            ? `
+        <div style="padding:12px 18px 4px;">
+          <div style="font-size:9px;color:rgba(232,201,122,0.35);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Histórico de pontualidade</div>
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;">
+            ${histHtml}
+          </div>
+        </div>`
+            : ""
+        }
+
+        ${
+          pix
+            ? `
+        <div style="background:rgba(232,201,122,0.06);border:0.5px solid rgba(232,201,122,0.12);border-radius:12px;padding:10px 13px;margin:10px 18px;">
+          <div style="font-size:9px;color:rgba(232,201,122,0.4);text-transform:uppercase;letter-spacing:0.5px;">Chave PIX</div>
+          <div style="font-size:12px;color:#E8C97A;font-weight:500;margin-top:3px;">${pix}</div>
+        </div>`
+            : ""
+        }
+
+        <div style="padding:10px 18px 14px;display:flex;justify-content:space-between;align-items:center;border-top:0.5px solid rgba(255,255,255,0.06);margin-top:10px;">
+          <span style="font-size:9px;color:rgba(232,201,122,0.25);">Gerado em ${dataGeracao}</span>
+          <span style="font-size:9px;color:rgba(232,201,122,0.25);">HF Controll</span>
+        </div>`;
+
+      document.body.appendChild(card);
+
+      // ── Captura como imagem com html2canvas ──
+      if (!window.html2canvas) {
+        const s = document.createElement("script");
+        s.src =
+          "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+        document.head.appendChild(s);
+        await new Promise((r) => (s.onload = r));
+      }
+
+      const canvas = await window.html2canvas(card, {
+        backgroundColor: "#2C1206",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+
+      document.body.removeChild(card);
+
+      // ── Compartilha via Web Share API ou baixa ──
+      canvas.toBlob(async (blob) => {
+        const tel = telefone.replace(/\D/g, "");
+        const valF =
+          totalPendente > 0
+            ? totalPendente.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })
+            : "QUITADO";
+        const msg = `Olá *${nomeProp}*! 👋\n\nSegue sua fatura de *${periodo}*:\n💰 Total: *${valF}*${pix ? `\n\n🏦 PIX: *${pix}*` : ""}\n\nQualquer dúvida, estou à disposição!`;
+
+        // Tenta Web Share API (funciona no mobile)
+        if (
+          navigator.share &&
+          navigator.canShare?.({
+            files: [new File([blob], "fatura.png", { type: "image/png" })],
+          })
+        ) {
+          try {
+            await navigator.share({
+              files: [
+                new File([blob], `Fatura_${nomeProp}_${periodo}.png`, {
+                  type: "image/png",
+                }),
+              ],
+              text: msg,
+            });
+            return;
+          } catch (e) {
+            /* fallback */
+          }
+        }
+
+        // Fallback: baixa a imagem + abre WhatsApp com texto
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Fatura_${nomeProp}_${periodo}.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+        setTimeout(() => {
+          window.open(
+            `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`,
+            "_blank",
+          );
+        }, 800);
+        this.mostrarNotificacao("Imagem salva! Agora anexe no WhatsApp.");
+      }, "image/png");
     } catch (e) {
-      this.mostrarNotificacao("Erro ao gerar Zap.", "erro");
+      console.error("compartilharFaturaZap:", e);
+      this.mostrarNotificacao("Erro ao gerar card.", "erro");
     }
   },
 
@@ -1810,6 +2055,198 @@ const RanchoApp = {
       parseInt(document.getElementById("relatorioAno")?.value) ||
       new Date().getFullYear();
     Relatorio.gerar(mes, ano);
+  },
+
+  async compartilharResumoMes() {
+    this.vibrar();
+    this.mostrarNotificacao("Gerando resumo...");
+    const mes =
+      parseInt(document.getElementById("relatorioMes")?.value) ||
+      new Date().getMonth() + 1;
+    const ano =
+      parseInt(document.getElementById("relatorioAno")?.value) ||
+      new Date().getFullYear();
+    const nomesMeses = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
+    const nomeMes = nomesMeses[mes - 1];
+
+    try {
+      const [kpis, ocup] = await Promise.all([
+        ApiService.fetchData(`/api/dashboard/relatorio?mes=${mes}&ano=${ano}`),
+        ApiService.fetchData("/api/dashboard/ocupacao"),
+      ]);
+      if (!kpis) return;
+
+      const receita = kpis.kpis.receita.total.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+      const despesas = kpis.kpis.despesas.total.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+      const lucro = kpis.kpis.lucro.total.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+      const atraso = kpis.kpis.pendencias.total.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+      const pctRec =
+        kpis.kpis.receita.pct !== null
+          ? `${kpis.kpis.receita.pct > 0 ? "↑" : "↓"} ${Math.abs(kpis.kpis.receita.pct)}% vs mês ant.`
+          : "Primeiro mês";
+      const pctDesp =
+        kpis.kpis.despesas.pct !== null
+          ? `${kpis.kpis.despesas.pct > 0 ? "↑" : "↓"} ${Math.abs(kpis.kpis.despesas.pct)}% vs mês ant.`
+          : "Primeiro mês";
+      const totalAnim = ocup?.stats?.totalAnimais || 0;
+      const ocup7 = ocup?.stats?.totalOcupados || 0;
+
+      // Animais grid
+      const todos = [];
+      ocup?.grupos?.forEach((g) =>
+        g.slots.forEach((s) =>
+          todos.push({
+            nome: s.animais[0].nome,
+            pend: s.animais[0].tem_pendente,
+          }),
+        ),
+      );
+      ocup?.semLocal?.forEach((a) =>
+        todos.push({ nome: a.nome, pend: a.tem_pendente }),
+      );
+
+      const animGrid = todos
+        .map((a) => {
+          const bg = a.pend ? "rgba(224,96,96,0.15)" : "rgba(232,201,122,0.1)";
+          const clr = a.pend ? "#E06060" : "#E8C97A";
+          return `<div style="width:26px;height:26px;border-radius:7px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:${clr};">${a.nome.charAt(0).toUpperCase()}</div>`;
+        })
+        .join("");
+
+      const dataGeracao =
+        new Date().toLocaleDateString("pt-BR") +
+        " às " +
+        new Date().toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+      const card = document.createElement("div");
+      card.style.cssText =
+        "position:fixed;left:-9999px;top:0;width:340px;font-family:'DM Sans',sans-serif;background:#2C1206;border-radius:18px;overflow:hidden;";
+      card.innerHTML = `
+        <div style="background:#3D1E0A;padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:28px;height:28px;border-radius:9px;background:rgba(232,201,122,0.15);display:flex;align-items:center;justify-content:center;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="#E8C97A"><path d="M19 5c-1.5 0-2.8.8-3.5 2H12c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7v-2.5c1.2-.7 2-2 2-3.5C21 6.1 20.1 5 19 5z"/></svg>
+            </div>
+            <span style="font-size:13px;color:#E8C97A;font-weight:500;">HF Controll</span>
+          </div>
+          <span style="font-size:10px;color:rgba(232,201,122,0.45);">${nomeMes} ${ano}</span>
+        </div>
+
+        <div style="padding:16px 18px 12px;border-bottom:0.5px solid rgba(255,255,255,0.07);">
+          <div style="font-size:9px;color:rgba(232,201,122,0.4);text-transform:uppercase;letter-spacing:0.6px;">Lucro líquido</div>
+          <div style="font-size:2.2rem;color:#E8C97A;margin-top:4px;font-weight:500;">${lucro}</div>
+          <div style="font-size:10px;color:rgba(232,201,122,0.4);margin-top:3px;">Receita ${receita} · Despesas ${despesas}</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,0.07);">
+          <div style="background:#2C1206;padding:12px 14px;">
+            <div style="font-size:9px;color:rgba(232,201,122,0.4);text-transform:uppercase;letter-spacing:0.5px;">Receita</div>
+            <div style="font-size:15px;font-weight:500;color:#E8C97A;margin-top:3px;">${receita}</div>
+            <div style="font-size:9px;color:rgba(95,191,144,0.8);margin-top:2px;">${pctRec}</div>
+          </div>
+          <div style="background:#2C1206;padding:12px 14px;">
+            <div style="font-size:9px;color:rgba(232,201,122,0.4);text-transform:uppercase;letter-spacing:0.5px;">Despesas</div>
+            <div style="font-size:15px;font-weight:500;color:#E8C97A;margin-top:3px;">${despesas}</div>
+            <div style="font-size:9px;color:rgba(224,96,96,0.8);margin-top:2px;">${pctDesp}</div>
+          </div>
+          <div style="background:#2C1206;padding:12px 14px;">
+            <div style="font-size:9px;color:rgba(232,201,122,0.4);text-transform:uppercase;letter-spacing:0.5px;">Em atraso</div>
+            <div style="font-size:15px;font-weight:500;color:${kpis.kpis.pendencias.total > 0 ? "#E06060" : "#E8C97A"};margin-top:3px;">${atraso}</div>
+            <div style="font-size:9px;color:rgba(232,201,122,0.35);margin-top:2px;">${kpis.kpis.pendencias.clientes} cliente${kpis.kpis.pendencias.clientes !== 1 ? "s" : ""}</div>
+          </div>
+          <div style="background:#2C1206;padding:12px 14px;">
+            <div style="font-size:9px;color:rgba(232,201,122,0.4);text-transform:uppercase;letter-spacing:0.5px;">Animais</div>
+            <div style="font-size:15px;font-weight:500;color:#E8C97A;margin-top:3px;">${totalAnim}</div>
+            <div style="font-size:9px;color:rgba(232,201,122,0.35);margin-top:2px;">${ocup7} com local</div>
+          </div>
+        </div>
+
+        ${
+          todos.length > 0
+            ? `
+        <div style="padding:12px 18px 14px;">
+          <div style="font-size:9px;color:rgba(232,201,122,0.35);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Animais no rancho</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;">${animGrid}</div>
+        </div>`
+            : ""
+        }
+
+        <div style="padding:10px 18px 14px;display:flex;justify-content:space-between;align-items:center;border-top:0.5px solid rgba(255,255,255,0.06);">
+          <span style="font-size:9px;color:rgba(232,201,122,0.25);">Gerado em ${dataGeracao}</span>
+          <span style="font-size:9px;color:rgba(232,201,122,0.25);">HF Controll</span>
+        </div>`;
+
+      document.body.appendChild(card);
+
+      if (!window.html2canvas) {
+        const s = document.createElement("script");
+        s.src =
+          "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+        document.head.appendChild(s);
+        await new Promise((r) => (s.onload = r));
+      }
+
+      const canvas = await window.html2canvas(card, {
+        backgroundColor: "#2C1206",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      document.body.removeChild(card);
+
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], `Resumo_${nomeMes}_${ano}.png`, {
+          type: "image/png",
+        });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              text: `Resumo do rancho — ${nomeMes} ${ano} 🐴`,
+            });
+            return;
+          } catch (e) {}
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.name;
+        link.click();
+        URL.revokeObjectURL(url);
+        this.mostrarNotificacao("Imagem salva!");
+      }, "image/png");
+    } catch (e) {
+      console.error("compartilharResumoMes:", e);
+      this.mostrarNotificacao("Erro ao gerar resumo.", "erro");
+    }
   },
 
   // ══════════════════════════════════════════
