@@ -776,86 +776,131 @@ const RanchoApp = {
     });
   },
 
-  // ── Cards Animais ──
+  // ══════════════════════════════════════════
+  // ABA ANIMAIS — MAPA DE OCUPAÇÃO
+  // ══════════════════════════════════════════
+  async carregarTabelaCavalos() {
+    const mapa = document.getElementById("mapaOcupacao");
+    if (!mapa) return;
+    mapa.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--texto-suave);font-size:0.85rem;">Carregando...</div>`;
+
+    try {
+      const dados = await ApiService.fetchData("/api/dashboard/ocupacao");
+      if (!dados) return;
+
+      // KPIs
+      const el = (id) => document.getElementById(id);
+      if (el("ocupTotal"))
+        el("ocupTotal").textContent = dados.stats.totalOcupados;
+      if (el("ocupSemLocal"))
+        el("ocupSemLocal").textContent = dados.stats.totalSemLocal;
+      if (el("ocupTaxa"))
+        el("ocupTaxa").textContent = `${dados.stats.taxaOcupacao}%`;
+      if (el("ocupPctLabel"))
+        el("ocupPctLabel").textContent = `${dados.stats.taxaOcupacao}%`;
+      if (el("ocupBarra"))
+        el("ocupBarra").style.width = `${dados.stats.taxaOcupacao}%`;
+
+      // Cor da taxa
+      const taxaEl = el("ocupTaxa");
+      if (taxaEl)
+        taxaEl.style.color =
+          dados.stats.taxaOcupacao >= 70
+            ? "var(--verde)"
+            : dados.stats.taxaOcupacao >= 40
+              ? "var(--dourado)"
+              : "var(--vermelho)";
+
+      let html = "";
+
+      // Grupos por tipo (Baias, Piquetes, etc)
+      dados.grupos.forEach((grupo) => {
+        html += `
+          <div style="padding:6px 14px 4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">${grupo.tipo}</span>
+              <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${grupo.ocupados} ocupado${grupo.ocupados !== 1 ? "s" : ""}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;">
+              ${grupo.slots.map((slot) => this._cardOcupado(slot)).join("")}
+            </div>
+          </div>
+          <div style="height:0.5px;background:var(--bege-borda);margin:4px 14px 8px;"></div>`;
+      });
+
+      // Sem local
+      if (dados.semLocal && dados.semLocal.length > 0) {
+        html += `
+          <div style="padding:6px 14px 4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">Sem local</span>
+              <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${dados.semLocal.length} animal${dados.semLocal.length !== 1 ? "is" : ""}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+              ${dados.semLocal.map((a) => this._cardSemLocal(a)).join("")}
+            </div>
+          </div>`;
+      }
+
+      // Empty state
+      if (!dados.grupos.length && !dados.semLocal.length) {
+        html = `
+          <div style="text-align:center;padding:3rem 1rem;">
+            <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-horse-head"></i></div>
+            <p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum animal cadastrado</p>
+            <button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalNovoCavalo()">
+              <i class="fa-solid fa-plus me-1"></i> Cadastrar primeiro animal
+            </button>
+          </div>`;
+      }
+
+      mapa.innerHTML = html;
+    } catch (e) {
+      console.error("carregarTabelaCavalos:", e);
+    }
+  },
+
+  _cardOcupado(slot) {
+    const animal = slot.animais[0];
+    const ns = animal.nome.replace(/'/g, "\\'");
+    const ls = slot.nome.replace(/'/g, "\\'");
+    const os = (animal.observacoes || "").replace(/'/g, "\\'");
+    const pid = animal.proprietario_id || "";
+    const dotClr = animal.tem_pendente ? "#E53935" : "var(--verde)";
+    const inicial = animal.nome.charAt(0).toUpperCase();
+
+    return `
+      <div onclick="RanchoApp.abrirModalEditar(${animal.id},'${ns}','${ls}','${pid}','${os}')"
+        style="background:rgba(61,122,94,0.09);border:0.5px solid rgba(61,122,94,0.25);border-radius:13px;padding:9px 7px;text-align:center;cursor:pointer;">
+        <div style="font-size:8px;color:#3D7A5E;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${slot.nome}</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:600;margin:0 auto 3px;">${inicial}</div>
+        <div style="font-size:9px;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
+        <div style="font-size:8px;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem prop."}</div>
+        ${animal.tem_pendente ? `<div style="width:6px;height:6px;border-radius:50%;background:#E53935;margin:3px auto 0;box-shadow:0 0 4px rgba(229,57,53,0.5);"></div>` : ""}
+      </div>`;
+  },
+
+  _cardSemLocal(animal) {
+    const ns = animal.nome.replace(/'/g, "\\'");
+    const os = (animal.observacoes || "").replace(/'/g, "\\'");
+    const pid = animal.proprietario_id || "";
+
+    return `
+      <div onclick="RanchoApp.abrirModalEditar(${animal.id},'${ns}','${animal.lugar || ""}','${pid}','${os}')"
+        style="background:rgba(196,154,74,0.08);border:0.5px solid rgba(196,154,74,0.3);border-radius:13px;padding:9px 7px;text-align:center;cursor:pointer;">
+        <div style="font-size:8px;color:var(--dourado);font-weight:600;margin-bottom:3px;">—</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:rgba(196,154,74,0.2);display:flex;align-items:center;justify-content:center;color:#633806;font-size:11px;font-weight:600;margin:0 auto 3px;">${animal.nome.charAt(0).toUpperCase()}</div>
+        <div style="font-size:9px;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
+        <div style="font-size:8px;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem prop."}</div>
+      </div>`;
+  },
+
   skeletonRows(n) {
     return Array(n)
       .fill(
         `<div class="animal-card mb-0" style="margin:0 0 10px!important;"><div style="display:flex;gap:12px;"><div class="skeleton skeleton-avatar"></div><div style="flex:1;"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short" style="margin-top:6px;"></div></div></div></div>`,
       )
       .join("");
-  },
-
-  async carregarTabelaCavalos() {
-    const wrap = document.getElementById("listaCavalosBody");
-    if (!wrap) return;
-    wrap.innerHTML = `<div style="padding:0 14px;">${this.skeletonRows(4)}</div>`;
-    try {
-      // UMA única chamada — backend já retorna total_gasto_mes e tem_pendente
-      const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
-      wrap.innerHTML = "";
-      if (!cavalos || !cavalos.length) {
-        wrap.innerHTML = `
-          <div style="text-align:center;padding:3rem 1rem;">
-            <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-horse-head"></i></div>
-            <p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum animal cadastrado</p>
-            <button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalNovoCavalo()">
-              <i class="fa-solid fa-plus me-1"></i> Cadastrar
-            </button>
-          </div>`;
-        return;
-      }
-      const ordem = document.getElementById("inputOrdenacao")?.value || "az";
-      const lista = cavalos.map((c) => ({
-        ...c,
-        totalSort: parseFloat(c.total_gasto_mes || 0),
-        totalFormatado: parseFloat(c.total_gasto_mes || 0).toLocaleString(
-          "pt-BR",
-          { style: "currency", currency: "BRL" },
-        ),
-        temPendente: c.tem_pendente == 1,
-      }));
-      this.ordenarLista(lista, ordem).forEach((c) => {
-        const ns = c.nome.replace(/'/g, "\\'");
-        const ls = (c.lugar || "").replace(/'/g, "\\'");
-        const os = (c.observacoes || "").replace(/'/g, "\\'");
-        const dotClr = c.temPendente ? "#E53935" : "var(--verde)";
-        const pid = c.proprietario_id || "";
-        const el = document.createElement("div");
-        el.innerHTML = `
-          <div class="animal-card">
-            <div class="animal-card-top" onclick="RanchoApp.abrirModalEditar(${c.id},'${ns}','${ls}','${pid}','${os}')">
-              <div class="avatar-circle avatar-cavalo">${c.nome.charAt(0).toUpperCase()}</div>
-              <div style="flex:1;min-width:0;">
-                <div class="animal-nome">
-                  ${c.nome}
-                  <span class="status-dot" style="background:${dotClr};${c.temPendente ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span>
-                </div>
-                <div class="animal-sub">
-                  <span class="tag-local"><i class="fa-solid fa-location-dot" style="font-size:0.62rem;color:var(--marrom-claro);"></i>${c.lugar || "Sem local"}</span>
-                  ${c.nome_proprietario ? `<span class="tag-prop"><i class="fa-solid fa-user" style="font-size:0.62rem;"></i>${c.nome_proprietario}</span>` : ""}
-                </div>
-              </div>
-            </div>
-            <div class="animal-card-base">
-              <div>
-                <div class="gasto-label">Gasto no mês</div>
-                <div class="gasto-valor">${c.totalFormatado}</div>
-              </div>
-              <div style="display:flex;gap:8px;">
-                <button class="btn-action icon-brown" onclick="RanchoApp.abrirMensalidade(${c.id},'${ns}')" title="Mensalidade">
-                  <i class="fa-solid fa-calendar-plus" style="font-size:0.82rem;"></i>
-                </button>
-                <button class="btn-action icon-gold" onclick="RanchoApp.abrirFinanceiro(${c.id},'${ns}')" title="Custos">
-                  <i class="fa-solid fa-coins" style="font-size:0.82rem;"></i>
-                </button>
-              </div>
-            </div>
-          </div>`;
-        wrap.appendChild(el.firstElementChild);
-      });
-    } catch (e) {
-      console.error("carregarTabelaCavalos:", e);
-    }
   },
 
   // ── Cards Clientes ──
@@ -1161,11 +1206,13 @@ const RanchoApp = {
   },
 
   // ── Modais Animais/Proprietários ──
-  abrirModalNovoCavalo() {
+  abrirModalNovoCavalo(lugarPreenchido = "") {
     this.vibrar();
     document.getElementById("formCavalo").reset();
     document.getElementById("cavaloId").value = "";
     document.getElementById("tituloModalCavalo").textContent = "Novo Animal";
+    if (lugarPreenchido)
+      document.getElementById("cavaloLugar").value = lugarPreenchido;
     this.bsModalCavalo.show();
   },
   abrirModalEditar(id, n, l, p, o) {

@@ -637,4 +637,143 @@ router.get("/busca", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ═══════════════════════════════════════════════════════════
+// Adicione esta rota no routes/dashboard.js
+// antes do module.exports = router
+// ═══════════════════════════════════════════════════════════
+
+// ── GET /api/dashboard/ocupacao ──────────────────────────────
+// Retorna mapa de ocupação agrupado por tipo de local
+router.get("/ocupacao", async (req, res) => {
+  const uid = req.user.id;
+  const hoje = new Date();
+  const mes = hoje.getMonth() + 1;
+  const ano = hoje.getFullYear();
+
+  try {
+    // Busca todos os animais com total do mês já calculado
+    const [animais] = await pool.query(
+      `SELECT
+         c.id, c.nome, c.lugar, c.proprietario_id, c.observacoes,
+         p.nome AS nome_proprietario, p.telefone,
+         COALESCE(
+           (SELECT SUM(cu.valor) FROM Custos cu
+            WHERE cu.cavalo_id = c.id
+              AND MONTH(cu.data_despesa) = ? AND YEAR(cu.data_despesa) = ?
+              AND cu.usuario_id = ?), 0
+         ) +
+         COALESCE(
+           (SELECT m.valor FROM Mensalidades m
+            WHERE m.cavalo_id = c.id AND m.mes = ? AND m.ano = ?
+              AND m.usuario_id = ? LIMIT 1), 0
+         ) AS total_mes,
+         CASE WHEN EXISTS (
+           SELECT 1 FROM Mensalidades m2
+           WHERE m2.cavalo_id = c.id AND m2.mes = ? AND m2.ano = ?
+             AND m2.pago = 0 AND m2.usuario_id = ?
+         ) OR EXISTS (
+           SELECT 1 FROM Custos cu2
+           WHERE cu2.cavalo_id = c.id AND cu2.pago = 0
+             AND MONTH(cu2.data_despesa) = ? AND YEAR(cu2.data_despesa) = ?
+             AND cu2.usuario_id = ?
+         ) THEN 1 ELSE 0 END AS tem_pendente
+       FROM Cavalos c
+       LEFT JOIN Proprietarios p ON c.proprietario_id = p.id
+       WHERE c.usuario_id = ?
+       ORDER BY c.lugar ASC, c.nome ASC`,
+      [mes, ano, uid, mes, ano, uid, mes, ano, uid, mes, ano, uid, uid],
+    );
+
+    // Agrupa por tipo de local detectado automaticamente pelo nome
+    const locais = {};
+    const semLocal = [];
+
+    animais.forEach((a) => {
+      const lugar = (a.lugar || "").trim();
+      if (!lugar) {
+        semLocal.push(a);
+        return;
+      }
+
+      // Detecta o tipo pelo nome do local
+      const lugarLower = lugar.toLowerCase();
+      let tipo = "Outros";
+      if (lugarLower.includes("baia") || lugarLower.includes("baía"))
+        tipo = "Baias";
+      else if (lugarLower.includes("piquete")) tipo = "Piquetes";
+      else if (lugarLower.includes("tronco")) tipo = "Troncos";
+      else if (lugarLower.includes("isolamento")) tipo = "Isolamento";
+
+      if (!locais[tipo]) locais[tipo] = {};
+      if (!locais[tipo][lugar]) locais[tipo][lugar] = [];
+      locais[tipo][lugar].push(a);
+    });
+
+    // Monta a estrutura de resposta com locais ocupados
+    const grupos = Object.entries(locais).map(([tipo, lugares]) => {
+      const slots = Object.entries(lugares).map(([nome, animaisLocal]) => ({
+        nome,
+        ocupado: true,
+        animais: animaisLocal.map((a) => ({
+          id: a.id,
+          nome: a.nome,
+          proprietario: a.nome_proprietario || null,
+          proprietario_id: a.proprietario_id,
+          total_mes: parseFloat(a.total_mes || 0),
+          tem_pendente: a.tem_pendente == 1,
+          observacoes: a.observacoes,
+        })),
+      }));
+
+      // Ordena os slots pelo número no nome (Baia 1, Baia 2...)
+      slots.sort((a, b) => {
+        const numA = parseInt(a.nome.replace(/\D/g, "")) || 0;
+        const numB = parseInt(b.nome.replace(/\D/g, "")) || 0;
+        return numA - numB || a.nome.localeCompare(b.nome);
+      });
+
+      return { tipo, slots, total: slots.length, ocupados: slots.length };
+    });
+
+    // Ordena os grupos (Baias primeiro, depois Piquetes, depois outros)
+    const ordem = ["Baias", "Piquetes", "Troncos", "Isolamento", "Outros"];
+    grupos.sort((a, b) => {
+      const ia = ordem.indexOf(a.tipo);
+      const ib = ordem.indexOf(b.tipo);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+
+    // Totais gerais
+    const totalAnimais = animais.length;
+    const totalOcupados = animais.filter((a) => a.lugar).length;
+    const totalSemLocal = semLocal.length;
+
+    res.json({
+      grupos,
+      semLocal: semLocal.map((a) => ({
+        id: a.id,
+        nome: a.nome,
+        proprietario: a.nome_proprietario || null,
+        proprietario_id: a.proprietario_id,
+        total_mes: parseFloat(a.total_mes || 0),
+        tem_pendente: a.tem_pendente == 1,
+        observacoes: a.observacoes,
+        lugar: a.lugar,
+      })),
+      stats: {
+        totalAnimais,
+        totalOcupados,
+        totalSemLocal,
+        taxaOcupacao:
+          totalAnimais > 0
+            ? Math.round((totalOcupados / totalAnimais) * 100)
+            : 0,
+      },
+    });
+  } catch (err) {
+    console.error("Erro GET /ocupacao:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
