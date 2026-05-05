@@ -1003,3 +1003,307 @@ main {
   color: var(--texto-corpo) !important;
   border-color: var(--bege-borda) !important;
 }
+
+/* ═══════════════════════════════════════════
+   LAYOUT DESKTOP — min-width: 768px
+   ═══════════════════════════════════════════ */
+
+@media (min-width: 768px) {
+  /* ── Reset mobile ── */
+  body {
+    overflow: auto;
+  }
+
+  /* ── Navbar mobile → oculta no desktop ── */
+  .navbar {
+    display: none !important;
+  }
+  .bottom-nav {
+    display: none !important;
+  }
+  .ptr-indicator {
+    display: none !important;
+  }
+
+  /* ── Layout raiz: sidebar + conteúdo ── */
+  body {
+    display: flex;
+    min-height: 100vh;
+    background: var(--bege-fundo);
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    display: flex !important;
+    flex-direction: column;
+    width: 220px;
+    min-height: 100vh;
+    background: var(--marrom-escuro);
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+    overflow-y: auto;
+  }
+
+  .sidebar-brand {
+    padding: 20px 18px 16px;
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+  }
+  .sidebar-brand-nome {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-family: "Lora", serif;
+    font-size: 1rem;
+    color: var(--dourado-claro);
+    font-weight: 500;
+  }
+  .sidebar-brand-sub {
+    font-size: 0.72rem;
+    color: rgba(232, 201, 122, 0.4);
+    margin-top: 5px;
+  }
+
+  .sidebar-nav {
+    padding: 14px 10px 8px;
+    flex: 1;
+  }
+  .sidebar-nav-lbl {
+    font-size: 0.65rem;
+    color: rgba(232, 201, 122, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    padding: 0 10px;
+    margin-bottom: 6px;
+    margin-top: 14px;
+    display: block;
+  }
+  .sidebar-nav-lbl:first-child {
+    margin-top: 0;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-bottom: 2px;
+    transition: background 0.15s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+  }
+  .sidebar-item:hover {
+    background: rgba(232, 201, 122, 0.07);
+  }
+  .sidebar-item.active {
+    background: rgba(232, 201, 122, 0.13);
+  }
+  .sidebar-item i {
+    font-size: 0.85rem;
+    color: rgba(232, 201, 122, 0.5);
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .sidebar-item.active i {
+    color: var(--dourado-claro);
+  }
+  .sidebar-item span {
+    font-size: 0.82rem;
+    color: rgba(232, 201, 122, 0.5);
+    font-weight: 500;
+  }
+  .sidebar-item.active span {
+    color: var(--dourado-claro);
+  }
+
+  .sidebar-footer {
+    padding: 12px 10px;
+    border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* ── Wrapper principal ── */
+  #appWrapper {
+    margin-left: 220px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── Topbar desktop ── */
+  #desktopTopbar {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bege-card);
+    border-bottom: 0.5px solid var(--bege-borda);
+    padding: 11px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+  }
+  .topbar-saudacao {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--texto-titulo);
+  }
+  .topbar-data {
+    font-size: 0.75rem;
+    color: var(--texto-suave);
+    margin-top: 1px;
+  }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .topbar-search {
+    background: var(--bege-fundo);
+    border: 0.5px solid var(--bege-borda);
+    border-radius: 20px;
+    padding: 6px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 200px;
+  }
+  .topbar-search input {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: 0.8rem;
+    color: var(--texto-corpo);
+    width: 100%;
+  }
+  .topbar-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--marrom-escuro);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--dourado-claro);
+  }
+  .topbar-icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+    padding: 4px;
+  }
+  .topbar-icon-btn:hover {
+    color: var(--texto-titulo);
+  }
+
+  /* ── Main content ── */
+  main.pb-5 {
+    padding: 24px !important;
+    flex: 1;
+    max-width: 1200px;
+  }
+
+  /* ── Tabs: no desktop todas visíveis via sidebar ── */
+  #tabHome,
+  #tabCavalos,
+  #tabProprietarios,
+  #tabFinancas,
+  #tabRancho {
+    padding: 0 !important;
+  }
+
+  /* ── KPI grid: 4 colunas no desktop ── */
+  .kpi-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    padding: 0 0 16px !important;
+  }
+
+  /* ── Seções da home: grid 2 colunas ── */
+  #homeGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  #homeGridFull {
+    margin-bottom: 16px;
+  }
+
+  /* ── Mapa de ocupação: mais colunas ── */
+  #mapaOcupacao .baia-grid-desktop {
+    grid-template-columns: repeat(5, 1fr) !important;
+  }
+
+  /* ── Alertas: sem padding lateral extra ── */
+  .alerta-item {
+    margin: 0 0 6px !important;
+  }
+
+  /* ── Tabelas e listas: remover padding mobile ── */
+  #listaCavalosBody,
+  #listaProprietariosMainBody,
+  #listaCobrancas,
+  #listaAlertas {
+    padding: 0 !important;
+  }
+
+  /* ── Cards: sombra mais suave no desktop ── */
+  .kpi-card,
+  .card-v2,
+  .alerta-item {
+    box-shadow: 0 1px 4px rgba(61, 30, 10, 0.06) !important;
+  }
+
+  /* ── Modais: tamanho adequado no desktop ── */
+  .modal-fullscreen-sm-down {
+    max-width: 560px !important;
+  }
+  .modal-dialog-centered {
+    align-items: center;
+  }
+
+  /* ── Seção header mais espaçada ── */
+  .section-header {
+    padding: 4px 0 8px !important;
+  }
+
+  /* ── Relatório bar na home ── */
+  #relatorioBar {
+    margin: 0 0 16px !important;
+  }
+
+  /* ── Atalhos: 3 colunas iguais ── */
+  #atalhoGrid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* ── Finanças: duas colunas ── */
+  #finGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+}
+
+/* ── Sidebar: oculta no mobile ── */
+#sidebar {
+  display: none;
+}
+#desktopTopbar {
+  display: none;
+}
+#appWrapper {
+  margin-left: 0;
+}

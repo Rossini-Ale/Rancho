@@ -470,6 +470,12 @@ const RanchoApp = {
       proprietarios: "navBtnProps",
       financas: "navBtnFinancas",
     };
+    const side = {
+      home: "sideNavHome",
+      cavalos: "sideNavAnimais",
+      proprietarios: "sideNavClientes",
+      financas: "sideNavFinancas",
+    };
     Object.values(tabs).forEach((id) => {
       const el = document.getElementById(id);
       if (el) {
@@ -480,6 +486,9 @@ const RanchoApp = {
     Object.values(navs).forEach((id) =>
       document.getElementById(id)?.classList.remove("active"),
     );
+    Object.values(side).forEach((id) =>
+      document.getElementById(id)?.classList.remove("active"),
+    );
     const tabEl = document.getElementById(tabs[aba]);
     if (tabEl) {
       tabEl.classList.remove("d-none");
@@ -487,6 +496,7 @@ const RanchoApp = {
       tabEl.classList.add("fade-in-up");
     }
     document.getElementById(navs[aba])?.classList.add("active");
+    document.getElementById(side[aba])?.classList.add("active");
     if (aba === "home") this.carregarHome();
     else if (aba === "cavalos") this.carregarTabelaCavalos();
     else if (aba === "proprietarios") this.carregarTabelaProprietarios();
@@ -495,6 +505,9 @@ const RanchoApp = {
       this.atualizarLabelMesRancho();
       this.carregarFinancas();
     }
+    // Scroll topo no desktop
+    if (window.innerWidth >= 768)
+      window.scrollTo({ top: 0, behavior: "smooth" });
   },
 
   adicionarItemAtual() {

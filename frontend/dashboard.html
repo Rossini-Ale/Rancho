@@ -24,654 +24,693 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
-    <!-- ══ NAVBAR ══ -->
-    <nav class="navbar sticky-top">
-      <div
-        class="container-fluid d-flex justify-content-between align-items-center"
-      >
-        <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
-          <i class="fa-solid fa-horse-head me-2"></i>
+    <!-- ══ SIDEBAR DESKTOP ══ -->
+    <aside id="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-nome">
+          <i
+            class="fa-solid fa-horse-head"
+            style="color: var(--dourado-claro); font-size: 0.9rem"
+          ></i>
           <span id="brandName">HF Controll</span>
-        </a>
-        <div class="d-flex gap-3 align-items-center">
+        </div>
+        <div class="sidebar-brand-sub" id="sidebarRanchoNome">Rancho</div>
+      </div>
+
+      <div class="sidebar-nav">
+        <span class="sidebar-nav-lbl">Menu</span>
+
+        <button
+          class="sidebar-item active"
+          id="sideNavHome"
+          onclick="RanchoApp.mudarAba('home')"
+        >
+          <i class="fa-solid fa-house-chimney"></i><span>Início</span>
+        </button>
+        <button
+          class="sidebar-item"
+          id="sideNavAnimais"
+          onclick="RanchoApp.mudarAba('cavalos')"
+        >
+          <i class="fa-solid fa-horse-head"></i><span>Animais</span>
+        </button>
+        <button
+          class="sidebar-item"
+          id="sideNavClientes"
+          onclick="RanchoApp.mudarAba('proprietarios')"
+        >
+          <i class="fa-solid fa-users"></i><span>Clientes</span>
+        </button>
+        <button
+          class="sidebar-item"
+          id="sideNavFinancas"
+          onclick="RanchoApp.mudarAba('financas')"
+        >
+          <i class="fa-solid fa-file-invoice-dollar"></i><span>Finanças</span>
+        </button>
+
+        <span class="sidebar-nav-lbl">Relatórios</span>
+        <button class="sidebar-item" onclick="RanchoApp.gerarRelatorio()">
+          <i class="fa-solid fa-file-pdf"></i><span>Gerar PDF</span>
+        </button>
+        <button
+          class="sidebar-item"
+          onclick="RanchoApp.compartilharResumoMes()"
+        >
+          <i class="fa-brands fa-whatsapp"></i><span>Resumo WhatsApp</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="sidebar-item" onclick="RanchoApp.abrirModalConfig()">
+          <i class="fa-solid fa-gear"></i><span>Configurações</span>
+        </button>
+        <button class="sidebar-item" id="logoutSidebar">
+          <i class="fa-solid fa-right-from-bracket"></i><span>Sair</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ══ WRAPPER PRINCIPAL ══ -->
+    <div id="appWrapper">
+      <!-- ══ TOPBAR DESKTOP ══ -->
+      <div id="desktopTopbar">
+        <div>
+          <div class="topbar-saudacao" id="topbarSaudacao">Bom dia</div>
+          <div class="topbar-data" id="topbarData"></div>
+        </div>
+        <div class="topbar-right">
+          <div class="topbar-search">
+            <i
+              class="fa-solid fa-magnifying-glass"
+              style="font-size: 0.75rem; color: var(--texto-suave)"
+            ></i>
+            <input
+              type="text"
+              id="inputBuscaTopbar"
+              placeholder="Buscar animal, cliente..."
+            />
+          </div>
           <button
-            id="btnInstalarApp"
-            class="btn btn-sm btn-outline-light d-none rounded-pill"
-            style="
-              font-size: 0.75rem;
-              border-color: rgba(196, 154, 74, 0.4);
-              color: var(--dourado-claro);
-            "
+            class="topbar-icon-btn"
+            id="btnDarkModeDesktop"
+            title="Modo escuro"
           >
-            <i class="fa-solid fa-download me-1"></i> App
+            <i class="fa-solid fa-moon"></i>
           </button>
           <button
-            class="navbar-icon-btn"
+            class="topbar-icon-btn"
             onclick="RanchoApp.abrirModalConfig()"
             title="Configurações"
           >
             <i class="fa-solid fa-gear"></i>
           </button>
-          <button class="navbar-icon-btn" id="btnDarkMode" title="Modo Escuro">
-            <i class="fa-solid fa-moon"></i>
-          </button>
-          <button class="navbar-icon-btn" id="logoutButton" title="Sair">
+          <div class="topbar-avatar" id="topbarAvatar">HF</div>
+          <button class="topbar-icon-btn" id="logoutDesktop" title="Sair">
             <i class="fa-solid fa-right-from-bracket"></i>
           </button>
         </div>
       </div>
-    </nav>
 
-    <!-- ══ CONTEÚDO PRINCIPAL ══ -->
-    <main class="pb-5">
-      <div class="ptr-indicator" id="ptrIndicator">
-        <i class="fa-solid fa-arrow-rotate-right fa-spin"></i>
-      </div>
-
-      <!-- ── ABA HOME ── -->
-      <div id="tabHome" class="fade-in-up">
-        <!-- Saudação + data -->
-        <div style="padding: 16px 14px 8px">
-          <div
-            style="
-              font-size: 0.72rem;
-              color: var(--texto-suave);
-              font-weight: 600;
-              text-transform: uppercase;
-              letter-spacing: 0.6px;
-            "
-            id="saudacaoLabel"
-          >
-            Bom dia
-          </div>
-          <div
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.25rem;
-              color: var(--texto-titulo);
-              margin-top: 2px;
-            "
-          >
-            Visão geral do rancho
-          </div>
-          <div
-            style="
-              font-size: 0.75rem;
-              color: var(--texto-suave);
-              margin-top: 3px;
-            "
-            id="dataHoje"
-          ></div>
-        </div>
-
-        <!-- KPIs -->
-        <div class="kpi-grid" style="padding-bottom: 8px">
-          <div
-            class="kpi-card k-marrom"
-            onclick="RanchoApp.mudarAba('cavalos')"
-          >
-            <div class="kpi-label">Animais</div>
-            <div class="kpi-value" id="kpiAnimais">—</div>
-            <div class="kpi-trend neu" id="kpiAnimaisTrend">carregando...</div>
-          </div>
-          <div class="kpi-card k-verde">
-            <div class="kpi-label">Receita mês</div>
-            <div class="kpi-value sm" id="kpiReceita">—</div>
-            <div class="kpi-trend neu" id="kpiReceitaTrend">carregando...</div>
-          </div>
-          <div
-            class="kpi-card k-vermelho"
-            onclick="RanchoApp.mudarAba('financas')"
-          >
-            <div class="kpi-label">Em atraso</div>
-            <div class="kpi-value sm" id="kpiAtraso">—</div>
-            <div class="kpi-trend neu" id="kpiAtrasoTrend">carregando...</div>
-          </div>
-          <div class="kpi-card k-roxo" onclick="RanchoApp.mudarAba('financas')">
-            <div class="kpi-label">Despesas</div>
-            <div class="kpi-value sm" id="kpiDespesas">—</div>
-            <div class="kpi-trend neu" id="kpiDespesasTrend">carregando...</div>
-          </div>
-        </div>
-
-        <!-- Alertas -->
-        <div class="section-header">
-          <span class="section-title">Alertas</span>
-          <span class="section-link" onclick="RanchoApp.mudarAba('financas')"
-            >Ver todos</span
-          >
-        </div>
-        <div id="listaAlertas">
-          <div
-            style="
-              padding: 0 14px;
-              color: var(--texto-suave);
-              font-size: 0.82rem;
-            "
-          >
-            Carregando...
-          </div>
-        </div>
-
-        <!-- Mini mapa de ocupação -->
-        <div class="section-header">
-          <span class="section-title">Ocupação</span>
-          <span class="section-link" onclick="RanchoApp.mudarAba('cavalos')"
-            >Ver mapa →</span
-          >
-        </div>
+      <!-- ══ NAVBAR MOBILE ══ -->
+      <nav class="navbar sticky-top">
         <div
-          onclick="RanchoApp.mudarAba('cavalos')"
-          style="
-            background: var(--bege-card);
-            border: 0.5px solid var(--bege-borda);
-            border-radius: 18px;
-            margin: 0 14px 12px;
-            padding: 13px 14px;
-            cursor: pointer;
-            box-shadow: var(--sombra);
-          "
+          class="container-fluid d-flex justify-content-between align-items-center"
         >
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              margin-bottom: 8px;
-            "
-          >
-            <span
-              style="
-                font-size: 0.82rem;
-                font-weight: 600;
-                color: var(--texto-titulo);
-              "
-              id="miniMapaLabel"
-              >Carregando...</span
-            >
-            <span
-              style="font-size: 0.82rem; font-weight: 600; color: var(--verde)"
-              id="miniMapaPct"
-              >—</span
-            >
-          </div>
-          <div
-            style="
-              height: 7px;
-              background: var(--bege-fundo);
-              border-radius: 4px;
-              overflow: hidden;
-              border: 0.5px solid var(--bege-borda);
-              margin-bottom: 10px;
-            "
-          >
-            <div
-              id="miniMapaBarra"
-              style="
-                height: 100%;
-                background: var(--verde);
-                border-radius: 4px;
-                width: 0%;
-                transition: width 0.6s ease;
-              "
-            ></div>
-          </div>
-          <div
-            id="miniMapaGrid"
-            style="display: flex; flex-wrap: wrap; gap: 5px"
-          >
-            <div
-              style="
-                width: 28px;
-                height: 28px;
-                border-radius: 8px;
-                background: var(--bege-fundo);
-                border: 0.5px dashed var(--bege-borda);
-              "
-            ></div>
-          </div>
-        </div>
-
-        <!-- Atalhos Rápidos -->
-        <div class="section-header">
-          <span class="section-title">Atalhos</span>
-        </div>
-        <div
-          style="
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            padding: 0 14px 12px;
-          "
-        >
-          <div
-            onclick="RanchoApp.abrirModalNovoCavalo()"
-            style="
-              background: var(--bege-card);
-              border: 0.5px solid var(--bege-borda);
-              border-radius: 16px;
-              padding: 13px 8px;
-              text-align: center;
-              cursor: pointer;
-              box-shadow: var(--sombra);
-            "
-          >
-            <div
-              style="
-                width: 36px;
-                height: 36px;
-                border-radius: 12px;
-                background: rgba(61, 30, 10, 0.07);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto 7px;
-              "
-            >
-              <i
-                class="fa-solid fa-horse-head"
-                style="color: var(--marrom-claro); font-size: 1rem"
-              ></i>
-            </div>
-            <div
+          <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+            <i class="fa-solid fa-horse-head me-2"></i>
+            <span>HF Controll</span>
+          </a>
+          <div class="d-flex gap-3 align-items-center">
+            <button
+              id="btnInstalarApp"
+              class="btn btn-sm btn-outline-light d-none rounded-pill"
               style="
                 font-size: 0.75rem;
-                font-weight: 600;
-                color: var(--texto-titulo);
+                border-color: rgba(196, 154, 74, 0.4);
+                color: var(--dourado-claro);
               "
             >
-              Novo animal
-            </div>
-          </div>
-          <div
-            onclick="
-              RanchoApp.mudarAba('financas');
-              setTimeout(
-                () => document.getElementById('ranchoDesc')?.focus(),
-                400,
-              );
-            "
-            style="
-              background: var(--bege-card);
-              border: 0.5px solid var(--bege-borda);
-              border-radius: 16px;
-              padding: 13px 8px;
-              text-align: center;
-              cursor: pointer;
-              box-shadow: var(--sombra);
-            "
-          >
-            <div
-              style="
-                width: 36px;
-                height: 36px;
-                border-radius: 12px;
-                background: rgba(168, 50, 50, 0.07);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto 7px;
-              "
+              <i class="fa-solid fa-download me-1"></i> App
+            </button>
+            <button
+              class="navbar-icon-btn"
+              onclick="RanchoApp.abrirModalConfig()"
+              title="Configurações"
             >
-              <i
-                class="fa-solid fa-file-invoice-dollar"
-                style="color: var(--vermelho); font-size: 1rem"
-              ></i>
-            </div>
-            <div
-              style="
-                font-size: 0.75rem;
-                font-weight: 600;
-                color: var(--texto-titulo);
-              "
+              <i class="fa-solid fa-gear"></i>
+            </button>
+            <button
+              class="navbar-icon-btn"
+              id="btnDarkMode"
+              title="Modo Escuro"
             >
-              Nova despesa
-            </div>
-          </div>
-          <div
-            onclick="RanchoApp.mudarAba('proprietarios')"
-            style="
-              background: var(--bege-card);
-              border: 0.5px solid var(--bege-borda);
-              border-radius: 16px;
-              padding: 13px 8px;
-              text-align: center;
-              cursor: pointer;
-              box-shadow: var(--sombra);
-            "
-          >
-            <div
-              style="
-                width: 36px;
-                height: 36px;
-                border-radius: 12px;
-                background: rgba(37, 211, 102, 0.08);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                margin: 0 auto 7px;
-              "
-            >
-              <i
-                class="fa-brands fa-whatsapp"
-                style="color: #25d366; font-size: 1rem"
-              ></i>
-            </div>
-            <div
-              style="
-                font-size: 0.75rem;
-                font-weight: 600;
-                color: var(--texto-titulo);
-              "
-            >
-              Cobrar cliente
-            </div>
-          </div>
-        </div>
-
-        <!-- Relatório PDF -->
-        <div
-          style="
-            background: var(--bege-card);
-            border: 0.5px solid var(--bege-borda);
-            border-radius: 16px;
-            margin: 0 14px 16px;
-            padding: 11px 13px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: var(--sombra);
-          "
-        >
-          <i
-            class="fa-solid fa-file-pdf"
-            style="color: var(--texto-suave); font-size: 0.9rem; flex-shrink: 0"
-          ></i>
-          <select
-            id="relatorioMes"
-            class="form-select border-0 bg-transparent shadow-none"
-            style="
-              flex: 1;
-              font-size: 0.8rem;
-              font-weight: 600;
-              padding: 2px 4px;
-            "
-          >
-            <option value="1">Janeiro</option>
-            <option value="2">Fevereiro</option>
-            <option value="3">Março</option>
-            <option value="4">Abril</option>
-            <option value="5">Maio</option>
-            <option value="6">Junho</option>
-            <option value="7">Julho</option>
-            <option value="8">Agosto</option>
-            <option value="9">Setembro</option>
-            <option value="10">Outubro</option>
-            <option value="11">Novembro</option>
-            <option value="12">Dezembro</option>
-          </select>
-          <select
-            id="relatorioAno"
-            class="form-select border-0 bg-transparent shadow-none"
-            style="
-              width: 76px;
-              font-size: 0.8rem;
-              font-weight: 600;
-              padding: 2px 4px;
-            "
-          >
-            <option value="2025">2025</option>
-            <option value="2026" selected>2026</option>
-            <option value="2027">2027</option>
-          </select>
-          <button
-            onclick="RanchoApp.gerarRelatorio()"
-            style="
-              background: linear-gradient(
-                135deg,
-                var(--marrom-medio),
-                var(--marrom-escuro)
-              );
-              color: var(--dourado-claro);
-              border: none;
-              border-radius: 10px;
-              padding: 7px 12px;
-              font-size: 0.78rem;
-              font-weight: 600;
-              white-space: nowrap;
-              cursor: pointer;
-              flex-shrink: 0;
-            "
-          >
-            Gerar PDF
-          </button>
-          <button
-            onclick="RanchoApp.compartilharResumoMes()"
-            title="Compartilhar resumo"
-            style="
-              background: rgba(37, 211, 102, 0.12);
-              color: #25d366;
-              border: 0.5px solid rgba(37, 211, 102, 0.25);
-              border-radius: 10px;
-              padding: 7px 10px;
-              font-size: 0.82rem;
-              cursor: pointer;
-              flex-shrink: 0;
-            "
-          >
-            <i class="fa-brands fa-whatsapp"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- ── ABA ANIMAIS / MAPA DE OCUPAÇÃO ── -->
-      <div id="tabCavalos" class="d-none">
-        <!-- KPIs -->
-        <div
-          style="
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            padding: 12px 14px 6px;
-          "
-        >
-          <div
-            class="kpi-card k-verde"
-            style="padding: 10px 8px; text-align: center"
-          >
-            <div class="kpi-label">Ocupados</div>
-            <div class="kpi-value" id="ocupTotal" style="font-size: 1.5rem">
-              —
-            </div>
-          </div>
-          <div
-            class="kpi-card k-marrom"
-            style="padding: 10px 8px; text-align: center"
-          >
-            <div class="kpi-label">Sem local</div>
-            <div class="kpi-value" id="ocupSemLocal" style="font-size: 1.5rem">
-              —
-            </div>
-          </div>
-          <div
-            class="kpi-card k-verde"
-            style="padding: 10px 8px; text-align: center"
-          >
-            <div class="kpi-label">Taxa</div>
-            <div class="kpi-value" id="ocupTaxa" style="font-size: 1.5rem">
-              —
-            </div>
-          </div>
-        </div>
-
-        <!-- Barra de ocupação -->
-        <div
-          style="
-            background: var(--bege-card);
-            border: 0.5px solid var(--bege-borda);
-            border-radius: 16px;
-            margin: 0 14px 12px;
-            padding: 11px 13px;
-          "
-        >
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 6px;
-            "
-          >
-            <span
-              style="
-                font-size: 0.82rem;
-                font-weight: 600;
-                color: var(--texto-titulo);
-              "
-              >Ocupação geral</span
-            >
-            <span
-              style="font-size: 0.82rem; font-weight: 600; color: var(--verde)"
-              id="ocupPctLabel"
-              >0%</span
-            >
-          </div>
-          <div
-            style="
-              height: 8px;
-              background: var(--bege-fundo);
-              border-radius: 4px;
-              overflow: hidden;
-              border: 0.5px solid var(--bege-borda);
-            "
-          >
-            <div
-              id="ocupBarra"
-              style="
-                height: 100%;
-                background: var(--verde);
-                border-radius: 4px;
-                width: 0%;
-                transition: width 0.6s ease;
-              "
-            ></div>
-          </div>
-        </div>
-
-        <!-- Mapa dinâmico -->
-        <div id="mapaOcupacao">
-          <div
-            style="
-              text-align: center;
-              padding: 3rem 1rem;
-              color: var(--texto-suave);
-              font-size: 0.85rem;
-            "
-          >
-            Carregando...
-          </div>
-        </div>
-      </div>
-
-      <!-- ── ABA CLIENTES ── -->
-      <div id="tabProprietarios" class="d-none">
-        <div
-          style="
-            padding: 14px 14px 4px;
-            font-family: &quot;Lora&quot;, serif;
-            font-size: 1.15rem;
-            color: var(--texto-titulo);
-          "
-        >
-          Meus Clientes
-        </div>
-        <div id="listaProprietariosMainBody"></div>
-      </div>
-
-      <!-- ── ABA FINANÇAS / COBRANÇAS + DESPESAS ── -->
-      <div id="tabFinancas" class="d-none">
-        <div style="padding: 14px 14px 4px">
-          <div
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.15rem;
-              color: var(--texto-titulo);
-            "
-          >
-            Finanças
-          </div>
-        </div>
-
-        <!-- Resumo KPIs -->
-        <div
-          style="
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            padding: 8px 14px 4px;
-          "
-        >
-          <div class="kpi-card k-vermelho">
-            <div class="kpi-label">Em atraso</div>
-            <div class="kpi-value sm" id="totalAtraso">R$ 0,00</div>
-            <div class="kpi-trend neu" id="qtdAtrasados">0 clientes</div>
-          </div>
-          <div class="kpi-card k-verde">
-            <div class="kpi-label">Receita mês</div>
-            <div class="kpi-value sm" id="receitaMesCobrancas">R$ 0,00</div>
-            <div class="kpi-trend neu" id="pctReceitaCobrancas">
-              carregando...
-            </div>
-          </div>
-        </div>
-
-        <!-- Busca Global -->
-        <div style="padding: 8px 14px 4px">
-          <div
-            style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 0.95rem;
-              color: var(--texto-titulo);
-              margin-bottom: 8px;
-            "
-          >
-            Busca Global
-          </div>
-          <div class="search-wrapper" style="margin-bottom: 4px">
-            <i
-              class="fa-solid fa-magnifying-glass me-2"
-              style="font-size: 0.8rem; color: var(--texto-suave)"
-            ></i>
-            <input
-              type="text"
-              class="search-input"
-              id="inputBuscaGlobal"
-              placeholder="Animal, cliente, custo..."
-            />
-            <button class="btn-clear" id="btnLimparBuscaGlobal">
-              <i class="fa-solid fa-xmark"></i>
+              <i class="fa-solid fa-moon"></i>
+            </button>
+            <button class="navbar-icon-btn" id="logoutButton" title="Sair">
+              <i class="fa-solid fa-right-from-bracket"></i>
             </button>
           </div>
-          <div id="resultadosBusca" style="display: none"></div>
+        </div>
+      </nav>
+
+      <!-- ══ CONTEÚDO PRINCIPAL ══ -->
+      <main class="pb-5">
+        <div class="ptr-indicator" id="ptrIndicator">
+          <i class="fa-solid fa-arrow-rotate-right fa-spin"></i>
         </div>
 
-        <!-- Cobranças Pendentes -->
-        <div style="padding: 8px 14px 4px">
+        <!-- ── ABA HOME ── -->
+        <div id="tabHome" class="fade-in-up">
+          <!-- Saudação + data -->
+          <div style="padding: 16px 14px 8px">
+            <div
+              style="
+                font-size: 0.72rem;
+                color: var(--texto-suave);
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.6px;
+              "
+              id="saudacaoLabel"
+            >
+              Bom dia
+            </div>
+            <div
+              style="
+                font-family: &quot;Lora&quot;, serif;
+                font-size: 1.25rem;
+                color: var(--texto-titulo);
+                margin-top: 2px;
+              "
+            >
+              Visão geral do rancho
+            </div>
+            <div
+              style="
+                font-size: 0.75rem;
+                color: var(--texto-suave);
+                margin-top: 3px;
+              "
+              id="dataHoje"
+            ></div>
+          </div>
+
+          <!-- KPIs -->
+          <div class="kpi-grid" style="padding-bottom: 8px">
+            <div
+              class="kpi-card k-marrom"
+              onclick="RanchoApp.mudarAba('cavalos')"
+            >
+              <div class="kpi-label">Animais</div>
+              <div class="kpi-value" id="kpiAnimais">—</div>
+              <div class="kpi-trend neu" id="kpiAnimaisTrend">
+                carregando...
+              </div>
+            </div>
+            <div class="kpi-card k-verde">
+              <div class="kpi-label">Receita mês</div>
+              <div class="kpi-value sm" id="kpiReceita">—</div>
+              <div class="kpi-trend neu" id="kpiReceitaTrend">
+                carregando...
+              </div>
+            </div>
+            <div
+              class="kpi-card k-vermelho"
+              onclick="RanchoApp.mudarAba('financas')"
+            >
+              <div class="kpi-label">Em atraso</div>
+              <div class="kpi-value sm" id="kpiAtraso">—</div>
+              <div class="kpi-trend neu" id="kpiAtrasoTrend">carregando...</div>
+            </div>
+            <div
+              class="kpi-card k-roxo"
+              onclick="RanchoApp.mudarAba('financas')"
+            >
+              <div class="kpi-label">Despesas</div>
+              <div class="kpi-value sm" id="kpiDespesas">—</div>
+              <div class="kpi-trend neu" id="kpiDespesasTrend">
+                carregando...
+              </div>
+            </div>
+          </div>
+
+          <!-- Alertas -->
+          <div id="homeGrid">
+            <div>
+              <div class="section-header">
+                <span class="section-title">Alertas</span>
+                <span
+                  class="section-link"
+                  onclick="RanchoApp.mudarAba('financas')"
+                  >Ver todos</span
+                >
+              </div>
+              <div id="listaAlertas">
+                <div
+                  style="
+                    padding: 0 14px;
+                    color: var(--texto-suave);
+                    font-size: 0.82rem;
+                  "
+                >
+                  Carregando...
+                </div>
+              </div>
+            </div>
+
+            <!-- Mini mapa de ocupação -->
+            <div>
+              <div class="section-header">
+                <span class="section-title">Ocupação</span>
+                <span
+                  class="section-link"
+                  onclick="RanchoApp.mudarAba('cavalos')"
+                  >Ver mapa →</span
+                >
+              </div>
+              <div
+                onclick="RanchoApp.mudarAba('cavalos')"
+                style="
+                  background: var(--bege-card);
+                  border: 0.5px solid var(--bege-borda);
+                  border-radius: 18px;
+                  margin: 0 14px 12px;
+                  padding: 13px 14px;
+                  cursor: pointer;
+                  box-shadow: var(--sombra);
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 8px;
+                  "
+                >
+                  <span
+                    style="
+                      font-size: 0.82rem;
+                      font-weight: 600;
+                      color: var(--texto-titulo);
+                    "
+                    id="miniMapaLabel"
+                    >Carregando...</span
+                  >
+                  <span
+                    style="
+                      font-size: 0.82rem;
+                      font-weight: 600;
+                      color: var(--verde);
+                    "
+                    id="miniMapaPct"
+                    >—</span
+                  >
+                </div>
+                <div
+                  style="
+                    height: 7px;
+                    background: var(--bege-fundo);
+                    border-radius: 4px;
+                    overflow: hidden;
+                    border: 0.5px solid var(--bege-borda);
+                    margin-bottom: 10px;
+                  "
+                >
+                  <div
+                    id="miniMapaBarra"
+                    style="
+                      height: 100%;
+                      background: var(--verde);
+                      border-radius: 4px;
+                      width: 0%;
+                      transition: width 0.6s ease;
+                    "
+                  ></div>
+                </div>
+                <div
+                  id="miniMapaGrid"
+                  style="display: flex; flex-wrap: wrap; gap: 5px"
+                >
+                  <div
+                    style="
+                      width: 28px;
+                      height: 28px;
+                      border-radius: 8px;
+                      background: var(--bege-fundo);
+                      border: 0.5px dashed var(--bege-borda);
+                    "
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Atalhos Rápidos -->
+          <div class="section-header">
+            <span class="section-title">Atalhos</span>
+          </div>
           <div
             style="
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 0.95rem;
-              color: var(--texto-titulo);
-              margin-bottom: 8px;
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 8px;
+              padding: 0 14px 12px;
             "
           >
-            Cobranças Pendentes
+            <div
+              onclick="RanchoApp.abrirModalNovoCavalo()"
+              style="
+                background: var(--bege-card);
+                border: 0.5px solid var(--bege-borda);
+                border-radius: 16px;
+                padding: 13px 8px;
+                text-align: center;
+                cursor: pointer;
+                box-shadow: var(--sombra);
+              "
+            >
+              <div
+                style="
+                  width: 36px;
+                  height: 36px;
+                  border-radius: 12px;
+                  background: rgba(61, 30, 10, 0.07);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto 7px;
+                "
+              >
+                <i
+                  class="fa-solid fa-horse-head"
+                  style="color: var(--marrom-claro); font-size: 1rem"
+                ></i>
+              </div>
+              <div
+                style="
+                  font-size: 0.75rem;
+                  font-weight: 600;
+                  color: var(--texto-titulo);
+                "
+              >
+                Novo animal
+              </div>
+            </div>
+            <div
+              onclick="
+                RanchoApp.mudarAba('financas');
+                setTimeout(
+                  () => document.getElementById('ranchoDesc')?.focus(),
+                  400,
+                );
+              "
+              style="
+                background: var(--bege-card);
+                border: 0.5px solid var(--bege-borda);
+                border-radius: 16px;
+                padding: 13px 8px;
+                text-align: center;
+                cursor: pointer;
+                box-shadow: var(--sombra);
+              "
+            >
+              <div
+                style="
+                  width: 36px;
+                  height: 36px;
+                  border-radius: 12px;
+                  background: rgba(168, 50, 50, 0.07);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto 7px;
+                "
+              >
+                <i
+                  class="fa-solid fa-file-invoice-dollar"
+                  style="color: var(--vermelho); font-size: 1rem"
+                ></i>
+              </div>
+              <div
+                style="
+                  font-size: 0.75rem;
+                  font-weight: 600;
+                  color: var(--texto-titulo);
+                "
+              >
+                Nova despesa
+              </div>
+            </div>
+            <div
+              onclick="RanchoApp.mudarAba('proprietarios')"
+              style="
+                background: var(--bege-card);
+                border: 0.5px solid var(--bege-borda);
+                border-radius: 16px;
+                padding: 13px 8px;
+                text-align: center;
+                cursor: pointer;
+                box-shadow: var(--sombra);
+              "
+            >
+              <div
+                style="
+                  width: 36px;
+                  height: 36px;
+                  border-radius: 12px;
+                  background: rgba(37, 211, 102, 0.08);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto 7px;
+                "
+              >
+                <i
+                  class="fa-brands fa-whatsapp"
+                  style="color: #25d366; font-size: 1rem"
+                ></i>
+              </div>
+              <div
+                style="
+                  font-size: 0.75rem;
+                  font-weight: 600;
+                  color: var(--texto-titulo);
+                "
+              >
+                Cobrar cliente
+              </div>
+            </div>
           </div>
-          <div id="listaCobrancas">
+
+          <!-- Relatório PDF -->
+          <div
+            style="
+              background: var(--bege-card);
+              border: 0.5px solid var(--bege-borda);
+              border-radius: 16px;
+              margin: 0 14px 16px;
+              padding: 11px 13px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              box-shadow: var(--sombra);
+            "
+          >
+            <i
+              class="fa-solid fa-file-pdf"
+              style="
+                color: var(--texto-suave);
+                font-size: 0.9rem;
+                flex-shrink: 0;
+              "
+            ></i>
+            <select
+              id="relatorioMes"
+              class="form-select border-0 bg-transparent shadow-none"
+              style="
+                flex: 1;
+                font-size: 0.8rem;
+                font-weight: 600;
+                padding: 2px 4px;
+              "
+            >
+              <option value="1">Janeiro</option>
+              <option value="2">Fevereiro</option>
+              <option value="3">Março</option>
+              <option value="4">Abril</option>
+              <option value="5">Maio</option>
+              <option value="6">Junho</option>
+              <option value="7">Julho</option>
+              <option value="8">Agosto</option>
+              <option value="9">Setembro</option>
+              <option value="10">Outubro</option>
+              <option value="11">Novembro</option>
+              <option value="12">Dezembro</option>
+            </select>
+            <select
+              id="relatorioAno"
+              class="form-select border-0 bg-transparent shadow-none"
+              style="
+                width: 76px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                padding: 2px 4px;
+              "
+            >
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+              <option value="2027">2027</option>
+            </select>
+            <button
+              onclick="RanchoApp.gerarRelatorio()"
+              style="
+                background: linear-gradient(
+                  135deg,
+                  var(--marrom-medio),
+                  var(--marrom-escuro)
+                );
+                color: var(--dourado-claro);
+                border: none;
+                border-radius: 10px;
+                padding: 7px 12px;
+                font-size: 0.78rem;
+                font-weight: 600;
+                white-space: nowrap;
+                cursor: pointer;
+                flex-shrink: 0;
+              "
+            >
+              Gerar PDF
+            </button>
+            <button
+              onclick="RanchoApp.compartilharResumoMes()"
+              title="Compartilhar resumo"
+              style="
+                background: rgba(37, 211, 102, 0.12);
+                color: #25d366;
+                border: 0.5px solid rgba(37, 211, 102, 0.25);
+                border-radius: 10px;
+                padding: 7px 10px;
+                font-size: 0.82rem;
+                cursor: pointer;
+                flex-shrink: 0;
+              "
+            >
+              <i class="fa-brands fa-whatsapp"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── ABA ANIMAIS / MAPA DE OCUPAÇÃO ── -->
+        <div id="tabCavalos" class="d-none">
+          <!-- KPIs -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 8px;
+              padding: 12px 14px 6px;
+            "
+          >
+            <div
+              class="kpi-card k-verde"
+              style="padding: 10px 8px; text-align: center"
+            >
+              <div class="kpi-label">Ocupados</div>
+              <div class="kpi-value" id="ocupTotal" style="font-size: 1.5rem">
+                —
+              </div>
+            </div>
+            <div
+              class="kpi-card k-marrom"
+              style="padding: 10px 8px; text-align: center"
+            >
+              <div class="kpi-label">Sem local</div>
+              <div
+                class="kpi-value"
+                id="ocupSemLocal"
+                style="font-size: 1.5rem"
+              >
+                —
+              </div>
+            </div>
+            <div
+              class="kpi-card k-verde"
+              style="padding: 10px 8px; text-align: center"
+            >
+              <div class="kpi-label">Taxa</div>
+              <div class="kpi-value" id="ocupTaxa" style="font-size: 1.5rem">
+                —
+              </div>
+            </div>
+          </div>
+
+          <!-- Barra de ocupação -->
+          <div
+            style="
+              background: var(--bege-card);
+              border: 0.5px solid var(--bege-borda);
+              border-radius: 16px;
+              margin: 0 14px 12px;
+              padding: 11px 13px;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 6px;
+              "
+            >
+              <span
+                style="
+                  font-size: 0.82rem;
+                  font-weight: 600;
+                  color: var(--texto-titulo);
+                "
+                >Ocupação geral</span
+              >
+              <span
+                style="
+                  font-size: 0.82rem;
+                  font-weight: 600;
+                  color: var(--verde);
+                "
+                id="ocupPctLabel"
+                >0%</span
+              >
+            </div>
+            <div
+              style="
+                height: 8px;
+                background: var(--bege-fundo);
+                border-radius: 4px;
+                overflow: hidden;
+                border: 0.5px solid var(--bege-borda);
+              "
+            >
+              <div
+                id="ocupBarra"
+                style="
+                  height: 100%;
+                  background: var(--verde);
+                  border-radius: 4px;
+                  width: 0%;
+                  transition: width 0.6s ease;
+                "
+              ></div>
+            </div>
+          </div>
+
+          <!-- Mapa dinâmico -->
+          <div id="mapaOcupacao">
             <div
               style="
                 text-align: center;
-                padding: 2rem;
+                padding: 3rem 1rem;
                 color: var(--texto-suave);
                 font-size: 0.85rem;
               "
@@ -681,816 +720,101 @@
           </div>
         </div>
 
-        <!-- ── SEÇÃO DESPESAS DO RANCHO ── -->
-        <div style="padding: 12px 14px 4px">
+        <!-- ── ABA CLIENTES ── -->
+        <div id="tabProprietarios" class="d-none">
           <div
             style="
-              height: 0.5px;
-              background: var(--bege-borda);
-              margin-bottom: 14px;
+              padding: 14px 14px 4px;
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.15rem;
+              color: var(--texto-titulo);
             "
-          ></div>
-
-          <!-- Card Total Despesas -->
-          <div class="card-total-rancho mb-3">
-            <div class="ct-label">Total gasto no mês</div>
-            <div class="ct-valor" id="totalRanchoMesDisplay">R$ 0,00</div>
-          </div>
-
-          <!-- Gráfico Despesas -->
-          <div
-            class="card-v2 mb-3"
-            id="areaGraficoRancho"
-            style="display: none"
           >
-            <p class="small-label text-center mb-3">Distribuição</p>
-            <div style="height: 180px; position: relative">
-              <canvas
-                id="graficoRancho"
-                role="img"
-                aria-label="Gráfico de distribuição de despesas"
-                >Distribuição por categoria.</canvas
-              >
-            </div>
+            Meus Clientes
           </div>
-
-          <!-- Formulário Nova Despesa -->
-          <div class="form-despesa-wrap mb-3">
-            <div class="small-label mb-2">Nova Despesa</div>
-            <form id="formCustoRancho" class="d-flex flex-wrap gap-2">
-              <input
-                type="text"
-                class="form-control border-0"
-                id="ranchoCat"
-                placeholder="Categoria"
-                list="sugestoesCategorias"
-                required
-                style="flex: 1; min-width: 110px"
-              />
-              <datalist id="sugestoesCategorias">
-                <option value="Alimentação" />
-                <option value="Manutenção" />
-                <option value="Funcionários" />
-                <option value="Energia" />
-                <option value="Combustível" />
-              </datalist>
-              <input
-                type="text"
-                class="form-control border-0"
-                id="ranchoDesc"
-                placeholder="Descrição"
-                required
-                style="flex: 2; min-width: 140px"
-              />
-              <input
-                type="text"
-                inputmode="decimal"
-                class="form-control border-0 text-end"
-                id="ranchoValor"
-                placeholder="R$"
-                style="width: 85px"
-                required
-              />
-              <button
-                type="submit"
-                class="btn btn-success rounded-circle"
-                style="width: 38px; height: 38px; padding: 0; flex-shrink: 0"
-              >
-                <i class="fa-solid fa-plus"></i>
-              </button>
-            </form>
-          </div>
-
-          <!-- Chips Categoria -->
-          <div class="filter-chips mb-3" id="chipsCategoriaRancho">
-            <div
-              class="chip active"
-              onclick="RanchoApp.filtrarCategoriaRancho('', this)"
-            >
-              Todas
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Alimentação', this)"
-            >
-              Alimentação
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Manutenção', this)"
-            >
-              Manutenção
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Funcionários', this)"
-            >
-              Funcionários
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Energia', this)"
-            >
-              Energia
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Combustível', this)"
-            >
-              Combustível
-            </div>
-          </div>
-
-          <!-- Nav Mês -->
-          <div class="mes-nav mb-3">
-            <button class="mes-nav-btn" onclick="RanchoApp.mudarMesRancho(-1)">
-              <i class="fa-solid fa-chevron-left"></i>
-            </button>
-            <span class="mes-nav-label" id="labelMesAnoRancho">MÊS</span>
-            <button class="mes-nav-btn" onclick="RanchoApp.mudarMesRancho(1)">
-              <i class="fa-solid fa-chevron-right"></i>
-            </button>
-          </div>
-
-          <!-- Lista Despesas -->
-          <div
-            class="card-v2"
-            style="padding: 0; overflow: hidden; margin-bottom: 20px"
-          >
-            <table class="table mb-0 align-middle">
-              <tbody id="listaRanchoBody"></tbody>
-            </table>
-          </div>
+          <div id="listaProprietariosMainBody"></div>
         </div>
-      </div>
-    </main>
 
-    <!-- ══ FAB ══ -->
-    <div
-      class="fab-container d-none d-md-block"
-      onclick="this.classList.toggle('active')"
-    >
-      <div class="fab-options">
-        <button
-          class="fab-btn-mini"
-          onclick="RanchoApp.abrirModalGerenciarProprietarios()"
-        >
-          <i class="fa-solid fa-user-plus"></i> Novo Cliente
-        </button>
-        <button class="fab-btn-mini" onclick="RanchoApp.abrirModalNovoCavalo()">
-          <i class="fa-solid fa-horse"></i> Novo Animal
-        </button>
-      </div>
-      <button class="fab-main"><i class="fa-solid fa-plus"></i></button>
-    </div>
-
-    <!-- ══ BOTTOM NAV ══ -->
-    <nav class="bottom-nav">
-      <button
-        class="nav-item-bottom active"
-        id="navBtnHome"
-        onclick="RanchoApp.mudarAba('home')"
-      >
-        <i class="fa-solid fa-house-chimney"></i><span>Início</span>
-      </button>
-      <button
-        class="nav-item-bottom"
-        id="navBtnCavalos"
-        onclick="RanchoApp.mudarAba('cavalos')"
-      >
-        <i class="fa-solid fa-horse-head"></i><span>Animais</span>
-      </button>
-      <button class="nav-btn-fab" onclick="RanchoApp.adicionarItemAtual()">
-        <i class="fa-solid fa-plus"></i>
-      </button>
-      <button
-        class="nav-item-bottom"
-        id="navBtnProps"
-        onclick="RanchoApp.mudarAba('proprietarios')"
-      >
-        <i class="fa-solid fa-users"></i><span>Clientes</span>
-      </button>
-      <button
-        class="nav-item-bottom"
-        id="navBtnFinancas"
-        onclick="RanchoApp.mudarAba('financas')"
-      >
-        <i class="fa-solid fa-file-invoice-dollar"></i><span>Finanças</span>
-      </button>
-    </nav>
-
-    <!-- ══ MODAIS ══ -->
-
-    <!-- Modal Histórico Cliente -->
-    <div class="modal fade" id="modalHistoricoCliente" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-        <div class="modal-content border-0">
-          <div
-            class="modal-header border-0 pb-0"
-            style="background: var(--bege-card)"
-          >
-            <div>
-              <h5 class="modal-title fw-bold" id="tituloHistoricoCliente">
-                Histórico
-              </h5>
-              <small class="text-muted" id="subtituloHistoricoCliente"
-                >Pagamentos</small
-              >
-            </div>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body p-0" style="background: var(--bege-fundo)">
-            <!-- Stats rápidas -->
+        <!-- ── ABA FINANÇAS / COBRANÇAS + DESPESAS ── -->
+        <div id="tabFinancas" class="d-none">
+          <div style="padding: 14px 14px 4px">
             <div
               style="
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr;
-                gap: 8px;
-                padding: 12px 14px 8px;
+                font-family: &quot;Lora&quot;, serif;
+                font-size: 1.15rem;
+                color: var(--texto-titulo);
               "
             >
-              <div
-                style="
-                  background: var(--bege-card);
-                  border: 0.5px solid var(--bege-borda);
-                  border-radius: 12px;
-                  padding: 10px;
-                  text-align: center;
-                "
-              >
-                <div class="small-label">Em dia</div>
-                <div
-                  style="
-                    font-family: &quot;Lora&quot;, serif;
-                    font-size: 1.3rem;
-                    color: var(--verde);
-                    font-weight: 600;
-                    margin-top: 3px;
-                  "
-                  id="statEmDia"
-                >
-                  0
-                </div>
-              </div>
-              <div
-                style="
-                  background: var(--bege-card);
-                  border: 0.5px solid var(--bege-borda);
-                  border-radius: 12px;
-                  padding: 10px;
-                  text-align: center;
-                "
-              >
-                <div class="small-label">Atrasados</div>
-                <div
-                  style="
-                    font-family: &quot;Lora&quot;, serif;
-                    font-size: 1.3rem;
-                    color: var(--vermelho);
-                    font-weight: 600;
-                    margin-top: 3px;
-                  "
-                  id="statAtrasados"
-                >
-                  0
-                </div>
-              </div>
-              <div
-                style="
-                  background: var(--bege-card);
-                  border: 0.5px solid var(--bege-borda);
-                  border-radius: 12px;
-                  padding: 10px;
-                  text-align: center;
-                "
-              >
-                <div class="small-label">Pontualidade</div>
-                <div
-                  style="
-                    font-family: &quot;Lora&quot;, serif;
-                    font-size: 1.3rem;
-                    color: var(--marrom-claro);
-                    font-weight: 600;
-                    margin-top: 3px;
-                  "
-                  id="statPontualidade"
-                >
-                  0%
-                </div>
-              </div>
+              Finanças
             </div>
+          </div>
 
-            <!-- Lista histórico -->
-            <div style="padding: 4px 14px 80px" id="listaHistoricoCliente">
-              <div
-                style="
-                  text-align: center;
-                  padding: 2rem;
-                  color: var(--texto-suave);
-                "
-              >
-                Carregando...
+          <!-- Resumo KPIs -->
+          <div
+            style="
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+              padding: 8px 14px 4px;
+            "
+          >
+            <div class="kpi-card k-vermelho">
+              <div class="kpi-label">Em atraso</div>
+              <div class="kpi-value sm" id="totalAtraso">R$ 0,00</div>
+              <div class="kpi-trend neu" id="qtdAtrasados">0 clientes</div>
+            </div>
+            <div class="kpi-card k-verde">
+              <div class="kpi-label">Receita mês</div>
+              <div class="kpi-value sm" id="receitaMesCobrancas">R$ 0,00</div>
+              <div class="kpi-trend neu" id="pctReceitaCobrancas">
+                carregando...
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Modal Ações Animal -->
-    <div class="modal fade" id="modalAcoesAnimal" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow">
-          <div class="modal-body p-0">
-            <!-- Cabeçalho -->
+          <!-- Busca Global -->
+          <div style="padding: 8px 14px 4px">
             <div
               style="
-                background: var(--marrom-escuro);
-                border-radius: 20px 20px 0 0;
-                padding: 16px 18px 14px;
-                display: flex;
-                align-items: center;
-                gap: 12px;
+                font-family: &quot;Lora&quot;, serif;
+                font-size: 0.95rem;
+                color: var(--texto-titulo);
+                margin-bottom: 8px;
               "
             >
-              <div
-                style="
-                  width: 40px;
-                  height: 40px;
-                  border-radius: 50%;
-                  background: rgba(232, 201, 122, 0.15);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  flex-shrink: 0;
-                "
-              >
-                <i
-                  class="fa-solid fa-horse-head"
-                  style="color: var(--dourado-claro); font-size: 1rem"
-                ></i>
-              </div>
-              <div>
-                <div
-                  style="
-                    font-family: &quot;Lora&quot;, serif;
-                    font-size: 1rem;
-                    font-weight: 600;
-                    color: var(--dourado-claro);
-                  "
-                  id="acoesAnimalNome"
-                >
-                  Animal
-                </div>
-                <div
-                  style="
-                    font-size: 0.72rem;
-                    color: rgba(232, 201, 122, 0.6);
-                    margin-top: 2px;
-                  "
-                  id="acoesAnimalLocal"
-                >
-                  Local
-                </div>
-              </div>
-              <button
-                type="button"
-                class="btn-close btn-close-white ms-auto"
-                data-bs-dismiss="modal"
-                style="font-size: 0.7rem"
-              ></button>
+              Busca Global
             </div>
-
-            <!-- Botões de Ação -->
-            <div
-              style="
-                padding: 12px;
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-              "
-            >
-              <button
-                id="btnAcaoCusto"
-                style="
-                  background: rgba(196, 154, 74, 0.1);
-                  border: 0.5px solid rgba(196, 154, 74, 0.3);
-                  border-radius: 14px;
-                  padding: 13px 16px;
-                  display: flex;
-                  align-items: center;
-                  gap: 12px;
-                  cursor: pointer;
-                  width: 100%;
-                  text-align: left;
-                "
-              >
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 10px;
-                    background: rgba(196, 154, 74, 0.15);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                  "
-                >
-                  <i
-                    class="fa-solid fa-coins"
-                    style="color: var(--dourado); font-size: 0.9rem"
-                  ></i>
-                </div>
-                <div>
-                  <div
-                    style="
-                      font-size: 0.88rem;
-                      font-weight: 600;
-                      color: var(--texto-titulo);
-                      font-family: &quot;DM Sans&quot;, sans-serif;
-                    "
-                  >
-                    Lançar Custo
-                  </div>
-                  <div style="font-size: 0.72rem; color: var(--texto-suave)">
-                    Exames, ferradura, frete...
-                  </div>
-                </div>
-              </button>
-
-              <button
-                id="btnAcaoMensalidade"
-                style="
-                  background: rgba(61, 122, 94, 0.08);
-                  border: 0.5px solid rgba(61, 122, 94, 0.25);
-                  border-radius: 14px;
-                  padding: 13px 16px;
-                  display: flex;
-                  align-items: center;
-                  gap: 12px;
-                  cursor: pointer;
-                  width: 100%;
-                  text-align: left;
-                "
-              >
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 10px;
-                    background: rgba(61, 122, 94, 0.12);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                  "
-                >
-                  <i
-                    class="fa-solid fa-calendar-plus"
-                    style="color: var(--verde); font-size: 0.9rem"
-                  ></i>
-                </div>
-                <div>
-                  <div
-                    style="
-                      font-size: 0.88rem;
-                      font-weight: 600;
-                      color: var(--texto-titulo);
-                      font-family: &quot;DM Sans&quot;, sans-serif;
-                    "
-                  >
-                    Mensalidade
-                  </div>
-                  <div style="font-size: 0.72rem; color: var(--texto-suave)">
-                    Lançar mensalidade do mês
-                  </div>
-                </div>
-              </button>
-
-              <button
-                id="btnAcaoEditar"
-                style="
-                  background: var(--bege-fundo);
-                  border: 0.5px solid var(--bege-borda);
-                  border-radius: 14px;
-                  padding: 13px 16px;
-                  display: flex;
-                  align-items: center;
-                  gap: 12px;
-                  cursor: pointer;
-                  width: 100%;
-                  text-align: left;
-                "
-              >
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 10px;
-                    background: rgba(107, 58, 31, 0.08);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                  "
-                >
-                  <i
-                    class="fa-solid fa-pen"
-                    style="color: var(--marrom-claro); font-size: 0.9rem"
-                  ></i>
-                </div>
-                <div>
-                  <div
-                    style="
-                      font-size: 0.88rem;
-                      font-weight: 600;
-                      color: var(--texto-titulo);
-                      font-family: &quot;DM Sans&quot;, sans-serif;
-                    "
-                  >
-                    Editar Animal
-                  </div>
-                  <div style="font-size: 0.72rem; color: var(--texto-suave)">
-                    Nome, local, proprietário...
-                  </div>
-                </div>
-              </button>
-
-              <button
-                id="btnAcaoFichaVet"
-                style="
-                  background: rgba(91, 141, 201, 0.07);
-                  border: 0.5px solid rgba(91, 141, 201, 0.2);
-                  border-radius: 14px;
-                  padding: 13px 16px;
-                  display: flex;
-                  align-items: center;
-                  gap: 12px;
-                  cursor: pointer;
-                  width: 100%;
-                  text-align: left;
-                "
-              >
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 10px;
-                    background: rgba(91, 141, 201, 0.1);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                  "
-                >
-                  <i
-                    class="fa-solid fa-stethoscope"
-                    style="color: #5b8dc9; font-size: 0.9rem"
-                  ></i>
-                </div>
-                <div>
-                  <div
-                    style="
-                      font-size: 0.88rem;
-                      font-weight: 600;
-                      color: var(--texto-titulo);
-                      font-family: &quot;DM Sans&quot;, sans-serif;
-                    "
-                  >
-                    Ficha Veterinária
-                  </div>
-                  <div style="font-size: 0.72rem; color: var(--texto-suave)">
-                    Ferradura, vacinas, consultas...
-                  </div>
-                </div>
-              </button>
-
-              <button
-                id="btnAcaoExcluir"
-                style="
-                  background: rgba(168, 50, 50, 0.06);
-                  border: 0.5px solid rgba(168, 50, 50, 0.2);
-                  border-radius: 14px;
-                  padding: 11px 16px;
-                  display: flex;
-                  align-items: center;
-                  gap: 12px;
-                  cursor: pointer;
-                  width: 100%;
-                  text-align: left;
-                "
-              >
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 10px;
-                    background: rgba(168, 50, 50, 0.08);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                  "
-                >
-                  <i
-                    class="fa-solid fa-trash"
-                    style="color: var(--vermelho); font-size: 0.85rem"
-                  ></i>
-                </div>
-                <div>
-                  <div
-                    style="
-                      font-size: 0.85rem;
-                      font-weight: 600;
-                      color: var(--vermelho);
-                      font-family: &quot;DM Sans&quot;, sans-serif;
-                    "
-                  >
-                    Remover Animal
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Lançamento em Lote -->
-    <div class="modal fade" id="modalLoteMensalidade" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-          <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold">Lançar em lote</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <p class="text-muted small mb-3">
-              Lança mensalidade para todos os animais deste cliente de uma vez.
-              Animais que já têm mensalidade no mês serão pulados.
-            </p>
-            <div class="row g-2 mb-3">
-              <div class="col-6">
-                <label class="small-label mb-1">Mês</label>
-                <select class="form-select" id="loteMes">
-                  <option value="1">Janeiro</option>
-                  <option value="2">Fevereiro</option>
-                  <option value="3">Março</option>
-                  <option value="4">Abril</option>
-                  <option value="5">Maio</option>
-                  <option value="6">Junho</option>
-                  <option value="7">Julho</option>
-                  <option value="8">Agosto</option>
-                  <option value="9">Setembro</option>
-                  <option value="10">Outubro</option>
-                  <option value="11">Novembro</option>
-                  <option value="12">Dezembro</option>
-                </select>
-              </div>
-              <div class="col-6">
-                <label class="small-label mb-1">Ano</label>
-                <select class="form-select" id="loteAno">
-                  <option value="2025">2025</option>
-                  <option value="2026" selected>2026</option>
-                  <option value="2027">2027</option>
-                </select>
-              </div>
-            </div>
-            <div class="mb-3">
-              <label class="small-label mb-1">Valor padrão (R$)</label>
+            <div class="search-wrapper" style="margin-bottom: 4px">
+              <i
+                class="fa-solid fa-magnifying-glass me-2"
+                style="font-size: 0.8rem; color: var(--texto-suave)"
+              ></i>
               <input
                 type="text"
-                inputmode="decimal"
-                class="form-control"
-                id="loteValor"
-                placeholder="Ex: 680,00"
+                class="search-input"
+                id="inputBuscaGlobal"
+                placeholder="Animal, cliente, custo..."
               />
-              <small class="text-muted"
-                >Usado para animais sem mensalidade cadastrada
-                anteriormente.</small
-              >
-            </div>
-            <div
-              id="loteAnimaisLista"
-              style="max-height: 200px; overflow-y: auto"
-            ></div>
-          </div>
-          <div class="modal-footer border-0 pt-0">
-            <button
-              type="button"
-              class="btn btn-secondary rounded-pill px-4"
-              data-bs-dismiss="modal"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              class="btn btn-primary rounded-pill px-4 fw-bold"
-              onclick="RanchoApp.confirmarLoteMensalidade()"
-            >
-              <i class="fa-solid fa-calendar-check me-1"></i> Lançar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal Ficha Veterinária -->
-    <div class="modal fade" id="modalFichaVet" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-        <div class="modal-content border-0">
-          <div
-            class="modal-header border-0 pb-0"
-            style="background: var(--bege-card)"
-          >
-            <div>
-              <h5 class="modal-title fw-bold" id="tituloFichaVet">
-                Ficha Veterinária
-              </h5>
-              <small class="text-muted" id="subtituloFichaVet">Animal</small>
-            </div>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body p-0" style="background: var(--bege-fundo)">
-            <!-- Formulário novo registro -->
-            <div
-              style="
-                padding: 12px 14px;
-                border-bottom: 0.5px solid var(--bege-borda);
-              "
-            >
-              <div class="small-label mb-2">Novo registro</div>
-              <div class="row g-2 mb-2">
-                <div class="col-6">
-                  <select class="form-select" id="vetTipo">
-                    <option value="">Tipo...</option>
-                    <option>Ferradura</option>
-                    <option>Vacina</option>
-                    <option>Vermifugação</option>
-                    <option>Consulta</option>
-                    <option>Exame</option>
-                    <option>Outro</option>
-                  </select>
-                </div>
-                <div class="col-6">
-                  <input type="date" class="form-control" id="vetDataEvento" />
-                </div>
-              </div>
-              <div class="row g-2 mb-2">
-                <div class="col-12">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="vetDescricao"
-                    placeholder="Descrição (opcional)"
-                  />
-                </div>
-              </div>
-              <div class="row g-2 mb-2">
-                <div class="col-6">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="vetProfissional"
-                    placeholder="Profissional"
-                  />
-                </div>
-                <div class="col-6">
-                  <input
-                    type="date"
-                    class="form-control"
-                    id="vetProximaData"
-                    title="Próxima data"
-                  />
-                </div>
-              </div>
-              <small class="text-muted d-block mb-2"
-                >Próxima data → gera alerta na home quando estiver
-                vencendo</small
-              >
-              <button
-                class="btn btn-primary rounded-pill w-100 fw-bold"
-                onclick="RanchoApp.salvarFichaVet()"
-              >
-                <i class="fa-solid fa-plus me-1"></i> Registrar
+              <button class="btn-clear" id="btnLimparBuscaGlobal">
+                <i class="fa-solid fa-xmark"></i>
               </button>
             </div>
+            <div id="resultadosBusca" style="display: none"></div>
+          </div>
 
-            <!-- Lista de registros -->
-            <div style="padding: 12px 14px 80px" id="listaFichaVet">
+          <!-- Cobranças Pendentes -->
+          <div style="padding: 8px 14px 4px">
+            <div
+              style="
+                font-family: &quot;Lora&quot;, serif;
+                font-size: 0.95rem;
+                color: var(--texto-titulo);
+                margin-bottom: 8px;
+              "
+            >
+              Cobranças Pendentes
+            </div>
+            <div id="listaCobrancas">
               <div
                 style="
                   text-align: center;
@@ -1503,687 +827,1624 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Config -->
-    <div class="modal fade" id="modalConfig" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-          <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold">Configurações</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <form id="formConfig">
-              <div class="mb-4">
-                <label class="small-label mb-2">Chave PIX para cobranças</label>
-                <input
-                  type="text"
-                  class="form-control form-control-lg"
-                  id="configChavePix"
-                  placeholder="CPF, E-mail, Celular..."
-                />
-                <small class="text-muted mt-1 d-block"
-                  >Adicionada automaticamente na mensagem de cobrança via
-                  WhatsApp.</small
-                >
-              </div>
-              <div class="d-grid">
-                <button
-                  type="submit"
-                  class="btn btn-primary btn-lg fw-bold"
-                  id="btnSalvarConfig"
-                >
-                  Salvar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Proprietário -->
-    <div class="modal fade" id="modalProprietario" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-          <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold" id="tituloModalProp">
-              Novo Cliente
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <form id="formProprietario">
-              <input type="hidden" id="propId" />
-              <div class="mb-3">
-                <label class="small-label mb-1">Nome</label
-                ><input
-                  type="text"
-                  class="form-control form-control-lg fw-bold"
-                  id="propNome"
-                  required
-                />
-              </div>
-              <div class="mb-4">
-                <label class="small-label mb-1">WhatsApp</label
-                ><input
-                  type="tel"
-                  class="form-control form-control-lg"
-                  id="propTelefone"
-                  placeholder="(99) 99999-9999"
-                  maxlength="15"
-                />
-              </div>
-              <div class="d-flex justify-content-between align-items-center">
-                <button
-                  type="button"
-                  id="btnExcluirProp"
-                  class="btn btn-light text-danger px-3 d-none"
-                  onclick="RanchoApp.excluirProprietarioAtual()"
-                >
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-primary btn-lg px-5 fw-bold ms-auto"
-                >
-                  Salvar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Cavalo -->
-    <div class="modal fade" id="modalCavalo" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-          <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold" id="tituloModalCavalo">
-              Novo Animal
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <form id="formCavalo">
-              <input type="hidden" id="cavaloId" />
-              <div class="mb-3">
-                <label class="small-label mb-1">Nome do Animal</label
-                ><input
-                  type="text"
-                  class="form-control form-control-lg fw-bold text-brown"
-                  id="cavaloNome"
-                  required
-                />
-              </div>
-              <div class="row mb-3">
-                <div class="col-6">
-                  <label class="small-label mb-1">Baia / Local</label
-                  ><input
-                    type="text"
-                    class="form-control"
-                    id="cavaloLugar"
-                    list="sugestoesLocais"
-                    autocomplete="off"
-                  /><datalist id="sugestoesLocais"></datalist>
-                </div>
-                <div class="col-6">
-                  <label class="small-label mb-1">Proprietário</label
-                  ><select
-                    class="form-select"
-                    id="cavaloProprietario"
-                    required
-                  ></select>
-                </div>
-              </div>
-              <div class="mb-4">
-                <label class="small-label mb-1">Observações</label
-                ><textarea
-                  class="form-control"
-                  id="cavaloObs"
-                  rows="2"
-                ></textarea>
-              </div>
-              <div class="d-flex justify-content-between align-items-center">
-                <button
-                  type="button"
-                  id="btnExcluirCavalo"
-                  class="btn btn-light text-danger px-3 d-none"
-                  onclick="RanchoApp.excluirCavaloAtual()"
-                >
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-primary btn-lg px-5 fw-bold ms-auto"
-                >
-                  Salvar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Financeiro -->
-    <div class="modal fade" id="modalFinanceiro" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-        <div class="modal-content border-0">
-          <div class="modal-header border-0 pb-0">
-            <h5 class="modal-title fw-bold" id="tituloModalFin">Financeiro</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body p-0 pt-2">
-            <div class="px-3 pb-3">
-              <form
-                id="formCusto"
-                class="d-flex gap-2 align-items-center p-2 rounded-3"
-                style="
-                  background: var(--bege-fundo);
-                  border: 0.5px solid var(--bege-borda);
-                "
-              >
-                <input type="hidden" id="custoIdEdit" />
-                <div class="flex-grow-1">
-                  <select
-                    class="form-select border-0 bg-transparent fw-bold shadow-none mb-1 text-brown"
-                    id="custoCat"
-                    required
-                    style="font-size: 0.95rem"
-                  >
-                    <option value="" disabled selected>Categoria...</option>
-                    <option value="Exames">Exames</option>
-                    <option value="Ferradura">Ferradura</option>
-                    <option value="Frete">Frete</option>
-                    <option value="Medicamento">Medicamento</option>
-                    <option value="Outros">Outros</option>
-                  </select>
-                  <div class="d-flex gap-2">
-                    <input
-                      type="text"
-                      class="form-control form-control-sm border-0 shadow-sm"
-                      id="custoDesc"
-                      placeholder="Descrição"
-                      style="flex-grow: 1"
-                    />
-                    <input
-                      type="text"
-                      inputmode="decimal"
-                      class="form-control form-control-sm border-0 shadow-sm text-end"
-                      id="custoValor"
-                      placeholder="R$ 0,00"
-                      required
-                      style="width: 90px"
-                    />
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  id="btnSalvarCusto"
-                  class="btn btn-success rounded-3"
-                  style="width: 45px; height: 45px"
-                >
-                  <i class="fa-solid fa-plus"></i>
-                </button>
-              </form>
-            </div>
-            <input type="hidden" id="finCavaloId" />
+          <!-- ── SEÇÃO DESPESAS DO RANCHO ── -->
+          <div style="padding: 12px 14px 4px">
             <div
-              class="d-flex align-items-center justify-content-between px-4 py-2 border-top border-bottom"
               style="
-                background: var(--bege-fundo);
-                border-color: var(--bege-borda) !important;
+                height: 0.5px;
+                background: var(--bege-borda);
+                margin-bottom: 14px;
               "
-            >
-              <button
-                class="btn btn-sm"
-                style="color: var(--texto-suave)"
-                onclick="RanchoApp.mudarMes(-1)"
-              >
-                <i class="fa-solid fa-chevron-left"></i>
-              </button>
-              <span class="fw-bold text-brown small font-serif" id="labelMesAno"
-                >MÊS</span
-              >
-              <button
-                class="btn btn-sm"
-                style="color: var(--texto-suave)"
-                onclick="RanchoApp.mudarMes(1)"
-              >
-                <i class="fa-solid fa-chevron-right"></i>
-              </button>
+            ></div>
+
+            <!-- Card Total Despesas -->
+            <div class="card-total-rancho mb-3">
+              <div class="ct-label">Total gasto no mês</div>
+              <div class="ct-valor" id="totalRanchoMesDisplay">R$ 0,00</div>
             </div>
-            <div class="px-3 py-2" id="areaGrafico" style="display: none">
-              <div style="height: 140px; position: relative">
+
+            <!-- Gráfico Despesas -->
+            <div
+              class="card-v2 mb-3"
+              id="areaGraficoRancho"
+              style="display: none"
+            >
+              <p class="small-label text-center mb-3">Distribuição</p>
+              <div style="height: 180px; position: relative">
                 <canvas
-                  id="graficoFinanceiro"
+                  id="graficoRancho"
                   role="img"
-                  aria-label="Gráfico de custos por categoria"
-                  >Custos por categoria.</canvas
+                  aria-label="Gráfico de distribuição de despesas"
+                  >Distribuição por categoria.</canvas
                 >
               </div>
             </div>
-            <div class="px-3 pb-5">
-              <table class="table mb-0">
-                <tbody id="tabelaCustosBody"></tbody>
-              </table>
-            </div>
-            <div
-              class="position-absolute bottom-0 w-100 border-top p-3 d-flex justify-content-between align-items-center fixed-bottom-modal-panel"
-            >
-              <button
-                class="btn btn-sm btn-light text-danger"
-                onclick="RanchoApp.gerarPDF()"
-              >
-                <i class="fa-solid fa-file-pdf"></i> PDF
-              </button>
-              <div class="text-end">
-                <div class="small-label">Total</div>
-                <div
-                  class="fw-bold fs-4 lh-1 font-serif"
-                  id="totalGastoModal"
-                  style="color: var(--vermelho)"
-                >
-                  R$ 0,00
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Mensalidade -->
-    <div class="modal fade" id="modalMensalidade" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-          <div class="modal-header border-0">
-            <h5 class="modal-title fw-bold" id="tituloModalMensalidade">
-              Mensalidade
-            </h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body p-0">
-            <div
-              class="m-3 p-3 rounded-4"
-              style="
-                background: var(--bege-fundo);
-                border: 0.5px solid var(--bege-borda);
-              "
-            >
-              <form id="formMensalidade">
-                <input type="hidden" id="mensalidadeCavaloId" />
-                <div style="display: none">
-                  <input type="date" id="mensalidadeData" />
-                </div>
-                <div class="row g-2 mb-3">
-                  <div class="col-6">
-                    <select
-                      class="form-select fw-bold"
-                      id="mensalidadeMes"
-                      required
-                    >
-                      <option value="1">Janeiro</option>
-                      <option value="2">Fevereiro</option>
-                      <option value="3">Março</option>
-                      <option value="4">Abril</option>
-                      <option value="5">Maio</option>
-                      <option value="6">Junho</option>
-                      <option value="7">Julho</option>
-                      <option value="8">Agosto</option>
-                      <option value="9">Setembro</option>
-                      <option value="10">Outubro</option>
-                      <option value="11">Novembro</option>
-                      <option value="12">Dezembro</option>
-                    </select>
-                  </div>
-                  <div class="col-6">
-                    <select
-                      class="form-select fw-bold"
-                      id="mensalidadeAno"
-                      required
-                    >
-                      <option value="2026">2026</option>
-                      <option value="2027">2027</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="mb-3">
-                  <input
-                    type="text"
-                    inputmode="decimal"
-                    class="form-control form-control-lg fw-bold text-center font-serif"
-                    id="mensalidadeValor"
-                    placeholder="R$ 0,00"
-                    required
-                    style="font-size: 1.5rem"
-                  />
-                </div>
-                <div
-                  class="mb-3 p-3 rounded-3"
-                  style="
-                    background: var(--bege-card);
-                    border: 0.5px solid var(--bege-borda);
-                  "
-                >
-                  <label class="small-label d-block mb-2 text-center"
-                    >Incluso</label
-                  >
-                  <div class="d-flex flex-wrap justify-content-center gap-3">
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="checkBaia"
-                        checked
-                      /><label class="form-check-label small" for="checkBaia"
-                        >Baia</label
-                      >
-                    </div>
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="checkPiquete"
-                      /><label class="form-check-label small" for="checkPiquete"
-                        >Piquete</label
-                      >
-                    </div>
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="checkTreino"
-                      /><label class="form-check-label small" for="checkTreino"
-                        >Treino</label
-                      >
-                    </div>
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        id="checkAlimentacao"
-                        checked
-                      /><label
-                        class="form-check-label small"
-                        for="checkAlimentacao"
-                        >Alimentação</label
-                      >
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="submit"
-                  class="btn btn-primary w-100 rounded-pill fw-bold py-2"
-                >
-                  Adicionar à Fatura
-                </button>
-              </form>
-            </div>
-            <div class="px-4 pb-4">
-              <div class="small-label mb-2 ms-1">Histórico</div>
-              <div
-                class="rounded-4 overflow-hidden"
-                style="
-                  background: var(--bege-card);
-                  border: 0.5px solid var(--bege-borda);
-                "
-              >
-                <table class="table mb-0 align-middle">
-                  <tbody id="tabelaMensalidadeBody"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Detalhes Proprietário -->
-    <div class="modal fade" id="modalDetalhesProprietario" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
-        <div class="modal-content border-0">
-          <div
-            class="modal-header border-0 pb-0"
-            style="background: var(--bege-card)"
-          >
-            <div>
-              <h5 class="modal-title fw-bold" id="tituloDetalhesProp">Nome</h5>
-              <small class="text-muted" id="subtituloDetalhesProp"
-                >Extrato</small
-              >
-            </div>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-            ></button>
-          </div>
-          <div class="modal-body p-0" style="background: var(--bege-fundo)">
-            <div
-              class="p-3 mb-2"
-              style="
-                background: var(--bege-card);
-                border-bottom: 0.5px solid var(--bege-borda);
-              "
-            >
-              <form id="formCustoProp" class="d-flex gap-2">
-                <input type="hidden" id="custoPropIdEdit" />
+            <!-- Formulário Nova Despesa -->
+            <div class="form-despesa-wrap mb-3">
+              <div class="small-label mb-2">Nova Despesa</div>
+              <form id="formCustoRancho" class="d-flex flex-wrap gap-2">
                 <input
                   type="text"
                   class="form-control border-0"
-                  id="custoPropDesc"
-                  placeholder="Item avulso..."
+                  id="ranchoCat"
+                  placeholder="Categoria"
+                  list="sugestoesCategorias"
                   required
+                  style="flex: 1; min-width: 110px"
+                />
+                <datalist id="sugestoesCategorias">
+                  <option value="Alimentação" />
+                  <option value="Manutenção" />
+                  <option value="Funcionários" />
+                  <option value="Energia" />
+                  <option value="Combustível" />
+                </datalist>
+                <input
+                  type="text"
+                  class="form-control border-0"
+                  id="ranchoDesc"
+                  placeholder="Descrição"
+                  required
+                  style="flex: 2; min-width: 140px"
                 />
                 <input
                   type="text"
                   inputmode="decimal"
                   class="form-control border-0 text-end"
-                  id="custoPropValor"
+                  id="ranchoValor"
                   placeholder="R$"
-                  style="width: 80px"
+                  style="width: 85px"
                   required
                 />
                 <button
                   type="submit"
-                  id="btnSalvarCustoProp"
                   class="btn btn-success rounded-circle"
-                  style="width: 38px; height: 38px; padding: 0"
+                  style="width: 38px; height: 38px; padding: 0; flex-shrink: 0"
                 >
                   <i class="fa-solid fa-plus"></i>
                 </button>
               </form>
             </div>
-            <div
-              class="d-flex justify-content-center align-items-center gap-3 py-2 mb-2"
-              style="
-                background: var(--bege-card);
-                border-bottom: 0.5px solid var(--bege-borda);
-              "
-            >
+
+            <!-- Chips Categoria -->
+            <div class="filter-chips mb-3" id="chipsCategoriaRancho">
+              <div
+                class="chip active"
+                onclick="RanchoApp.filtrarCategoriaRancho('', this)"
+              >
+                Todas
+              </div>
+              <div
+                class="chip"
+                onclick="RanchoApp.filtrarCategoriaRancho('Alimentação', this)"
+              >
+                Alimentação
+              </div>
+              <div
+                class="chip"
+                onclick="RanchoApp.filtrarCategoriaRancho('Manutenção', this)"
+              >
+                Manutenção
+              </div>
+              <div
+                class="chip"
+                onclick="RanchoApp.filtrarCategoriaRancho('Funcionários', this)"
+              >
+                Funcionários
+              </div>
+              <div
+                class="chip"
+                onclick="RanchoApp.filtrarCategoriaRancho('Energia', this)"
+              >
+                Energia
+              </div>
+              <div
+                class="chip"
+                onclick="RanchoApp.filtrarCategoriaRancho('Combustível', this)"
+              >
+                Combustível
+              </div>
+            </div>
+
+            <!-- Nav Mês -->
+            <div class="mes-nav mb-3">
               <button
-                class="btn btn-sm"
-                style="color: var(--texto-suave)"
-                onclick="RanchoApp.mudarMesProp(-1)"
+                class="mes-nav-btn"
+                onclick="RanchoApp.mudarMesRancho(-1)"
               >
                 <i class="fa-solid fa-chevron-left"></i>
               </button>
-              <span
-                class="fw-bold text-brown small font-serif"
-                id="labelMesAnoProp"
-                >MÊS</span
-              >
-              <button
-                class="btn btn-sm"
-                style="color: var(--texto-suave)"
-                onclick="RanchoApp.mudarMesProp(1)"
-              >
+              <span class="mes-nav-label" id="labelMesAnoRancho">MÊS</span>
+              <button class="mes-nav-btn" onclick="RanchoApp.mudarMesRancho(1)">
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
             </div>
-            <div class="px-3 pb-3">
+
+            <!-- Lista Despesas -->
+            <div
+              class="card-v2"
+              style="padding: 0; overflow: hidden; margin-bottom: 20px"
+            >
+              <table class="table mb-0 align-middle">
+                <tbody id="listaRanchoBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ══ FAB ══ -->
+      <div
+        class="fab-container d-none d-md-block"
+        onclick="this.classList.toggle('active')"
+      >
+        <div class="fab-options">
+          <button
+            class="fab-btn-mini"
+            onclick="RanchoApp.abrirModalGerenciarProprietarios()"
+          >
+            <i class="fa-solid fa-user-plus"></i> Novo Cliente
+          </button>
+          <button
+            class="fab-btn-mini"
+            onclick="RanchoApp.abrirModalNovoCavalo()"
+          >
+            <i class="fa-solid fa-horse"></i> Novo Animal
+          </button>
+        </div>
+        <button class="fab-main"><i class="fa-solid fa-plus"></i></button>
+      </div>
+
+      <!-- ══ BOTTOM NAV ══ -->
+      <nav class="bottom-nav">
+        <button
+          class="nav-item-bottom active"
+          id="navBtnHome"
+          onclick="RanchoApp.mudarAba('home')"
+        >
+          <i class="fa-solid fa-house-chimney"></i><span>Início</span>
+        </button>
+        <button
+          class="nav-item-bottom"
+          id="navBtnCavalos"
+          onclick="RanchoApp.mudarAba('cavalos')"
+        >
+          <i class="fa-solid fa-horse-head"></i><span>Animais</span>
+        </button>
+        <button class="nav-btn-fab" onclick="RanchoApp.adicionarItemAtual()">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+        <button
+          class="nav-item-bottom"
+          id="navBtnProps"
+          onclick="RanchoApp.mudarAba('proprietarios')"
+        >
+          <i class="fa-solid fa-users"></i><span>Clientes</span>
+        </button>
+        <button
+          class="nav-item-bottom"
+          id="navBtnFinancas"
+          onclick="RanchoApp.mudarAba('financas')"
+        >
+          <i class="fa-solid fa-file-invoice-dollar"></i><span>Finanças</span>
+        </button>
+      </nav>
+
+      <!-- ══ MODAIS ══ -->
+
+      <!-- Modal Histórico Cliente -->
+      <div class="modal fade" id="modalHistoricoCliente" tabindex="-1">
+        <div
+          class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down"
+        >
+          <div class="modal-content border-0">
+            <div
+              class="modal-header border-0 pb-0"
+              style="background: var(--bege-card)"
+            >
+              <div>
+                <h5 class="modal-title fw-bold" id="tituloHistoricoCliente">
+                  Histórico
+                </h5>
+                <small class="text-muted" id="subtituloHistoricoCliente"
+                  >Pagamentos</small
+                >
+              </div>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body p-0" style="background: var(--bege-fundo)">
+              <!-- Stats rápidas -->
               <div
-                class="rounded-4 overflow-hidden"
                 style="
-                  background: var(--bege-card);
+                  display: grid;
+                  grid-template-columns: 1fr 1fr 1fr;
+                  gap: 8px;
+                  padding: 12px 14px 8px;
+                "
+              >
+                <div
+                  style="
+                    background: var(--bege-card);
+                    border: 0.5px solid var(--bege-borda);
+                    border-radius: 12px;
+                    padding: 10px;
+                    text-align: center;
+                  "
+                >
+                  <div class="small-label">Em dia</div>
+                  <div
+                    style="
+                      font-family: &quot;Lora&quot;, serif;
+                      font-size: 1.3rem;
+                      color: var(--verde);
+                      font-weight: 600;
+                      margin-top: 3px;
+                    "
+                    id="statEmDia"
+                  >
+                    0
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: var(--bege-card);
+                    border: 0.5px solid var(--bege-borda);
+                    border-radius: 12px;
+                    padding: 10px;
+                    text-align: center;
+                  "
+                >
+                  <div class="small-label">Atrasados</div>
+                  <div
+                    style="
+                      font-family: &quot;Lora&quot;, serif;
+                      font-size: 1.3rem;
+                      color: var(--vermelho);
+                      font-weight: 600;
+                      margin-top: 3px;
+                    "
+                    id="statAtrasados"
+                  >
+                    0
+                  </div>
+                </div>
+                <div
+                  style="
+                    background: var(--bege-card);
+                    border: 0.5px solid var(--bege-borda);
+                    border-radius: 12px;
+                    padding: 10px;
+                    text-align: center;
+                  "
+                >
+                  <div class="small-label">Pontualidade</div>
+                  <div
+                    style="
+                      font-family: &quot;Lora&quot;, serif;
+                      font-size: 1.3rem;
+                      color: var(--marrom-claro);
+                      font-weight: 600;
+                      margin-top: 3px;
+                    "
+                    id="statPontualidade"
+                  >
+                    0%
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lista histórico -->
+              <div style="padding: 4px 14px 80px" id="listaHistoricoCliente">
+                <div
+                  style="
+                    text-align: center;
+                    padding: 2rem;
+                    color: var(--texto-suave);
+                  "
+                >
+                  Carregando...
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Ações Animal -->
+      <div class="modal fade" id="modalAcoesAnimal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content border-0 shadow">
+            <div class="modal-body p-0">
+              <!-- Cabeçalho -->
+              <div
+                style="
+                  background: var(--marrom-escuro);
+                  border-radius: 20px 20px 0 0;
+                  padding: 16px 18px 14px;
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                "
+              >
+                <div
+                  style="
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    background: rgba(232, 201, 122, 0.15);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-horse-head"
+                    style="color: var(--dourado-claro); font-size: 1rem"
+                  ></i>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-family: &quot;Lora&quot;, serif;
+                      font-size: 1rem;
+                      font-weight: 600;
+                      color: var(--dourado-claro);
+                    "
+                    id="acoesAnimalNome"
+                  >
+                    Animal
+                  </div>
+                  <div
+                    style="
+                      font-size: 0.72rem;
+                      color: rgba(232, 201, 122, 0.6);
+                      margin-top: 2px;
+                    "
+                    id="acoesAnimalLocal"
+                  >
+                    Local
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="btn-close btn-close-white ms-auto"
+                  data-bs-dismiss="modal"
+                  style="font-size: 0.7rem"
+                ></button>
+              </div>
+
+              <!-- Botões de Ação -->
+              <div
+                style="
+                  padding: 12px;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 8px;
+                "
+              >
+                <button
+                  id="btnAcaoCusto"
+                  style="
+                    background: rgba(196, 154, 74, 0.1);
+                    border: 0.5px solid rgba(196, 154, 74, 0.3);
+                    border-radius: 14px;
+                    padding: 13px 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    cursor: pointer;
+                    width: 100%;
+                    text-align: left;
+                  "
+                >
+                  <div
+                    style="
+                      width: 36px;
+                      height: 36px;
+                      border-radius: 10px;
+                      background: rgba(196, 154, 74, 0.15);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      flex-shrink: 0;
+                    "
+                  >
+                    <i
+                      class="fa-solid fa-coins"
+                      style="color: var(--dourado); font-size: 0.9rem"
+                    ></i>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-size: 0.88rem;
+                        font-weight: 600;
+                        color: var(--texto-titulo);
+                        font-family: &quot;DM Sans&quot;, sans-serif;
+                      "
+                    >
+                      Lançar Custo
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--texto-suave)">
+                      Exames, ferradura, frete...
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  id="btnAcaoMensalidade"
+                  style="
+                    background: rgba(61, 122, 94, 0.08);
+                    border: 0.5px solid rgba(61, 122, 94, 0.25);
+                    border-radius: 14px;
+                    padding: 13px 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    cursor: pointer;
+                    width: 100%;
+                    text-align: left;
+                  "
+                >
+                  <div
+                    style="
+                      width: 36px;
+                      height: 36px;
+                      border-radius: 10px;
+                      background: rgba(61, 122, 94, 0.12);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      flex-shrink: 0;
+                    "
+                  >
+                    <i
+                      class="fa-solid fa-calendar-plus"
+                      style="color: var(--verde); font-size: 0.9rem"
+                    ></i>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-size: 0.88rem;
+                        font-weight: 600;
+                        color: var(--texto-titulo);
+                        font-family: &quot;DM Sans&quot;, sans-serif;
+                      "
+                    >
+                      Mensalidade
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--texto-suave)">
+                      Lançar mensalidade do mês
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  id="btnAcaoEditar"
+                  style="
+                    background: var(--bege-fundo);
+                    border: 0.5px solid var(--bege-borda);
+                    border-radius: 14px;
+                    padding: 13px 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    cursor: pointer;
+                    width: 100%;
+                    text-align: left;
+                  "
+                >
+                  <div
+                    style="
+                      width: 36px;
+                      height: 36px;
+                      border-radius: 10px;
+                      background: rgba(107, 58, 31, 0.08);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      flex-shrink: 0;
+                    "
+                  >
+                    <i
+                      class="fa-solid fa-pen"
+                      style="color: var(--marrom-claro); font-size: 0.9rem"
+                    ></i>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-size: 0.88rem;
+                        font-weight: 600;
+                        color: var(--texto-titulo);
+                        font-family: &quot;DM Sans&quot;, sans-serif;
+                      "
+                    >
+                      Editar Animal
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--texto-suave)">
+                      Nome, local, proprietário...
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  id="btnAcaoFichaVet"
+                  style="
+                    background: rgba(91, 141, 201, 0.07);
+                    border: 0.5px solid rgba(91, 141, 201, 0.2);
+                    border-radius: 14px;
+                    padding: 13px 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    cursor: pointer;
+                    width: 100%;
+                    text-align: left;
+                  "
+                >
+                  <div
+                    style="
+                      width: 36px;
+                      height: 36px;
+                      border-radius: 10px;
+                      background: rgba(91, 141, 201, 0.1);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      flex-shrink: 0;
+                    "
+                  >
+                    <i
+                      class="fa-solid fa-stethoscope"
+                      style="color: #5b8dc9; font-size: 0.9rem"
+                    ></i>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-size: 0.88rem;
+                        font-weight: 600;
+                        color: var(--texto-titulo);
+                        font-family: &quot;DM Sans&quot;, sans-serif;
+                      "
+                    >
+                      Ficha Veterinária
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--texto-suave)">
+                      Ferradura, vacinas, consultas...
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  id="btnAcaoExcluir"
+                  style="
+                    background: rgba(168, 50, 50, 0.06);
+                    border: 0.5px solid rgba(168, 50, 50, 0.2);
+                    border-radius: 14px;
+                    padding: 11px 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    cursor: pointer;
+                    width: 100%;
+                    text-align: left;
+                  "
+                >
+                  <div
+                    style="
+                      width: 36px;
+                      height: 36px;
+                      border-radius: 10px;
+                      background: rgba(168, 50, 50, 0.08);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      flex-shrink: 0;
+                    "
+                  >
+                    <i
+                      class="fa-solid fa-trash"
+                      style="color: var(--vermelho); font-size: 0.85rem"
+                    ></i>
+                  </div>
+                  <div>
+                    <div
+                      style="
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                        color: var(--vermelho);
+                        font-family: &quot;DM Sans&quot;, sans-serif;
+                      "
+                    >
+                      Remover Animal
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Lançamento em Lote -->
+      <div class="modal fade" id="modalLoteMensalidade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0">
+            <div class="modal-header border-0 pb-0">
+              <h5 class="modal-title fw-bold">Lançar em lote</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted small mb-3">
+                Lança mensalidade para todos os animais deste cliente de uma
+                vez. Animais que já têm mensalidade no mês serão pulados.
+              </p>
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="small-label mb-1">Mês</label>
+                  <select class="form-select" id="loteMes">
+                    <option value="1">Janeiro</option>
+                    <option value="2">Fevereiro</option>
+                    <option value="3">Março</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Maio</option>
+                    <option value="6">Junho</option>
+                    <option value="7">Julho</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Setembro</option>
+                    <option value="10">Outubro</option>
+                    <option value="11">Novembro</option>
+                    <option value="12">Dezembro</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <label class="small-label mb-1">Ano</label>
+                  <select class="form-select" id="loteAno">
+                    <option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                    <option value="2027">2027</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="small-label mb-1">Valor padrão (R$)</label>
+                <input
+                  type="text"
+                  inputmode="decimal"
+                  class="form-control"
+                  id="loteValor"
+                  placeholder="Ex: 680,00"
+                />
+                <small class="text-muted"
+                  >Usado para animais sem mensalidade cadastrada
+                  anteriormente.</small
+                >
+              </div>
+              <div
+                id="loteAnimaisLista"
+                style="max-height: 200px; overflow-y: auto"
+              ></div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+              <button
+                type="button"
+                class="btn btn-secondary rounded-pill px-4"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary rounded-pill px-4 fw-bold"
+                onclick="RanchoApp.confirmarLoteMensalidade()"
+              >
+                <i class="fa-solid fa-calendar-check me-1"></i> Lançar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Ficha Veterinária -->
+      <div class="modal fade" id="modalFichaVet" tabindex="-1">
+        <div
+          class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down"
+        >
+          <div class="modal-content border-0">
+            <div
+              class="modal-header border-0 pb-0"
+              style="background: var(--bege-card)"
+            >
+              <div>
+                <h5 class="modal-title fw-bold" id="tituloFichaVet">
+                  Ficha Veterinária
+                </h5>
+                <small class="text-muted" id="subtituloFichaVet">Animal</small>
+              </div>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body p-0" style="background: var(--bege-fundo)">
+              <!-- Formulário novo registro -->
+              <div
+                style="
+                  padding: 12px 14px;
+                  border-bottom: 0.5px solid var(--bege-borda);
+                "
+              >
+                <div class="small-label mb-2">Novo registro</div>
+                <div class="row g-2 mb-2">
+                  <div class="col-6">
+                    <select class="form-select" id="vetTipo">
+                      <option value="">Tipo...</option>
+                      <option>Ferradura</option>
+                      <option>Vacina</option>
+                      <option>Vermifugação</option>
+                      <option>Consulta</option>
+                      <option>Exame</option>
+                      <option>Outro</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <input
+                      type="date"
+                      class="form-control"
+                      id="vetDataEvento"
+                    />
+                  </div>
+                </div>
+                <div class="row g-2 mb-2">
+                  <div class="col-12">
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="vetDescricao"
+                      placeholder="Descrição (opcional)"
+                    />
+                  </div>
+                </div>
+                <div class="row g-2 mb-2">
+                  <div class="col-6">
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="vetProfissional"
+                      placeholder="Profissional"
+                    />
+                  </div>
+                  <div class="col-6">
+                    <input
+                      type="date"
+                      class="form-control"
+                      id="vetProximaData"
+                      title="Próxima data"
+                    />
+                  </div>
+                </div>
+                <small class="text-muted d-block mb-2"
+                  >Próxima data → gera alerta na home quando estiver
+                  vencendo</small
+                >
+                <button
+                  class="btn btn-primary rounded-pill w-100 fw-bold"
+                  onclick="RanchoApp.salvarFichaVet()"
+                >
+                  <i class="fa-solid fa-plus me-1"></i> Registrar
+                </button>
+              </div>
+
+              <!-- Lista de registros -->
+              <div style="padding: 12px 14px 80px" id="listaFichaVet">
+                <div
+                  style="
+                    text-align: center;
+                    padding: 2rem;
+                    color: var(--texto-suave);
+                    font-size: 0.85rem;
+                  "
+                >
+                  Carregando...
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Config -->
+      <div class="modal fade" id="modalConfig" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0">
+            <div class="modal-header border-0 pb-0">
+              <h5 class="modal-title fw-bold">Configurações</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="formConfig">
+                <div class="mb-4">
+                  <label class="small-label mb-2"
+                    >Chave PIX para cobranças</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    id="configChavePix"
+                    placeholder="CPF, E-mail, Celular..."
+                  />
+                  <small class="text-muted mt-1 d-block"
+                    >Adicionada automaticamente na mensagem de cobrança via
+                    WhatsApp.</small
+                  >
+                </div>
+                <div class="d-grid">
+                  <button
+                    type="submit"
+                    class="btn btn-primary btn-lg fw-bold"
+                    id="btnSalvarConfig"
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proprietário -->
+      <div class="modal fade" id="modalProprietario" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0">
+            <div class="modal-header border-0 pb-0">
+              <h5 class="modal-title fw-bold" id="tituloModalProp">
+                Novo Cliente
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="formProprietario">
+                <input type="hidden" id="propId" />
+                <div class="mb-3">
+                  <label class="small-label mb-1">Nome</label
+                  ><input
+                    type="text"
+                    class="form-control form-control-lg fw-bold"
+                    id="propNome"
+                    required
+                  />
+                </div>
+                <div class="mb-4">
+                  <label class="small-label mb-1">WhatsApp</label
+                  ><input
+                    type="tel"
+                    class="form-control form-control-lg"
+                    id="propTelefone"
+                    placeholder="(99) 99999-9999"
+                    maxlength="15"
+                  />
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <button
+                    type="button"
+                    id="btnExcluirProp"
+                    class="btn btn-light text-danger px-3 d-none"
+                    onclick="RanchoApp.excluirProprietarioAtual()"
+                  >
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                  <button
+                    type="submit"
+                    class="btn btn-primary btn-lg px-5 fw-bold ms-auto"
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cavalo -->
+      <div class="modal fade" id="modalCavalo" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0">
+            <div class="modal-header border-0 pb-0">
+              <h5 class="modal-title fw-bold" id="tituloModalCavalo">
+                Novo Animal
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="formCavalo">
+                <input type="hidden" id="cavaloId" />
+                <div class="mb-3">
+                  <label class="small-label mb-1">Nome do Animal</label
+                  ><input
+                    type="text"
+                    class="form-control form-control-lg fw-bold text-brown"
+                    id="cavaloNome"
+                    required
+                  />
+                </div>
+                <div class="row mb-3">
+                  <div class="col-6">
+                    <label class="small-label mb-1">Baia / Local</label
+                    ><input
+                      type="text"
+                      class="form-control"
+                      id="cavaloLugar"
+                      list="sugestoesLocais"
+                      autocomplete="off"
+                    /><datalist id="sugestoesLocais"></datalist>
+                  </div>
+                  <div class="col-6">
+                    <label class="small-label mb-1">Proprietário</label
+                    ><select
+                      class="form-select"
+                      id="cavaloProprietario"
+                      required
+                    ></select>
+                  </div>
+                </div>
+                <div class="mb-4">
+                  <label class="small-label mb-1">Observações</label
+                  ><textarea
+                    class="form-control"
+                    id="cavaloObs"
+                    rows="2"
+                  ></textarea>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <button
+                    type="button"
+                    id="btnExcluirCavalo"
+                    class="btn btn-light text-danger px-3 d-none"
+                    onclick="RanchoApp.excluirCavaloAtual()"
+                  >
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                  <button
+                    type="submit"
+                    class="btn btn-primary btn-lg px-5 fw-bold ms-auto"
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Financeiro -->
+      <div class="modal fade" id="modalFinanceiro" tabindex="-1">
+        <div
+          class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down"
+        >
+          <div class="modal-content border-0">
+            <div class="modal-header border-0 pb-0">
+              <h5 class="modal-title fw-bold" id="tituloModalFin">
+                Financeiro
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body p-0 pt-2">
+              <div class="px-3 pb-3">
+                <form
+                  id="formCusto"
+                  class="d-flex gap-2 align-items-center p-2 rounded-3"
+                  style="
+                    background: var(--bege-fundo);
+                    border: 0.5px solid var(--bege-borda);
+                  "
+                >
+                  <input type="hidden" id="custoIdEdit" />
+                  <div class="flex-grow-1">
+                    <select
+                      class="form-select border-0 bg-transparent fw-bold shadow-none mb-1 text-brown"
+                      id="custoCat"
+                      required
+                      style="font-size: 0.95rem"
+                    >
+                      <option value="" disabled selected>Categoria...</option>
+                      <option value="Exames">Exames</option>
+                      <option value="Ferradura">Ferradura</option>
+                      <option value="Frete">Frete</option>
+                      <option value="Medicamento">Medicamento</option>
+                      <option value="Outros">Outros</option>
+                    </select>
+                    <div class="d-flex gap-2">
+                      <input
+                        type="text"
+                        class="form-control form-control-sm border-0 shadow-sm"
+                        id="custoDesc"
+                        placeholder="Descrição"
+                        style="flex-grow: 1"
+                      />
+                      <input
+                        type="text"
+                        inputmode="decimal"
+                        class="form-control form-control-sm border-0 shadow-sm text-end"
+                        id="custoValor"
+                        placeholder="R$ 0,00"
+                        required
+                        style="width: 90px"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    id="btnSalvarCusto"
+                    class="btn btn-success rounded-3"
+                    style="width: 45px; height: 45px"
+                  >
+                    <i class="fa-solid fa-plus"></i>
+                  </button>
+                </form>
+              </div>
+              <input type="hidden" id="finCavaloId" />
+              <div
+                class="d-flex align-items-center justify-content-between px-4 py-2 border-top border-bottom"
+                style="
+                  background: var(--bege-fundo);
+                  border-color: var(--bege-borda) !important;
+                "
+              >
+                <button
+                  class="btn btn-sm"
+                  style="color: var(--texto-suave)"
+                  onclick="RanchoApp.mudarMes(-1)"
+                >
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <span
+                  class="fw-bold text-brown small font-serif"
+                  id="labelMesAno"
+                  >MÊS</span
+                >
+                <button
+                  class="btn btn-sm"
+                  style="color: var(--texto-suave)"
+                  onclick="RanchoApp.mudarMes(1)"
+                >
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+              <div class="px-3 py-2" id="areaGrafico" style="display: none">
+                <div style="height: 140px; position: relative">
+                  <canvas
+                    id="graficoFinanceiro"
+                    role="img"
+                    aria-label="Gráfico de custos por categoria"
+                    >Custos por categoria.</canvas
+                  >
+                </div>
+              </div>
+              <div class="px-3 pb-5">
+                <table class="table mb-0">
+                  <tbody id="tabelaCustosBody"></tbody>
+                </table>
+              </div>
+              <div
+                class="position-absolute bottom-0 w-100 border-top p-3 d-flex justify-content-between align-items-center fixed-bottom-modal-panel"
+              >
+                <button
+                  class="btn btn-sm btn-light text-danger"
+                  onclick="RanchoApp.gerarPDF()"
+                >
+                  <i class="fa-solid fa-file-pdf"></i> PDF
+                </button>
+                <div class="text-end">
+                  <div class="small-label">Total</div>
+                  <div
+                    class="fw-bold fs-4 lh-1 font-serif"
+                    id="totalGastoModal"
+                    style="color: var(--vermelho)"
+                  >
+                    R$ 0,00
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mensalidade -->
+      <div class="modal fade" id="modalMensalidade" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0">
+            <div class="modal-header border-0">
+              <h5 class="modal-title fw-bold" id="tituloModalMensalidade">
+                Mensalidade
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body p-0">
+              <div
+                class="m-3 p-3 rounded-4"
+                style="
+                  background: var(--bege-fundo);
                   border: 0.5px solid var(--bege-borda);
                 "
               >
-                <table class="table mb-0 align-middle table-borderless">
-                  <tbody id="listaCavalosPropBody"></tbody>
-                </table>
+                <form id="formMensalidade">
+                  <input type="hidden" id="mensalidadeCavaloId" />
+                  <div style="display: none">
+                    <input type="date" id="mensalidadeData" />
+                  </div>
+                  <div class="row g-2 mb-3">
+                    <div class="col-6">
+                      <select
+                        class="form-select fw-bold"
+                        id="mensalidadeMes"
+                        required
+                      >
+                        <option value="1">Janeiro</option>
+                        <option value="2">Fevereiro</option>
+                        <option value="3">Março</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Maio</option>
+                        <option value="6">Junho</option>
+                        <option value="7">Julho</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Setembro</option>
+                        <option value="10">Outubro</option>
+                        <option value="11">Novembro</option>
+                        <option value="12">Dezembro</option>
+                      </select>
+                    </div>
+                    <div class="col-6">
+                      <select
+                        class="form-select fw-bold"
+                        id="mensalidadeAno"
+                        required
+                      >
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <input
+                      type="text"
+                      inputmode="decimal"
+                      class="form-control form-control-lg fw-bold text-center font-serif"
+                      id="mensalidadeValor"
+                      placeholder="R$ 0,00"
+                      required
+                      style="font-size: 1.5rem"
+                    />
+                  </div>
+                  <div
+                    class="mb-3 p-3 rounded-3"
+                    style="
+                      background: var(--bege-card);
+                      border: 0.5px solid var(--bege-borda);
+                    "
+                  >
+                    <label class="small-label d-block mb-2 text-center"
+                      >Incluso</label
+                    >
+                    <div class="d-flex flex-wrap justify-content-center gap-3">
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="checkBaia"
+                          checked
+                        /><label class="form-check-label small" for="checkBaia"
+                          >Baia</label
+                        >
+                      </div>
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="checkPiquete"
+                        /><label
+                          class="form-check-label small"
+                          for="checkPiquete"
+                          >Piquete</label
+                        >
+                      </div>
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="checkTreino"
+                        /><label
+                          class="form-check-label small"
+                          for="checkTreino"
+                          >Treino</label
+                        >
+                      </div>
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="checkAlimentacao"
+                          checked
+                        /><label
+                          class="form-check-label small"
+                          for="checkAlimentacao"
+                          >Alimentação</label
+                        >
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    class="btn btn-primary w-100 rounded-pill fw-bold py-2"
+                  >
+                    Adicionar à Fatura
+                  </button>
+                </form>
+              </div>
+              <div class="px-4 pb-4">
+                <div class="small-label mb-2 ms-1">Histórico</div>
+                <div
+                  class="rounded-4 overflow-hidden"
+                  style="
+                    background: var(--bege-card);
+                    border: 0.5px solid var(--bege-borda);
+                  "
+                >
+                  <table class="table mb-0 align-middle">
+                    <tbody id="tabelaMensalidadeBody"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detalhes Proprietário -->
+      <div class="modal fade" id="modalDetalhesProprietario" tabindex="-1">
+        <div
+          class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down"
+        >
+          <div class="modal-content border-0">
             <div
-              class="p-3 fixed-bottom-modal-panel border-top"
-              style="border-color: var(--bege-borda) !important"
+              class="modal-header border-0 pb-0"
+              style="background: var(--bege-card)"
             >
-              <div class="d-flex justify-content-between align-items-end mb-3">
-                <span class="small-label">Total a pagar</span>
-                <span
-                  style="
-                    font-family: &quot;Lora&quot;, serif;
-                    font-size: 1.8rem;
-                    color: var(--texto-titulo);
-                  "
-                  id="totalGeralProp"
-                  >R$ 0,00</span
+              <div>
+                <h5 class="modal-title fw-bold" id="tituloDetalhesProp">
+                  Nome
+                </h5>
+                <small class="text-muted" id="subtituloDetalhesProp"
+                  >Extrato</small
                 >
               </div>
-              <div class="d-grid gap-2" id="acoesFatura">
-                <button
-                  class="btn btn-primary py-3 rounded-4 fw-bold shadow-sm"
-                  id="btnBaixarFatura"
-                  onclick="RanchoApp.baixarFaturaMes()"
-                >
-                  <i class="fa-solid fa-check-circle me-2"></i> Confirmar
-                  Pagamento
-                </button>
-                <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body p-0" style="background: var(--bege-fundo)">
+              <div
+                class="p-3 mb-2"
+                style="
+                  background: var(--bege-card);
+                  border-bottom: 0.5px solid var(--bege-borda);
+                "
+              >
+                <form id="formCustoProp" class="d-flex gap-2">
+                  <input type="hidden" id="custoPropIdEdit" />
+                  <input
+                    type="text"
+                    class="form-control border-0"
+                    id="custoPropDesc"
+                    placeholder="Item avulso..."
+                    required
+                  />
+                  <input
+                    type="text"
+                    inputmode="decimal"
+                    class="form-control border-0 text-end"
+                    id="custoPropValor"
+                    placeholder="R$"
+                    style="width: 80px"
+                    required
+                  />
                   <button
-                    class="btn btn-success flex-grow-1 rounded-4 fw-bold"
-                    id="btnZapCobranca"
+                    type="submit"
+                    id="btnSalvarCustoProp"
+                    class="btn btn-success rounded-circle"
+                    style="width: 38px; height: 38px; padding: 0"
                   >
-                    <i class="fa-brands fa-whatsapp me-1"></i> Enviar card
+                    <i class="fa-solid fa-plus"></i>
                   </button>
-                  <button
-                    class="btn btn-outline-secondary rounded-4"
-                    onclick="RanchoApp.gerarPDFProprietario()"
+                </form>
+              </div>
+              <div
+                class="d-flex justify-content-center align-items-center gap-3 py-2 mb-2"
+                style="
+                  background: var(--bege-card);
+                  border-bottom: 0.5px solid var(--bege-borda);
+                "
+              >
+                <button
+                  class="btn btn-sm"
+                  style="color: var(--texto-suave)"
+                  onclick="RanchoApp.mudarMesProp(-1)"
+                >
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <span
+                  class="fw-bold text-brown small font-serif"
+                  id="labelMesAnoProp"
+                  >MÊS</span
+                >
+                <button
+                  class="btn btn-sm"
+                  style="color: var(--texto-suave)"
+                  onclick="RanchoApp.mudarMesProp(1)"
+                >
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+              <div class="px-3 pb-3">
+                <div
+                  class="rounded-4 overflow-hidden"
+                  style="
+                    background: var(--bege-card);
+                    border: 0.5px solid var(--bege-borda);
+                  "
+                >
+                  <table class="table mb-0 align-middle table-borderless">
+                    <tbody id="listaCavalosPropBody"></tbody>
+                  </table>
+                </div>
+              </div>
+              <div
+                class="p-3 fixed-bottom-modal-panel border-top"
+                style="border-color: var(--bege-borda) !important"
+              >
+                <div
+                  class="d-flex justify-content-between align-items-end mb-3"
+                >
+                  <span class="small-label">Total a pagar</span>
+                  <span
+                    style="
+                      font-family: &quot;Lora&quot;, serif;
+                      font-size: 1.8rem;
+                      color: var(--texto-titulo);
+                    "
+                    id="totalGeralProp"
+                    >R$ 0,00</span
                   >
-                    <i class="fa-solid fa-file-pdf"></i>
+                </div>
+                <div class="d-grid gap-2" id="acoesFatura">
+                  <button
+                    class="btn btn-primary py-3 rounded-4 fw-bold shadow-sm"
+                    id="btnBaixarFatura"
+                    onclick="RanchoApp.baixarFaturaMes()"
+                  >
+                    <i class="fa-solid fa-check-circle me-2"></i> Confirmar
+                    Pagamento
+                  </button>
+                  <div class="d-flex gap-2">
+                    <button
+                      class="btn btn-success flex-grow-1 rounded-4 fw-bold"
+                      id="btnZapCobranca"
+                    >
+                      <i class="fa-brands fa-whatsapp me-1"></i> Enviar card
+                    </button>
+                    <button
+                      class="btn btn-outline-secondary rounded-4"
+                      onclick="RanchoApp.gerarPDFProprietario()"
+                    >
+                      <i class="fa-solid fa-file-pdf"></i>
+                    </button>
+                  </div>
+                  <button
+                    class="btn btn-outline-primary rounded-4 fw-bold"
+                    onclick="RanchoApp.abrirModalLoteMensalidade()"
+                  >
+                    <i class="fa-solid fa-calendar-check me-2"></i> Lançar
+                    mensalidade em lote
                   </button>
                 </div>
+              </div>
+              <div style="height: 200px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirmação -->
+      <div class="modal fade" id="modalConfirmacao" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-body text-center py-4">
+              <div
+                class="mb-3"
+                style="font-size: 2.5rem; color: var(--dourado)"
+              >
+                <i class="fa-solid fa-circle-question"></i>
+              </div>
+              <h5 class="fw-bold mb-2 font-serif" id="tituloConfirmacao">
+                Tem certeza?
+              </h5>
+              <p class="text-muted small mb-4" id="msgConfirmacao">
+                Ação irreversível.
+              </p>
+              <div class="d-flex gap-2 justify-content-center">
                 <button
-                  class="btn btn-outline-primary rounded-4 fw-bold"
-                  onclick="RanchoApp.abrirModalLoteMensalidade()"
+                  type="button"
+                  class="btn btn-light rounded-pill px-4"
+                  data-bs-dismiss="modal"
                 >
-                  <i class="fa-solid fa-calendar-check me-2"></i> Lançar
-                  mensalidade em lote
+                  Não
+                </button>
+                <button
+                  type="button"
+                  id="btnConfirmarAcao"
+                  class="btn btn-danger rounded-pill px-4"
+                >
+                  Sim
                 </button>
               </div>
             </div>
-            <div style="height: 200px"></div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Confirmação -->
-    <div class="modal fade" id="modalConfirmacao" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow rounded-4">
-          <div class="modal-body text-center py-4">
-            <div class="mb-3" style="font-size: 2.5rem; color: var(--dourado)">
-              <i class="fa-solid fa-circle-question"></i>
-            </div>
-            <h5 class="fw-bold mb-2 font-serif" id="tituloConfirmacao">
-              Tem certeza?
-            </h5>
-            <p class="text-muted small mb-4" id="msgConfirmacao">
-              Ação irreversível.
-            </p>
-            <div class="d-flex gap-2 justify-content-center">
-              <button
-                type="button"
-                class="btn btn-light rounded-pill px-4"
-                data-bs-dismiss="modal"
-              >
-                Não
-              </button>
-              <button
-                type="button"
-                id="btnConfirmarAcao"
-                class="btn btn-danger rounded-pill px-4"
-              >
-                Sim
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Toast -->
-    <div
-      class="toast-container position-fixed bottom-0 end-0 p-3"
-      style="z-index: 1100; margin-bottom: 75px"
-    >
+      <!-- Toast -->
       <div
-        id="liveToast"
-        class="toast align-items-center text-bg-dark border-0 rounded-4 shadow-lg"
-        role="alert"
-        aria-live="assertive"
-        aria-atomic="true"
+        class="toast-container position-fixed bottom-0 end-0 p-3"
+        style="z-index: 1100; margin-bottom: 75px"
       >
-        <div class="d-flex">
-          <div class="toast-body fw-bold px-4" id="toastMessage"></div>
+        <div
+          id="liveToast"
+          class="toast align-items-center text-bg-dark border-0 rounded-4 shadow-lg"
+          role="alert"
+          aria-live="assertive"
+          aria-atomic="true"
+        >
+          <div class="d-flex">
+            <div class="toast-body fw-bold px-4" id="toastMessage"></div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="dashboard_parts/api.js"></script>
-    <script src="relatorio.js"></script>
-    <script src="rancho.js"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("sw.js")
-          .catch((e) => console.log("Erro SW:", e));
-      }
-      // Define o mês atual no seletor de relatório
-      document.addEventListener("DOMContentLoaded", () => {
-        const m = new Date().getMonth() + 1;
-        const sel = document.getElementById("relatorioMes");
-        if (sel) sel.value = m;
-      });
-    </script>
+      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+      <script src="dashboard_parts/api.js"></script>
+      <script src="relatorio.js"></script>
+      <script src="rancho.js"></script>
+      <script>
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker
+            .register("sw.js")
+            .catch((e) => console.log("Erro SW:", e));
+        }
+        document.addEventListener("DOMContentLoaded", () => {
+          const m = new Date().getMonth() + 1;
+          const sel = document.getElementById("relatorioMes");
+          if (sel) sel.value = m;
+
+          // Logout desktop
+          document
+            .getElementById("logoutDesktop")
+            ?.addEventListener("click", () => {
+              document.getElementById("logoutButton")?.click();
+            });
+          document
+            .getElementById("logoutSidebar")
+            ?.addEventListener("click", () => {
+              document.getElementById("logoutButton")?.click();
+            });
+
+          // Dark mode desktop
+          document
+            .getElementById("btnDarkModeDesktop")
+            ?.addEventListener("click", () => {
+              document.getElementById("btnDarkMode")?.click();
+            });
+
+          // Busca global no topbar desktop
+          const inputTop = document.getElementById("inputBuscaTopbar");
+          if (inputTop) {
+            let t;
+            inputTop.addEventListener("input", (e) => {
+              const val = e.target.value.trim();
+              clearTimeout(t);
+              if (val.length >= 2) {
+                // Vai para aba finanças e executa busca
+                if (RanchoApp.abaAtual !== "financas")
+                  RanchoApp.mudarAba("financas");
+                t = setTimeout(() => {
+                  const inp = document.getElementById("inputBuscaGlobal");
+                  if (inp) {
+                    inp.value = val;
+                    inp.dispatchEvent(new Event("input"));
+                  }
+                }, 350);
+              }
+            });
+          }
+
+          // Topbar: data e saudação
+          const setTopbar = () => {
+            const agora = new Date();
+            const dias = [
+              "Domingo",
+              "Segunda",
+              "Terça",
+              "Quarta",
+              "Quinta",
+              "Sexta",
+              "Sábado",
+            ];
+            const meses = [
+              "janeiro",
+              "fevereiro",
+              "março",
+              "abril",
+              "maio",
+              "junho",
+              "julho",
+              "agosto",
+              "setembro",
+              "outubro",
+              "novembro",
+              "dezembro",
+            ];
+            const el = document.getElementById("topbarData");
+            if (el)
+              el.textContent = `${dias[agora.getDay()]}, ${agora.getDate()} de ${meses[agora.getMonth()]} de ${agora.getFullYear()}`;
+            const h = agora.getHours();
+            const saud = document.getElementById("topbarSaudacao");
+            if (saud)
+              saud.textContent =
+                h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+          };
+          setTopbar();
+        });
+      </script>
+    </div>
+    <!-- fim #appWrapper -->
   </body>
 </html>
