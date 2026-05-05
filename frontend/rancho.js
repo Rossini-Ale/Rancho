@@ -510,12 +510,14 @@ const RanchoApp = {
       cavalos: "tabCavalos",
       proprietarios: "tabProprietarios",
       rancho: "tabRancho",
+      financas: "tabFinancas",
     };
     const navs = {
       home: "navBtnHome",
       cavalos: "navBtnCavalos",
       proprietarios: "navBtnProps",
       rancho: "navBtnRancho",
+      financas: "navBtnFinancas",
     };
     Object.values(tabs).forEach((id) => {
       const el = document.getElementById(id);
@@ -541,7 +543,7 @@ const RanchoApp = {
       this.dataFiltroRancho = new Date();
       this.atualizarLabelMesRancho();
       this.carregarDespesasRancho();
-    }
+    } else if (aba === "financas") this.carregarFinancas();
   },
 
   adicionarItemAtual() {
@@ -917,11 +919,18 @@ const RanchoApp = {
               <span style="background:${badgeBg};color:${badgeClr};border-radius:10px;padding:3px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;">
                 ${p.txtValor}
               </span>
-              <button class="btn-action icon-brown" style="width:32px;height:32px;"
-                onclick="RanchoApp.abrirModalGerenciarProprietarios(${p.id},'${p.nome}','${p.telefone || ""}')"
-                title="Editar">
-                <i class="fa-solid fa-pen" style="font-size:0.72rem;"></i>
-              </button>
+              <div style="display:flex;gap:6px;">
+                <button class="btn-action icon-brown" style="width:32px;height:32px;"
+                  onclick="RanchoApp.abrirHistoricoCliente(${p.id},'${p.nome}')"
+                  title="Histórico">
+                  <i class="fa-solid fa-clock-rotate-left" style="font-size:0.72rem;"></i>
+                </button>
+                <button class="btn-action icon-brown" style="width:32px;height:32px;"
+                  onclick="RanchoApp.abrirModalGerenciarProprietarios(${p.id},'${p.nome}','${p.telefone || ""}')"
+                  title="Editar">
+                  <i class="fa-solid fa-pen" style="font-size:0.72rem;"></i>
+                </button>
+              </div>
             </div>
           </div>`;
         wrap.appendChild(el.firstElementChild);
@@ -1756,6 +1765,430 @@ const RanchoApp = {
       parseInt(document.getElementById("relatorioAno")?.value) ||
       new Date().getFullYear();
     Relatorio.gerar(mes, ano);
+  },
+
+  // ══════════════════════════════════════════
+  // ABA FINANÇAS — COBRANÇAS
+  // ══════════════════════════════════════════
+  async carregarFinancas() {
+    await Promise.all([this.carregarCobrancas(), this.setupBuscaGlobal()]);
+  },
+
+  async carregarCobrancas() {
+    const wrap = document.getElementById("listaCobrancas");
+    if (!wrap) return;
+    wrap.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:0.85rem;">Carregando...</div>`;
+    try {
+      const dados = await ApiService.fetchData("/api/dashboard/cobrancas");
+      if (!dados) return;
+
+      // KPIs
+      const totalEl = document.getElementById("totalAtraso");
+      const qtdEl = document.getElementById("qtdAtrasados");
+      const recEl = document.getElementById("receitaMesCobrancas");
+      const pctEl = document.getElementById("pctReceitaCobrancas");
+
+      if (totalEl)
+        totalEl.textContent = dados.totalPendente.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+      if (qtdEl) {
+        const qtd = new Set([
+          ...dados.pendentes.map((p) => p.proprietario_id),
+          ...dados.custosDiretos.map((c) => c.proprietario_id),
+        ]).size;
+        qtdEl.textContent = `${qtd} cliente${qtd !== 1 ? "s" : ""}`;
+        qtdEl.className = `kpi-trend ${qtd > 0 ? "dn" : "up"}`;
+      }
+      if (recEl)
+        recEl.textContent = dados.receitaMes.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+      if (pctEl && dados.pctReceita !== null) {
+        pctEl.textContent = `${dados.pctReceita > 0 ? "+" : ""}${dados.pctReceita}% vs mês ant.`;
+        pctEl.className = `kpi-trend ${dados.pctReceita >= 0 ? "up" : "dn"}`;
+      }
+
+      // Lista de pendências
+      const todos = [
+        ...dados.pendentes.map((p) => ({ ...p, tipo: "mensalidade" })),
+        ...dados.custosDiretos.map((c) => ({
+          ...c,
+          tipo: "direto",
+          cavalo: null,
+        })),
+      ].sort((a, b) => b.dias_atraso - a.dias_atraso);
+
+      if (!todos.length) {
+        wrap.innerHTML = `
+          <div style="text-align:center;padding:3rem 1rem;">
+            <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-circle-check"></i></div>
+            <p style="color:var(--verde);font-family:'Lora',serif;font-weight:600;margin-bottom:4px;">Tudo em dia!</p>
+            <small style="color:var(--texto-suave);">Nenhuma cobrança pendente.</small>
+          </div>`;
+        return;
+      }
+
+      wrap.innerHTML = todos
+        .map((item) => {
+          const diasCor =
+            item.dias_atraso > 30
+              ? "var(--vermelho)"
+              : item.dias_atraso > 7
+                ? "var(--dourado)"
+                : "var(--texto-suave)";
+          const diasBg =
+            item.dias_atraso > 30
+              ? "rgba(168,50,50,0.09)"
+              : item.dias_atraso > 7
+                ? "rgba(196,154,74,0.12)"
+                : "rgba(138,104,64,0.08)";
+          const borderClr =
+            item.dias_atraso > 30
+              ? "var(--vermelho)"
+              : item.dias_atraso > 7
+                ? "var(--dourado)"
+                : "var(--bege-borda)";
+          const valF = item.valor.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+          const descricao =
+            item.tipo === "mensalidade"
+              ? `${item.cavalo} · ${item.itens || "Mensalidade"}`
+              : item.descricao;
+          const nomesMeses = [
+            "",
+            "Jan",
+            "Fev",
+            "Mar",
+            "Abr",
+            "Mai",
+            "Jun",
+            "Jul",
+            "Ago",
+            "Set",
+            "Out",
+            "Nov",
+            "Dez",
+          ];
+          const periodo =
+            item.tipo === "mensalidade"
+              ? `${nomesMeses[item.mes]}/${item.ano}`
+              : new Date(item.data_despesa).toLocaleDateString("pt-BR");
+
+          return `
+          <div style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-left:3px solid ${borderClr};border-radius:16px;padding:13px 14px;margin-bottom:10px;box-shadow:var(--sombra);">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-family:'Lora',serif;font-size:0.95rem;font-weight:600;color:var(--texto-titulo);">${item.proprietario || "Sem cliente"}</div>
+                <div style="font-size:0.75rem;color:var(--texto-suave);margin-top:3px;">${descricao} · ${periodo}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-weight:700;color:var(--vermelho);font-size:0.95rem;">${valF}</div>
+                <div style="background:${diasBg};color:${diasCor};border-radius:8px;padding:2px 8px;font-size:0.7rem;font-weight:600;margin-top:3px;">${item.dias_atraso} dias</div>
+              </div>
+            </div>
+            ${
+              item.telefone
+                ? `
+            <button
+              onclick="RanchoApp.cobrarWhatsApp('${item.proprietario}','${item.telefone}','${valF}','${descricao}','${periodo}')"
+              style="margin-top:10px;background:#25D366;color:white;border:none;border-radius:10px;padding:7px 14px;font-size:0.78rem;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+              <i class="fa-brands fa-whatsapp" style="font-size:0.9rem;"></i> Cobrar via WhatsApp
+            </button>`
+                : ""
+            }
+          </div>`;
+        })
+        .join("");
+    } catch (e) {
+      console.error("carregarCobrancas:", e);
+    }
+  },
+
+  cobrarWhatsApp(nome, telefone, valor, descricao, periodo) {
+    this.vibrar();
+    const tel = telefone.replace(/\D/g, "");
+    const msg = `Olá *${nome}*! 👋\n\nPassando para lembrar sobre o pagamento pendente:\n\n📋 *${descricao}*\n📅 Período: ${periodo}\n💰 Valor: *${valor}*\n\n${this.chavePixCache ? `Chave PIX para pagamento:\n*${this.chavePixCache}*\n\n` : ""}Qualquer dúvida, estou à disposição!`;
+    window.open(
+      `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`,
+      "_blank",
+    );
+  },
+
+  // ══════════════════════════════════════════
+  // HISTÓRICO COMPLETO DO CLIENTE
+  // ══════════════════════════════════════════
+  async abrirHistoricoCliente(propId, nomeProp) {
+    this.vibrar();
+    if (!this.bsModalHistoricoCliente) {
+      this.bsModalHistoricoCliente = new bootstrap.Modal(
+        document.getElementById("modalHistoricoCliente"),
+      );
+    }
+    document.getElementById("tituloHistoricoCliente").textContent = nomeProp;
+    document.getElementById("subtituloHistoricoCliente").textContent =
+      "Últimos 12 meses";
+    document.getElementById("listaHistoricoCliente").innerHTML =
+      `<div style="text-align:center;padding:2rem;color:var(--texto-suave);">Carregando...</div>`;
+    this.bsModalHistoricoCliente.show();
+
+    try {
+      const dados = await ApiService.fetchData(
+        `/api/dashboard/historico-cliente/${propId}`,
+      );
+      if (!dados) return;
+
+      // Stats
+      document.getElementById("statEmDia").textContent = dados.stats.mesesEmDia;
+      document.getElementById("statAtrasados").textContent =
+        dados.stats.mesesAtrasados;
+      document.getElementById("statPontualidade").textContent =
+        `${dados.stats.taxaPagamento}%`;
+
+      // Lista histórico
+      const nomesMeses = [
+        "Janeiro",
+        "Fevereiro",
+        "Março",
+        "Abril",
+        "Maio",
+        "Junho",
+        "Julho",
+        "Agosto",
+        "Setembro",
+        "Outubro",
+        "Novembro",
+        "Dezembro",
+      ];
+      const lista = document.getElementById("listaHistoricoCliente");
+
+      lista.innerHTML =
+        dados.historico
+          .filter((h) => h.totalMes > 0)
+          .reverse()
+          .map((h) => {
+            const totalF = h.totalMes.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            });
+            const pagoF = h.totalPago.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            });
+            const cor = h.temPendente ? "var(--vermelho)" : "var(--verde)";
+            const bg = h.temPendente
+              ? "rgba(168,50,50,0.08)"
+              : "rgba(61,122,94,0.08)";
+            const icone = h.temPendente ? "fa-clock" : "fa-check-circle";
+            const status = h.temPendente ? "Pendente" : "Pago";
+
+            return `
+          <div style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-radius:16px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sombra);">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div>
+                <div style="font-family:'Lora',serif;font-size:0.92rem;font-weight:600;color:var(--texto-titulo);">${nomesMeses[h.mes - 1]} ${h.ano}</div>
+                <div style="font-size:0.72rem;color:var(--texto-suave);margin-top:2px;">
+                  ${h.mensalidades.map((m) => `${m.cavalo}: ${m.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`).join(" · ")}
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-weight:700;color:var(--texto-titulo);font-size:0.9rem;">${totalF}</div>
+                <div style="background:${bg};color:${cor};border-radius:8px;padding:2px 8px;font-size:0.7rem;font-weight:600;margin-top:3px;display:inline-flex;align-items:center;gap:4px;">
+                  <i class="fa-solid ${icone}" style="font-size:0.65rem;"></i>${status}
+                </div>
+              </div>
+            </div>
+          </div>`;
+          })
+          .join("") ||
+        `<div style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:0.85rem;">Nenhum registro nos últimos 12 meses.</div>`;
+    } catch (e) {
+      console.error("abrirHistoricoCliente:", e);
+    }
+  },
+
+  // ══════════════════════════════════════════
+  // BUSCA GLOBAL
+  // ══════════════════════════════════════════
+  setupBuscaGlobal() {
+    const input = document.getElementById("inputBuscaGlobal");
+    const btnClr = document.getElementById("btnLimparBuscaGlobal");
+    const result = document.getElementById("resultadosBusca");
+    if (!input) return;
+
+    let timer;
+    input.addEventListener("input", (e) => {
+      const val = e.target.value.trim();
+      btnClr?.classList.toggle("visible", val.length > 0);
+      clearTimeout(timer);
+      if (val.length < 2) {
+        if (result) result.style.display = "none";
+        return;
+      }
+      timer = setTimeout(() => this.executarBuscaGlobal(val), 350);
+    });
+
+    btnClr?.addEventListener("click", () => {
+      if (input) input.value = "";
+      btnClr.classList.remove("visible");
+      if (result) result.style.display = "none";
+    });
+  },
+
+  async executarBuscaGlobal(termo) {
+    const result = document.getElementById("resultadosBusca");
+    if (!result) return;
+    result.style.display = "block";
+    result.innerHTML = `<div style="padding:12px;color:var(--texto-suave);font-size:0.82rem;">Buscando...</div>`;
+
+    try {
+      const dados = await ApiService.fetchData(
+        `/api/dashboard/busca?q=${encodeURIComponent(termo)}`,
+      );
+      const total =
+        (dados.cavalos?.length || 0) +
+        (dados.proprietarios?.length || 0) +
+        (dados.custos?.length || 0);
+
+      if (!total) {
+        result.innerHTML = `<div style="padding:12px;color:var(--texto-suave);font-size:0.82rem;">Nenhum resultado para "<b>${termo}</b>"</div>`;
+        return;
+      }
+
+      let html = `<div style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-radius:16px;overflow:hidden;margin-bottom:10px;">`;
+
+      if (dados.cavalos?.length) {
+        html += `<div style="padding:8px 14px 4px;font-size:0.7rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.6px;font-weight:600;">Animais</div>`;
+        html += dados.cavalos
+          .map(
+            (c) => `
+          <div onclick="RanchoApp.abrirModalEditar(${c.id},'${c.nome.replace(/'/g, "\\'")}','${(c.lugar || "").replace(/'/g, "\\'")}','${c.proprietario_id || ""}','')"
+            style="padding:10px 14px;border-top:0.5px solid var(--bege-borda);display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--marrom-claro),var(--marrom-escuro));display:flex;align-items:center;justify-content:center;color:var(--dourado-claro);font-size:12px;font-weight:600;flex-shrink:0;">${c.nome.charAt(0).toUpperCase()}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.85rem;font-weight:600;color:var(--texto-titulo);">${c.nome}</div>
+              <div style="font-size:0.72rem;color:var(--texto-suave);">${c.lugar || "Sem local"} · ${c.nome_proprietario || "Sem proprietário"}</div>
+            </div>
+            ${c.total_mes > 0 ? `<span style="background:rgba(168,50,50,0.08);color:var(--vermelho);border-radius:8px;padding:2px 8px;font-size:0.72rem;font-weight:600;">${c.total_mes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>` : ""}
+          </div>`,
+          )
+          .join("");
+      }
+
+      if (dados.proprietarios?.length) {
+        html += `<div style="padding:8px 14px 4px;font-size:0.7rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.6px;font-weight:600;${dados.cavalos?.length ? "border-top:0.5px solid var(--bege-borda);" : ""}">Clientes</div>`;
+        html += dados.proprietarios
+          .map(
+            (p) => `
+          <div onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')"
+            style="padding:10px 14px;border-top:0.5px solid var(--bege-borda);display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6B7280,#374151);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;flex-shrink:0;">${p.nome.charAt(0).toUpperCase()}</div>
+            <div style="flex:1;">
+              <div style="font-size:0.85rem;font-weight:600;color:var(--texto-titulo);">${p.nome}</div>
+              <div style="font-size:0.72rem;color:var(--texto-suave);">${p.telefone || "Sem telefone"}</div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="font-size:0.75rem;color:var(--texto-suave);"></i>
+          </div>`,
+          )
+          .join("");
+      }
+
+      if (dados.custos?.length) {
+        html += `<div style="padding:8px 14px 4px;font-size:0.7rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.6px;font-weight:600;border-top:0.5px solid var(--bege-borda);">Custos recentes</div>`;
+        html += dados.custos
+          .map((c) => {
+            const valF = c.valor.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            });
+            const ref = c.cavalo || c.proprietario || "Rancho";
+            return `
+            <div style="padding:10px 14px;border-top:0.5px solid var(--bege-borda);display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <div style="min-width:0;">
+                <div style="font-size:0.85rem;font-weight:600;color:var(--texto-titulo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.descricao}</div>
+                <div style="font-size:0.72rem;color:var(--texto-suave);">${ref} · ${new Date(c.data_despesa).toLocaleDateString("pt-BR")}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:0.85rem;font-weight:600;color:var(--vermelho);">${valF}</div>
+                <div style="font-size:0.7rem;color:${c.pago ? "var(--verde)" : "var(--vermelho)"};">${c.pago ? "Pago" : "Pendente"}</div>
+              </div>
+            </div>`;
+          })
+          .join("");
+      }
+
+      html += `</div>`;
+      result.innerHTML = html;
+    } catch (e) {
+      result.innerHTML = `<div style="padding:12px;color:var(--texto-suave);font-size:0.82rem;">Erro ao buscar.</div>`;
+    }
+  },
+
+  // ══════════════════════════════════════════
+  // CONFIRMAÇÃO DE PAGAMENTO COM WHATSAPP
+  // ══════════════════════════════════════════
+  async baixarFaturaMes() {
+    this.abrirConfirmacao(
+      "Confirmar pagamento",
+      "Marcar fatura como paga?",
+      async () => {
+        const propId = this.proprietarioAtualId;
+        const mes = this.dataFiltroProp.getMonth() + 1;
+        const ano = this.dataFiltroProp.getFullYear();
+        const nome = document.getElementById("tituloDetalhesProp").textContent;
+        const tel = document.getElementById(
+          "subtituloDetalhesProp",
+        ).textContent;
+
+        await ApiService.putData("/api/gestao/custos/baixar-mes", {
+          proprietario_id: propId,
+          mes,
+          ano,
+        });
+
+        // Busca total pago para a mensagem
+        const nomesMeses = [
+          "Janeiro",
+          "Fevereiro",
+          "Março",
+          "Abril",
+          "Maio",
+          "Junho",
+          "Julho",
+          "Agosto",
+          "Setembro",
+          "Outubro",
+          "Novembro",
+          "Dezembro",
+        ];
+        const periodo = `${nomesMeses[mes - 1]} ${ano}`;
+
+        this.carregarFaturaProprietario(propId, nome, tel);
+        this.mostrarNotificacao("Pagamento confirmado!");
+
+        // Pergunta se quer enviar confirmação via WhatsApp
+        if (tel && tel !== "Sem telefone") {
+          const telLimpo = tel.replace(/\D/g, "");
+          setTimeout(() => {
+            this.abrirConfirmacao(
+              "Enviar confirmação?",
+              `Enviar mensagem de confirmação para ${nome} via WhatsApp?`,
+              () => {
+                const msg = `Olá *${nome}*! ✅\n\nConfirmamos o recebimento do pagamento referente a *${periodo}*.\n\nObrigado pela pontualidade! 🤝\n\n_HF Controll_`;
+                window.open(
+                  `https://wa.me/55${telLimpo}?text=${encodeURIComponent(msg)}`,
+                  "_blank",
+                );
+              },
+            );
+          }, 400);
+        }
+      },
+    );
   },
 
   // ── Config ──

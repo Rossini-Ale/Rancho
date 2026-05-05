@@ -386,4 +386,255 @@ router.get("/relatorio", async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════
+// Adicione estas rotas no routes/dashboard.js
+// antes do module.exports = router
+// ═══════════════════════════════════════════════════════════
+
+// ── GET /api/dashboard/cobrancas ─────────────────────────────
+// Retorna todas as mensalidades pendentes com dias de atraso
+router.get("/cobrancas", async (req, res) => {
+  const uid = req.user.id;
+  const hoje = new Date();
+  const mesAtual = hoje.getMonth() + 1;
+  const anoAtual = hoje.getFullYear();
+
+  try {
+    // Busca mensalidades não pagas com dados do animal e proprietário
+    const [pendentes] = await pool.query(
+      `SELECT
+         m.id, m.mes, m.ano, m.valor, m.itens,
+         c.id AS cavalo_id, c.nome AS cavalo,
+         p.id AS proprietario_id, p.nome AS proprietario, p.telefone,
+         DATEDIFF(NOW(), STR_TO_DATE(CONCAT(m.ano,'-',LPAD(m.mes,2,'0'),'-01'), '%Y-%m-%d')) AS dias_atraso
+       FROM Mensalidades m
+       JOIN Cavalos c ON m.cavalo_id = c.id
+       LEFT JOIN Proprietarios p ON c.proprietario_id = p.id
+       WHERE m.usuario_id = ? AND m.pago = 0
+       ORDER BY dias_atraso DESC`,
+      [uid],
+    );
+
+    // Custos diretos não pagos por proprietário
+    const [custosDiretos] = await pool.query(
+      `SELECT
+         cu.id, cu.descricao, cu.valor, cu.data_despesa,
+         p.id AS proprietario_id, p.nome AS proprietario, p.telefone,
+         DATEDIFF(NOW(), cu.data_despesa) AS dias_atraso
+       FROM Custos cu
+       JOIN Proprietarios p ON cu.proprietario_id = p.id
+       WHERE cu.usuario_id = ? AND cu.pago = 0
+         AND cu.proprietario_id IS NOT NULL AND cu.cavalo_id IS NULL
+       ORDER BY dias_atraso DESC`,
+      [uid],
+    );
+
+    // Total em atraso
+    const totalPendente =
+      pendentes.reduce((s, m) => s + parseFloat(m.valor), 0) +
+      custosDiretos.reduce((s, c) => s + parseFloat(c.valor), 0);
+
+    // Receita do mês atual
+    const [[{ receitaMes }]] = await pool.query(
+      "SELECT COALESCE(SUM(valor),0) AS receitaMes FROM Mensalidades WHERE usuario_id=? AND mes=? AND ano=? AND pago=1",
+      [uid, mesAtual, anoAtual],
+    );
+    const mesAnt = mesAtual === 1 ? 12 : mesAtual - 1;
+    const anoAnt = mesAtual === 1 ? anoAtual - 1 : anoAtual;
+    const [[{ receitaAnt }]] = await pool.query(
+      "SELECT COALESCE(SUM(valor),0) AS receitaAnt FROM Mensalidades WHERE usuario_id=? AND mes=? AND ano=? AND pago=1",
+      [uid, mesAnt, anoAnt],
+    );
+    const pctReceita =
+      parseFloat(receitaAnt) > 0
+        ? Math.round(
+            ((parseFloat(receitaMes) - parseFloat(receitaAnt)) /
+              parseFloat(receitaAnt)) *
+              100,
+          )
+        : null;
+
+    res.json({
+      pendentes: pendentes.map((m) => ({
+        ...m,
+        valor: parseFloat(m.valor),
+        dias_atraso: parseInt(m.dias_atraso) || 0,
+      })),
+      custosDiretos: custosDiretos.map((c) => ({
+        ...c,
+        valor: parseFloat(c.valor),
+        dias_atraso: parseInt(c.dias_atraso) || 0,
+      })),
+      totalPendente,
+      receitaMes: parseFloat(receitaMes),
+      pctReceita,
+    });
+  } catch (err) {
+    console.error("Erro GET /cobrancas:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/dashboard/historico-cliente/:propId ─────────────
+// Histórico completo de pagamentos de um cliente (12 meses)
+router.get("/historico-cliente/:propId", async (req, res) => {
+  const uid = req.user.id;
+  const propId = req.params.propId;
+
+  try {
+    // Verifica permissão
+    const [[prop]] = await pool.query(
+      "SELECT id, nome, telefone FROM Proprietarios WHERE id=? AND usuario_id=?",
+      [propId, uid],
+    );
+    if (!prop) return res.status(403).json({ message: "Sem permissão." });
+
+    // Cavalos do proprietário
+    const [cavalos] = await pool.query(
+      "SELECT id, nome FROM Cavalos WHERE proprietario_id=? AND usuario_id=?",
+      [propId, uid],
+    );
+
+    // Histórico de mensalidades dos últimos 12 meses
+    const historico = [];
+    const hoje = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      const mes = d.getMonth() + 1;
+      const ano = d.getFullYear();
+      const nomes = [
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
+      ];
+
+      const mensalidadesMes = [];
+      for (const cavalo of cavalos) {
+        const [mens] = await pool.query(
+          "SELECT * FROM Mensalidades WHERE cavalo_id=? AND mes=? AND ano=? AND usuario_id=?",
+          [cavalo.id, mes, ano, uid],
+        );
+        if (mens.length > 0) {
+          mensalidadesMes.push({
+            cavalo: cavalo.nome,
+            valor: parseFloat(mens[0].valor),
+            pago: mens[0].pago == 1,
+            id: mens[0].id,
+          });
+        }
+      }
+
+      // Custos diretos do mês
+      const [diretos] = await pool.query(
+        "SELECT * FROM Custos WHERE proprietario_id=? AND cavalo_id IS NULL AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND usuario_id=?",
+        [propId, mes, ano, uid],
+      );
+
+      const totalMes =
+        mensalidadesMes.reduce((s, m) => s + m.valor, 0) +
+        diretos.reduce((s, c) => s + parseFloat(c.valor), 0);
+      const totalPago =
+        mensalidadesMes.filter((m) => m.pago).reduce((s, m) => s + m.valor, 0) +
+        diretos
+          .filter((c) => c.pago)
+          .reduce((s, c) => s + parseFloat(c.valor), 0);
+      const temPendente =
+        mensalidadesMes.some((m) => !m.pago) || diretos.some((c) => !c.pago);
+
+      historico.push({
+        label: nomes[mes - 1],
+        mes,
+        ano,
+        totalMes,
+        totalPago,
+        temPendente,
+        mensalidades: mensalidadesMes,
+        diretos: diretos.map((c) => ({ ...c, valor: parseFloat(c.valor) })),
+      });
+    }
+
+    // Estatísticas gerais
+    const mesesComDados = historico.filter((h) => h.totalMes > 0);
+    const mesesEmDia = mesesComDados.filter((h) => !h.temPendente).length;
+    const mesesAtrasados = mesesComDados.filter((h) => h.temPendente).length;
+    const taxaPagamento =
+      mesesComDados.length > 0
+        ? Math.round((mesesEmDia / mesesComDados.length) * 100)
+        : 100;
+
+    res.json({
+      proprietario: prop,
+      cavalos,
+      historico,
+      stats: { mesesEmDia, mesesAtrasados, taxaPagamento },
+    });
+  } catch (err) {
+    console.error("Erro GET /historico-cliente:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/dashboard/busca?q=termo ─────────────────────────
+// Busca global em animais, clientes e custos
+router.get("/busca", async (req, res) => {
+  const uid = req.user.id;
+  const termo = `%${req.query.q || ""}%`;
+
+  if (!req.query.q || req.query.q.trim().length < 2) {
+    return res.json({ cavalos: [], proprietarios: [], custos: [] });
+  }
+
+  try {
+    const [cavalos] = await pool.query(
+      `SELECT c.id, c.nome, c.lugar, c.proprietario_id,
+         p.nome AS nome_proprietario,
+         COALESCE((SELECT SUM(cu.valor) FROM Custos cu WHERE cu.cavalo_id=c.id AND MONTH(cu.data_despesa)=MONTH(NOW()) AND YEAR(cu.data_despesa)=YEAR(NOW()) AND cu.usuario_id=c.usuario_id),0) AS total_mes
+       FROM Cavalos c
+       LEFT JOIN Proprietarios p ON c.proprietario_id = p.id
+       WHERE c.usuario_id=? AND (c.nome LIKE ? OR c.lugar LIKE ? OR p.nome LIKE ?)
+       LIMIT 5`,
+      [uid, termo, termo, termo],
+    );
+
+    const [proprietarios] = await pool.query(
+      `SELECT id, nome, telefone FROM Proprietarios
+       WHERE usuario_id=? AND (nome LIKE ? OR telefone LIKE ?)
+       LIMIT 5`,
+      [uid, termo, termo],
+    );
+
+    const [custos] = await pool.query(
+      `SELECT cu.id, cu.descricao, cu.categoria, cu.valor, cu.data_despesa, cu.pago,
+         c.nome AS cavalo, p.nome AS proprietario
+       FROM Custos cu
+       LEFT JOIN Cavalos c ON cu.cavalo_id = c.id
+       LEFT JOIN Proprietarios p ON cu.proprietario_id = p.id
+       WHERE cu.usuario_id=? AND (cu.descricao LIKE ? OR cu.categoria LIKE ? OR c.nome LIKE ? OR p.nome LIKE ?)
+       ORDER BY cu.data_despesa DESC
+       LIMIT 5`,
+      [uid, termo, termo, termo, termo],
+    );
+
+    res.json({
+      cavalos: cavalos.map((c) => ({
+        ...c,
+        total_mes: parseFloat(c.total_mes),
+      })),
+      proprietarios,
+      custos: custos.map((c) => ({ ...c, valor: parseFloat(c.valor) })),
+    });
+  } catch (err) {
+    console.error("Erro GET /busca:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;

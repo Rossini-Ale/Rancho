@@ -465,6 +465,100 @@
           </div>
         </div>
       </div>
+
+      <!-- ── ABA FINANÇAS / COBRANÇAS ── -->
+      <div id="tabFinancas" class="d-none">
+        <div style="padding: 14px 14px 4px">
+          <div
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 1.15rem;
+              color: var(--texto-titulo);
+            "
+          >
+            Cobranças
+          </div>
+        </div>
+
+        <!-- Resumo KPIs -->
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 8px 14px 4px;
+          "
+        >
+          <div class="kpi-card k-vermelho">
+            <div class="kpi-label">Em atraso</div>
+            <div class="kpi-value sm" id="totalAtraso">R$ 0,00</div>
+            <div class="kpi-trend neu" id="qtdAtrasados">0 clientes</div>
+          </div>
+          <div class="kpi-card k-verde">
+            <div class="kpi-label">Receita mês</div>
+            <div class="kpi-value sm" id="receitaMesCobrancas">R$ 0,00</div>
+            <div class="kpi-trend neu" id="pctReceitaCobrancas">
+              carregando...
+            </div>
+          </div>
+        </div>
+
+        <!-- Busca Global -->
+        <div style="padding: 8px 14px 4px">
+          <div
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 0.95rem;
+              color: var(--texto-titulo);
+              margin-bottom: 8px;
+            "
+          >
+            Busca Global
+          </div>
+          <div class="search-wrapper" style="margin-bottom: 4px">
+            <i
+              class="fa-solid fa-magnifying-glass me-2"
+              style="font-size: 0.8rem; color: var(--texto-suave)"
+            ></i>
+            <input
+              type="text"
+              class="search-input"
+              id="inputBuscaGlobal"
+              placeholder="Animal, cliente, custo..."
+            />
+            <button class="btn-clear" id="btnLimparBuscaGlobal">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div id="resultadosBusca" style="display: none"></div>
+        </div>
+
+        <!-- Lista Cobranças -->
+        <div style="padding: 8px 14px 4px">
+          <div
+            style="
+              font-family: &quot;Lora&quot;, serif;
+              font-size: 0.95rem;
+              color: var(--texto-titulo);
+              margin-bottom: 8px;
+            "
+          >
+            Pendências
+          </div>
+          <div id="listaCobrancas">
+            <div
+              style="
+                text-align: center;
+                padding: 2rem;
+                color: var(--texto-suave);
+                font-size: 0.85rem;
+              "
+            >
+              Carregando...
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <!-- ══ FAB ══ -->
@@ -514,14 +608,134 @@
       </button>
       <button
         class="nav-item-bottom"
-        id="navBtnRancho"
-        onclick="RanchoApp.mudarAba('rancho')"
+        id="navBtnFinancas"
+        onclick="RanchoApp.mudarAba('financas')"
       >
-        <i class="fa-solid fa-file-invoice-dollar"></i><span>Despesas</span>
+        <i class="fa-solid fa-file-invoice-dollar"></i><span>Finanças</span>
       </button>
     </nav>
 
     <!-- ══ MODAIS ══ -->
+
+    <!-- Modal Histórico Cliente -->
+    <div class="modal fade" id="modalHistoricoCliente" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content border-0">
+          <div
+            class="modal-header border-0 pb-0"
+            style="background: var(--bege-card)"
+          >
+            <div>
+              <h5 class="modal-title fw-bold" id="tituloHistoricoCliente">
+                Histórico
+              </h5>
+              <small class="text-muted" id="subtituloHistoricoCliente"
+                >Pagamentos</small
+              >
+            </div>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-0" style="background: var(--bege-fundo)">
+            <!-- Stats rápidas -->
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 8px;
+                padding: 12px 14px 8px;
+              "
+            >
+              <div
+                style="
+                  background: var(--bege-card);
+                  border: 0.5px solid var(--bege-borda);
+                  border-radius: 12px;
+                  padding: 10px;
+                  text-align: center;
+                "
+              >
+                <div class="small-label">Em dia</div>
+                <div
+                  style="
+                    font-family: &quot;Lora&quot;, serif;
+                    font-size: 1.3rem;
+                    color: var(--verde);
+                    font-weight: 600;
+                    margin-top: 3px;
+                  "
+                  id="statEmDia"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                style="
+                  background: var(--bege-card);
+                  border: 0.5px solid var(--bege-borda);
+                  border-radius: 12px;
+                  padding: 10px;
+                  text-align: center;
+                "
+              >
+                <div class="small-label">Atrasados</div>
+                <div
+                  style="
+                    font-family: &quot;Lora&quot;, serif;
+                    font-size: 1.3rem;
+                    color: var(--vermelho);
+                    font-weight: 600;
+                    margin-top: 3px;
+                  "
+                  id="statAtrasados"
+                >
+                  0
+                </div>
+              </div>
+              <div
+                style="
+                  background: var(--bege-card);
+                  border: 0.5px solid var(--bege-borda);
+                  border-radius: 12px;
+                  padding: 10px;
+                  text-align: center;
+                "
+              >
+                <div class="small-label">Pontualidade</div>
+                <div
+                  style="
+                    font-family: &quot;Lora&quot;, serif;
+                    font-size: 1.3rem;
+                    color: var(--marrom-claro);
+                    font-weight: 600;
+                    margin-top: 3px;
+                  "
+                  id="statPontualidade"
+                >
+                  0%
+                </div>
+              </div>
+            </div>
+
+            <!-- Lista histórico -->
+            <div style="padding: 4px 14px 80px" id="listaHistoricoCliente">
+              <div
+                style="
+                  text-align: center;
+                  padding: 2rem;
+                  color: var(--texto-suave);
+                "
+              >
+                Carregando...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Config -->
     <div class="modal fade" id="modalConfig" tabindex="-1">
