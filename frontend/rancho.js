@@ -877,6 +877,10 @@ const RanchoApp = {
       this.bsModalAcoesAnimal.hide();
       setTimeout(() => this.abrirMensalidade(id, nome), 350);
     };
+    document.getElementById("btnAcaoFichaVet").onclick = () => {
+      this.bsModalAcoesAnimal.hide();
+      setTimeout(() => this.abrirFichaVet(id, nome), 350);
+    };
     document.getElementById("btnAcaoExcluir").onclick = () => {
       this.bsModalAcoesAnimal.hide();
       setTimeout(() => {
@@ -1210,6 +1214,7 @@ const RanchoApp = {
     document.getElementById("tituloModalCavalo").textContent = "Novo Animal";
     if (lugarPreenchido)
       document.getElementById("cavaloLugar").value = lugarPreenchido;
+    this.carregarSugestoesLocais();
     this.bsModalCavalo.show();
   },
   abrirModalEditar(id, n, l, p, o) {
@@ -2677,10 +2682,249 @@ const RanchoApp = {
     );
   },
 
-  // ── Config ──
-  abrirModalConfig() {
+  // ══════════════════════════════════════════
+  // AUTOCOMPLETE DE LOCAL
+  // ══════════════════════════════════════════
+  async carregarSugestoesLocais() {
+    try {
+      const locais = await ApiService.fetchData("/api/gestao/locais");
+      const dl = document.getElementById("sugestoesLocais");
+      if (!dl || !locais) return;
+      dl.innerHTML = locais.map((l) => `<option value="${l}">`).join("");
+    } catch (e) {}
+  },
+
+  // ══════════════════════════════════════════
+  // LANÇAMENTO EM LOTE
+  // ══════════════════════════════════════════
+  async abrirModalLoteMensalidade() {
     this.vibrar();
-    this.bsModalConfig.show();
+    if (!this.bsModalLote) {
+      this.bsModalLote = new bootstrap.Modal(
+        document.getElementById("modalLoteMensalidade"),
+      );
+    }
+
+    // Preenche mês/ano atual
+    const hoje = new Date();
+    document.getElementById("loteMes").value = hoje.getMonth() + 1;
+    document.getElementById("loteAno").value = hoje.getFullYear();
+
+    // Busca animais do cliente atual
+    const propId = this.proprietarioAtualId;
+    const todos = await ApiService.fetchData("/api/gestao/cavalos");
+    const meus = (todos || []).filter((c) => c.proprietario_id == propId);
+
+    const lista = document.getElementById("loteAnimaisLista");
+    if (!meus.length) {
+      lista.innerHTML = `<div class="text-muted small">Nenhum animal cadastrado.</div>`;
+    } else {
+      lista.innerHTML = meus
+        .map(
+          (c) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--bege-borda);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="avatar-circle avatar-cavalo" style="width:28px;height:28px;font-size:11px;">${c.nome.charAt(0)}</div>
+            <span style="font-size:0.85rem;font-weight:600;color:var(--texto-titulo);">${c.nome}</span>
+          </div>
+          <input type="text" inputmode="decimal" placeholder="R$ valor" data-cavalo="${c.id}"
+            style="width:100px;border:0.5px solid var(--bege-borda);border-radius:10px;padding:5px 8px;font-size:0.8rem;text-align:right;background:var(--bege-fundo);" class="lote-valor-individual"/>
+        </div>`,
+        )
+        .join("");
+    }
+
+    this.bsModalLote.show();
+  },
+
+  async confirmarLoteMensalidade() {
+    this.vibrar();
+    const mes = parseInt(document.getElementById("loteMes").value);
+    const ano = parseInt(document.getElementById("loteAno").value);
+    const vPad =
+      parseFloat(
+        (document.getElementById("loteValor").value || "0").replace(",", "."),
+      ) || 0;
+    const propId = this.proprietarioAtualId;
+
+    // Coleta valores individuais
+    const itens = [];
+    document.querySelectorAll(".lote-valor-individual").forEach((inp) => {
+      const val = parseFloat(inp.value.replace(",", "."));
+      if (!isNaN(val) && val > 0) {
+        itens.push({ cavalo_id: inp.dataset.cavalo, valor: val });
+      }
+    });
+
+    try {
+      const res = await ApiService.postData("/api/gestao/mensalidades/lote", {
+        proprietario_id: propId,
+        mes,
+        ano,
+        valor_padrao: vPad,
+        itens,
+      });
+      this.bsModalLote.hide();
+      this.mostrarNotificacao(res.message || "Lançado!");
+      this.carregarFaturaProprietario(
+        propId,
+        document.getElementById("tituloDetalhesProp").textContent,
+        document.getElementById("subtituloDetalhesProp").textContent,
+      );
+    } catch (e) {
+      this.mostrarNotificacao("Erro ao lançar.", "erro");
+    }
+  },
+
+  // ══════════════════════════════════════════
+  // FICHA VETERINÁRIA
+  // ══════════════════════════════════════════
+  abrirFichaVet(id, nome) {
+    this.vibrar();
+    this.animalVetAtual = id;
+    document.getElementById("tituloFichaVet").textContent = "Ficha Veterinária";
+    document.getElementById("subtituloFichaVet").textContent = nome;
+
+    // Data padrão = hoje
+    document.getElementById("vetDataEvento").value = new Date()
+      .toISOString()
+      .split("T")[0];
+    document.getElementById("vetTipo").value = "";
+    document.getElementById("vetDescricao").value = "";
+    document.getElementById("vetProfissional").value = "";
+    document.getElementById("vetProximaData").value = "";
+
+    if (!this.bsModalFichaVet) {
+      this.bsModalFichaVet = new bootstrap.Modal(
+        document.getElementById("modalFichaVet"),
+      );
+    }
+    this.bsModalFichaVet.show();
+    this.carregarFichaVet(id);
+  },
+
+  async carregarFichaVet(cavaloId) {
+    const lista = document.getElementById("listaFichaVet");
+    if (!lista) return;
+    lista.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:0.85rem;">Carregando...</div>`;
+
+    try {
+      const dados = await ApiService.fetchData(
+        `/api/gestao/veterinario/${cavaloId}`,
+      );
+      if (!dados || !dados.length) {
+        lista.innerHTML = `
+          <div style="text-align:center;padding:2rem 1rem;">
+            <div style="font-size:2.5rem;color:var(--bege-borda);margin-bottom:10px;"><i class="fa-solid fa-stethoscope"></i></div>
+            <p style="color:var(--texto-suave);font-size:0.85rem;">Nenhum registro veterinário ainda.</p>
+          </div>`;
+        return;
+      }
+
+      const icones = {
+        Ferradura: "fa-shoe-prints",
+        Vacina: "fa-syringe",
+        Vermifugação: "fa-pills",
+        Consulta: "fa-stethoscope",
+        Exame: "fa-microscope",
+        Outro: "fa-notes-medical",
+      };
+      const cores = {
+        Ferradura: "#8B5230",
+        Vacina: "#3D7A5E",
+        Vermifugação: "#7A52A0",
+        Consulta: "#5B8DC9",
+        Exame: "#C49A4A",
+        Outro: "#8A6840",
+      };
+
+      lista.innerHTML = dados
+        .map((r) => {
+          const cor = cores[r.tipo] || cores["Outro"];
+          const icone = icones[r.tipo] || icones["Outro"];
+          const dtEvt = new Date(r.data_evento).toLocaleDateString("pt-BR");
+          const dtProx = r.proxima_data
+            ? new Date(r.proxima_data).toLocaleDateString("pt-BR")
+            : null;
+          const hoje = new Date();
+          hoje.setHours(0, 0, 0, 0);
+          const diffDias = r.proxima_data
+            ? Math.ceil((new Date(r.proxima_data) - hoje) / 86400000)
+            : null;
+          const alertaProx =
+            diffDias !== null
+              ? diffDias < 0
+                ? `<span style="background:rgba(168,50,50,0.1);color:var(--vermelho);border-radius:7px;padding:2px 8px;font-size:0.7rem;font-weight:600;">Vencida</span>`
+                : diffDias <= 7
+                  ? `<span style="background:rgba(196,154,74,0.12);color:var(--dourado);border-radius:7px;padding:2px 8px;font-size:0.7rem;font-weight:600;">Vence em ${diffDias}d</span>`
+                  : `<span style="font-size:0.72rem;color:var(--texto-suave);">Próxima: ${dtProx}</span>`
+              : "";
+
+          return `
+          <div style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-left:3px solid ${cor};border-radius:14px;padding:11px 13px;margin-bottom:8px;">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="display:flex;align-items:center;gap:9px;flex:1;">
+                <div style="width:32px;height:32px;border-radius:10px;background:${cor}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <i class="fa-solid ${icone}" style="color:${cor};font-size:0.85rem;"></i>
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:600;color:var(--texto-titulo);font-size:0.88rem;">${r.tipo}</div>
+                  ${r.descricao ? `<div style="font-size:0.75rem;color:var(--texto-suave);margin-top:2px;">${r.descricao}</div>` : ""}
+                  ${r.profissional ? `<div style="font-size:0.72rem;color:var(--texto-suave);">Prof: ${r.profissional}</div>` : ""}
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:0.75rem;font-weight:600;color:var(--texto-titulo);">${dtEvt}</div>
+                ${alertaProx}
+                <button onclick="RanchoApp.excluirFichaVet(${r.id})"
+                  style="background:none;border:none;color:var(--texto-suave);cursor:pointer;font-size:0.75rem;margin-top:4px;padding:0;">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>`;
+        })
+        .join("");
+    } catch (e) {
+      console.error("carregarFichaVet:", e);
+    }
+  },
+
+  async salvarFichaVet() {
+    const tipo = document.getElementById("vetTipo").value;
+    const dataEvento = document.getElementById("vetDataEvento").value;
+    if (!tipo || !dataEvento) {
+      this.mostrarNotificacao("Preencha tipo e data.", "erro");
+      return;
+    }
+
+    try {
+      await ApiService.postData("/api/gestao/veterinario", {
+        cavalo_id: this.animalVetAtual,
+        tipo,
+        descricao: document.getElementById("vetDescricao").value,
+        data_evento: dataEvento,
+        proxima_data: document.getElementById("vetProximaData").value || null,
+        profissional: document.getElementById("vetProfissional").value,
+      });
+      // Limpa form
+      document.getElementById("vetTipo").value = "";
+      document.getElementById("vetDescricao").value = "";
+      document.getElementById("vetProfissional").value = "";
+      document.getElementById("vetProximaData").value = "";
+      this.mostrarNotificacao("Registrado!");
+      this.carregarFichaVet(this.animalVetAtual);
+    } catch (e) {
+      this.mostrarNotificacao("Erro ao salvar.", "erro");
+    }
+  },
+
+  excluirFichaVet(id) {
+    this.abrirConfirmacao("Excluir", "Apagar este registro?", async () => {
+      await ApiService.deleteData(`/api/gestao/veterinario/${id}`);
+      this.carregarFichaVet(this.animalVetAtual);
+      this.mostrarNotificacao("Apagado!");
+    });
   },
   async salvarConfig(e) {
     e.preventDefault();

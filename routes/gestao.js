@@ -580,4 +580,159 @@ router.put("/config", async (req, res) => {
   }
 });
 
+// ── GET /api/gestao/locais ─────────────────────────────────
+// Retorna todos os locais já cadastrados (autocomplete)
+router.get("/locais", async (req, res) => {
+  const uid = req.user.id;
+  try {
+    const [rows] = await pool.query(
+      `SELECT DISTINCT lugar FROM Cavalos
+       WHERE usuario_id=? AND lugar IS NOT NULL AND lugar != ''
+       ORDER BY lugar ASC`,
+      [uid],
+    );
+    res.json(rows.map((r) => r.lugar));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/gestao/mensalidades/lote ────────────────────
+// Lança mensalidade para todos os animais de um proprietário
+router.post("/mensalidades/lote", async (req, res) => {
+  const uid = req.user.id;
+  const { proprietario_id, mes, ano, valor_padrao, itens } = req.body;
+  if (!proprietario_id || !mes || !ano) {
+    return res
+      .status(400)
+      .json({ message: "proprietario_id, mes e ano são obrigatórios." });
+  }
+  try {
+    // Verifica se proprietário pertence ao usuário
+    const [[prop]] = await pool.query(
+      "SELECT id FROM Proprietarios WHERE id=? AND usuario_id=?",
+      [proprietario_id, uid],
+    );
+    if (!prop) return res.status(403).json({ message: "Sem permissão." });
+
+    // Busca todos os animais do proprietário
+    const [cavalos] = await pool.query(
+      "SELECT id, nome FROM Cavalos WHERE proprietario_id=? AND usuario_id=?",
+      [proprietario_id, uid],
+    );
+    if (!cavalos.length)
+      return res.status(400).json({ message: "Nenhum animal encontrado." });
+
+    let criados = 0,
+      pulados = 0;
+    for (const c of cavalos) {
+      // Verifica se já existe mensalidade neste mês
+      const [[existe]] = await pool.query(
+        "SELECT id FROM Mensalidades WHERE cavalo_id=? AND mes=? AND ano=? AND usuario_id=?",
+        [c.id, mes, ano, uid],
+      );
+      if (existe) {
+        pulados++;
+        continue;
+      }
+
+      // Pega valor do item individual ou valor_padrao
+      const valorItem =
+        itens?.find((i) => i.cavalo_id == c.id)?.valor || valor_padrao || 0;
+      await pool.query(
+        "INSERT INTO Mensalidades (cavalo_id, mes, ano, valor, pago, itens, usuario_id) VALUES (?,?,?,?,0,?,?)",
+        [c.id, mes, ano, valorItem, "Mensalidade", uid],
+      );
+      criados++;
+    }
+    res.json({
+      message: `${criados} mensalidade${criados !== 1 ? "s" : ""} lançada${criados !== 1 ? "s" : ""}. ${pulados > 0 ? `${pulados} já existia${pulados !== 1 ? "m" : ""}.` : ""}`,
+      criados,
+      pulados,
+    });
+  } catch (err) {
+    console.error("Erro POST /mensalidades/lote:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── GET /api/gestao/veterinario/:cavaloId ─────────────────
+router.get("/veterinario/:cavaloId", async (req, res) => {
+  const uid = req.user.id;
+  const cavaloId = req.params.cavaloId;
+  try {
+    const [[cavalo]] = await pool.query(
+      "SELECT id FROM Cavalos WHERE id=? AND usuario_id=?",
+      [cavaloId, uid],
+    );
+    if (!cavalo) return res.status(403).json({ message: "Sem permissão." });
+
+    const [registros] = await pool.query(
+      `SELECT * FROM FichaVeterinaria
+       WHERE cavalo_id=? AND usuario_id=?
+       ORDER BY data_evento DESC`,
+      [cavaloId, uid],
+    );
+    res.json(registros);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /api/gestao/veterinario ──────────────────────────
+router.post("/veterinario", async (req, res) => {
+  const uid = req.user.id;
+  const {
+    cavalo_id,
+    tipo,
+    descricao,
+    data_evento,
+    proxima_data,
+    profissional,
+  } = req.body;
+  if (!cavalo_id || !tipo || !data_evento) {
+    return res
+      .status(400)
+      .json({ message: "cavalo_id, tipo e data_evento são obrigatórios." });
+  }
+  try {
+    const [[cavalo]] = await pool.query(
+      "SELECT id FROM Cavalos WHERE id=? AND usuario_id=?",
+      [cavalo_id, uid],
+    );
+    if (!cavalo) return res.status(403).json({ message: "Sem permissão." });
+
+    await pool.query(
+      `INSERT INTO FichaVeterinaria (cavalo_id, tipo, descricao, data_evento, proxima_data, profissional, usuario_id)
+       VALUES (?,?,?,?,?,?,?)`,
+      [
+        cavalo_id,
+        tipo,
+        descricao || null,
+        data_evento,
+        proxima_data || null,
+        profissional || null,
+        uid,
+      ],
+    );
+    res.json({ message: "Registrado!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── DELETE /api/gestao/veterinario/:id ────────────────────
+router.delete("/veterinario/:id", async (req, res) => {
+  const uid = req.user.id;
+  try {
+    await pool.query(
+      "DELETE FROM FichaVeterinaria WHERE id=? AND usuario_id=?",
+      [req.params.id, uid],
+    );
+    res.json({ message: "Apagado." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

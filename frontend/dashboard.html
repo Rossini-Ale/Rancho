@@ -1222,6 +1222,55 @@
               </button>
 
               <button
+                id="btnAcaoFichaVet"
+                style="
+                  background: rgba(91, 141, 201, 0.07);
+                  border: 0.5px solid rgba(91, 141, 201, 0.2);
+                  border-radius: 14px;
+                  padding: 13px 16px;
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                  cursor: pointer;
+                  width: 100%;
+                  text-align: left;
+                "
+              >
+                <div
+                  style="
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    background: rgba(91, 141, 201, 0.1);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-stethoscope"
+                    style="color: #5b8dc9; font-size: 0.9rem"
+                  ></i>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.88rem;
+                      font-weight: 600;
+                      color: var(--texto-titulo);
+                      font-family: &quot;DM Sans&quot;, sans-serif;
+                    "
+                  >
+                    Ficha Veterinária
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--texto-suave)">
+                    Ferradura, vacinas, consultas...
+                  </div>
+                </div>
+              </button>
+
+              <button
                 id="btnAcaoExcluir"
                 style="
                   background: rgba(168, 50, 50, 0.06);
@@ -1266,6 +1315,192 @@
                   </div>
                 </div>
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Lançamento em Lote -->
+    <div class="modal fade" id="modalLoteMensalidade" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold">Lançar em lote</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small mb-3">
+              Lança mensalidade para todos os animais deste cliente de uma vez.
+              Animais que já têm mensalidade no mês serão pulados.
+            </p>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="small-label mb-1">Mês</label>
+                <select class="form-select" id="loteMes">
+                  <option value="1">Janeiro</option>
+                  <option value="2">Fevereiro</option>
+                  <option value="3">Março</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Maio</option>
+                  <option value="6">Junho</option>
+                  <option value="7">Julho</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Setembro</option>
+                  <option value="10">Outubro</option>
+                  <option value="11">Novembro</option>
+                  <option value="12">Dezembro</option>
+                </select>
+              </div>
+              <div class="col-6">
+                <label class="small-label mb-1">Ano</label>
+                <select class="form-select" id="loteAno">
+                  <option value="2025">2025</option>
+                  <option value="2026" selected>2026</option>
+                  <option value="2027">2027</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="small-label mb-1">Valor padrão (R$)</label>
+              <input
+                type="text"
+                inputmode="decimal"
+                class="form-control"
+                id="loteValor"
+                placeholder="Ex: 680,00"
+              />
+              <small class="text-muted"
+                >Usado para animais sem mensalidade cadastrada
+                anteriormente.</small
+              >
+            </div>
+            <div
+              id="loteAnimaisLista"
+              style="max-height: 200px; overflow-y: auto"
+            ></div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button
+              type="button"
+              class="btn btn-secondary rounded-pill px-4"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary rounded-pill px-4 fw-bold"
+              onclick="RanchoApp.confirmarLoteMensalidade()"
+            >
+              <i class="fa-solid fa-calendar-check me-1"></i> Lançar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Ficha Veterinária -->
+    <div class="modal fade" id="modalFichaVet" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content border-0">
+          <div
+            class="modal-header border-0 pb-0"
+            style="background: var(--bege-card)"
+          >
+            <div>
+              <h5 class="modal-title fw-bold" id="tituloFichaVet">
+                Ficha Veterinária
+              </h5>
+              <small class="text-muted" id="subtituloFichaVet">Animal</small>
+            </div>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body p-0" style="background: var(--bege-fundo)">
+            <!-- Formulário novo registro -->
+            <div
+              style="
+                padding: 12px 14px;
+                border-bottom: 0.5px solid var(--bege-borda);
+              "
+            >
+              <div class="small-label mb-2">Novo registro</div>
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  <select class="form-select" id="vetTipo">
+                    <option value="">Tipo...</option>
+                    <option>Ferradura</option>
+                    <option>Vacina</option>
+                    <option>Vermifugação</option>
+                    <option>Consulta</option>
+                    <option>Exame</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+                <div class="col-6">
+                  <input type="date" class="form-control" id="vetDataEvento" />
+                </div>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-12">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="vetDescricao"
+                    placeholder="Descrição (opcional)"
+                  />
+                </div>
+              </div>
+              <div class="row g-2 mb-2">
+                <div class="col-6">
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="vetProfissional"
+                    placeholder="Profissional"
+                  />
+                </div>
+                <div class="col-6">
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="vetProximaData"
+                    title="Próxima data"
+                  />
+                </div>
+              </div>
+              <small class="text-muted d-block mb-2"
+                >Próxima data → gera alerta na home quando estiver
+                vencendo</small
+              >
+              <button
+                class="btn btn-primary rounded-pill w-100 fw-bold"
+                onclick="RanchoApp.salvarFichaVet()"
+              >
+                <i class="fa-solid fa-plus me-1"></i> Registrar
+              </button>
+            </div>
+
+            <!-- Lista de registros -->
+            <div style="padding: 12px 14px 80px" id="listaFichaVet">
+              <div
+                style="
+                  text-align: center;
+                  padding: 2rem;
+                  color: var(--texto-suave);
+                  font-size: 0.85rem;
+                "
+              >
+                Carregando...
+              </div>
             </div>
           </div>
         </div>
@@ -1401,7 +1636,13 @@
               <div class="row mb-3">
                 <div class="col-6">
                   <label class="small-label mb-1">Baia / Local</label
-                  ><input type="text" class="form-control" id="cavaloLugar" />
+                  ><input
+                    type="text"
+                    class="form-control"
+                    id="cavaloLugar"
+                    list="sugestoesLocais"
+                    autocomplete="off"
+                  /><datalist id="sugestoesLocais"></datalist>
                 </div>
                 <div class="col-6">
                   <label class="small-label mb-1">Proprietário</label
@@ -1859,6 +2100,13 @@
                     <i class="fa-solid fa-file-pdf"></i>
                   </button>
                 </div>
+                <button
+                  class="btn btn-outline-primary rounded-4 fw-bold"
+                  onclick="RanchoApp.abrirModalLoteMensalidade()"
+                >
+                  <i class="fa-solid fa-calendar-check me-2"></i> Lançar
+                  mensalidade em lote
+                </button>
               </div>
             </div>
             <div style="height: 200px"></div>
