@@ -70,11 +70,11 @@
 
       <!-- ── ABA HOME ── -->
       <div id="tabHome" class="fade-in-up">
-        <!-- Saudação -->
-        <div style="padding: 16px 14px 4px">
+        <!-- Saudação + data -->
+        <div style="padding: 16px 14px 8px">
           <div
             style="
-              font-size: 0.75rem;
+              font-size: 0.72rem;
               color: var(--texto-suave);
               font-weight: 600;
               text-transform: uppercase;
@@ -87,95 +87,25 @@
           <div
             style="
               font-family: &quot;Lora&quot;, serif;
-              font-size: 1.3rem;
+              font-size: 1.25rem;
               color: var(--texto-titulo);
               margin-top: 2px;
             "
           >
             Visão geral do rancho
           </div>
-        </div>
-
-        <!-- Botão Relatório PDF -->
-        <div
-          style="
-            padding: 4px 14px 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-          "
-        >
-          <div style="display: flex; gap: 8px; flex: 1">
-            <select
-              id="relatorioMes"
-              class="form-select"
-              style="
-                flex: 1;
-                border-radius: 12px !important;
-                font-size: 0.82rem;
-                font-weight: 600;
-              "
-            >
-              <option value="1">Janeiro</option>
-              <option value="2">Fevereiro</option>
-              <option value="3">Março</option>
-              <option value="4">Abril</option>
-              <option value="5">Maio</option>
-              <option value="6">Junho</option>
-              <option value="7">Julho</option>
-              <option value="8">Agosto</option>
-              <option value="9">Setembro</option>
-              <option value="10">Outubro</option>
-              <option value="11">Novembro</option>
-              <option value="12">Dezembro</option>
-            </select>
-            <select
-              id="relatorioAno"
-              class="form-select"
-              style="
-                width: 90px;
-                border-radius: 12px !important;
-                font-size: 0.82rem;
-                font-weight: 600;
-              "
-            >
-              <option value="2025">2025</option>
-              <option value="2026" selected>2026</option>
-              <option value="2027">2027</option>
-            </select>
-          </div>
-          <button
-            id="btnGerarRelatorio"
-            onclick="RanchoApp.gerarRelatorio()"
+          <div
             style="
-              background: linear-gradient(
-                135deg,
-                var(--marrom-medio),
-                var(--marrom-escuro)
-              );
-              color: var(--dourado-claro);
-              border: none;
-              border-radius: 12px;
-              padding: 9px 16px;
-              font-size: 0.82rem;
-              font-weight: 600;
-              font-family: &quot;DM Sans&quot;, sans-serif;
-              display: flex;
-              align-items: center;
-              gap: 7px;
-              cursor: pointer;
-              white-space: nowrap;
-              box-shadow: 0 3px 12px rgba(61, 30, 10, 0.25);
+              font-size: 0.75rem;
+              color: var(--texto-suave);
+              margin-top: 3px;
             "
-          >
-            <i class="fa-solid fa-file-pdf" style="font-size: 0.9rem"></i>
-            Relatório PDF
-          </button>
+            id="dataHoje"
+          ></div>
         </div>
 
         <!-- KPIs -->
-        <div class="kpi-grid">
+        <div class="kpi-grid" style="padding-bottom: 8px">
           <div
             class="kpi-card k-marrom"
             onclick="RanchoApp.mudarAba('cavalos')"
@@ -184,68 +114,32 @@
             <div class="kpi-value" id="kpiAnimais">—</div>
             <div class="kpi-trend neu" id="kpiAnimaisTrend">carregando...</div>
           </div>
-          <div class="kpi-card k-verde" onclick="RanchoApp.mudarAba('home')">
+          <div class="kpi-card k-verde">
             <div class="kpi-label">Receita mês</div>
             <div class="kpi-value sm" id="kpiReceita">—</div>
             <div class="kpi-trend neu" id="kpiReceitaTrend">carregando...</div>
           </div>
           <div
-            class="kpi-card k-roxo"
-            onclick="RanchoApp.mudarAba('proprietarios')"
-          >
-            <div class="kpi-label">Clientes</div>
-            <div class="kpi-value" id="kpiClientes">—</div>
-            <div class="kpi-trend neu" id="kpiClientesTrend">carregando...</div>
-          </div>
-          <div
             class="kpi-card k-vermelho"
-            onclick="RanchoApp.mudarAba('rancho')"
+            onclick="RanchoApp.mudarAba('financas')"
           >
+            <div class="kpi-label">Em atraso</div>
+            <div class="kpi-value sm" id="kpiAtraso">—</div>
+            <div class="kpi-trend neu" id="kpiAtrasoTrend">carregando...</div>
+          </div>
+          <div class="kpi-card k-roxo" onclick="RanchoApp.mudarAba('financas')">
             <div class="kpi-label">Despesas</div>
             <div class="kpi-value sm" id="kpiDespesas">—</div>
             <div class="kpi-trend neu" id="kpiDespesasTrend">carregando...</div>
           </div>
         </div>
 
-        <!-- Gráfico histórico -->
-        <div class="section-header">
-          <span class="section-title">Receita vs Despesas</span>
-        </div>
-        <div class="card-v2" style="padding: 12px 14px">
-          <div style="position: relative; height: 160px">
-            <canvas
-              id="graficoHistorico"
-              role="img"
-              aria-label="Gráfico de receita e despesas dos últimos 6 meses"
-              >Histórico de receita e despesas mensais.</canvas
-            >
-          </div>
-        </div>
-
-        <!-- Despesas por categoria -->
-        <div class="section-header">
-          <span class="section-title">Despesas por categoria</span
-          ><span class="section-link" onclick="RanchoApp.mudarAba('rancho')"
-            >Ver tudo</span
-          >
-        </div>
-        <div class="card-v2" id="graficoCategorias">
-          <div
-            style="
-              color: var(--texto-suave);
-              font-size: 0.82rem;
-              text-align: center;
-              padding: 12px 0;
-            "
-          >
-            Carregando...
-          </div>
-        </div>
-
         <!-- Alertas -->
         <div class="section-header">
-          <span class="section-title">Lembretes</span
-          ><span class="section-link" id="linkTodosAlertas">Ver todos</span>
+          <span class="section-title">Alertas</span>
+          <span class="section-link" onclick="RanchoApp.mudarAba('financas')"
+            >Ver todos</span
+          >
         </div>
         <div id="listaAlertas">
           <div
@@ -259,14 +153,299 @@
           </div>
         </div>
 
-        <!-- Animais recentes -->
+        <!-- Mini mapa de ocupação -->
         <div class="section-header">
-          <span class="section-title">Meus animais</span
-          ><span class="section-link" onclick="RanchoApp.mudarAba('cavalos')"
-            >Ver todos</span
+          <span class="section-title">Ocupação</span>
+          <span class="section-link" onclick="RanchoApp.mudarAba('cavalos')"
+            >Ver mapa →</span
           >
         </div>
-        <div id="listaAnimaisHome"></div>
+        <div
+          onclick="RanchoApp.mudarAba('cavalos')"
+          style="
+            background: var(--bege-card);
+            border: 0.5px solid var(--bege-borda);
+            border-radius: 18px;
+            margin: 0 14px 12px;
+            padding: 13px 14px;
+            cursor: pointer;
+            box-shadow: var(--sombra);
+          "
+        >
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 8px;
+            "
+          >
+            <span
+              style="
+                font-size: 0.82rem;
+                font-weight: 600;
+                color: var(--texto-titulo);
+              "
+              id="miniMapaLabel"
+              >Carregando...</span
+            >
+            <span
+              style="font-size: 0.82rem; font-weight: 600; color: var(--verde)"
+              id="miniMapaPct"
+              >—</span
+            >
+          </div>
+          <div
+            style="
+              height: 7px;
+              background: var(--bege-fundo);
+              border-radius: 4px;
+              overflow: hidden;
+              border: 0.5px solid var(--bege-borda);
+              margin-bottom: 10px;
+            "
+          >
+            <div
+              id="miniMapaBarra"
+              style="
+                height: 100%;
+                background: var(--verde);
+                border-radius: 4px;
+                width: 0%;
+                transition: width 0.6s ease;
+              "
+            ></div>
+          </div>
+          <div
+            id="miniMapaGrid"
+            style="display: flex; flex-wrap: wrap; gap: 5px"
+          >
+            <div
+              style="
+                width: 28px;
+                height: 28px;
+                border-radius: 8px;
+                background: var(--bege-fundo);
+                border: 0.5px dashed var(--bege-borda);
+              "
+            ></div>
+          </div>
+        </div>
+
+        <!-- Atalhos Rápidos -->
+        <div class="section-header">
+          <span class="section-title">Atalhos</span>
+        </div>
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            padding: 0 14px 12px;
+          "
+        >
+          <div
+            onclick="RanchoApp.abrirModalNovoCavalo()"
+            style="
+              background: var(--bege-card);
+              border: 0.5px solid var(--bege-borda);
+              border-radius: 16px;
+              padding: 13px 8px;
+              text-align: center;
+              cursor: pointer;
+              box-shadow: var(--sombra);
+            "
+          >
+            <div
+              style="
+                width: 36px;
+                height: 36px;
+                border-radius: 12px;
+                background: rgba(61, 30, 10, 0.07);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 7px;
+              "
+            >
+              <i
+                class="fa-solid fa-horse-head"
+                style="color: var(--marrom-claro); font-size: 1rem"
+              ></i>
+            </div>
+            <div
+              style="
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--texto-titulo);
+              "
+            >
+              Novo animal
+            </div>
+          </div>
+          <div
+            onclick="
+              RanchoApp.mudarAba('financas');
+              setTimeout(
+                () => document.getElementById('ranchoDesc')?.focus(),
+                400,
+              );
+            "
+            style="
+              background: var(--bege-card);
+              border: 0.5px solid var(--bege-borda);
+              border-radius: 16px;
+              padding: 13px 8px;
+              text-align: center;
+              cursor: pointer;
+              box-shadow: var(--sombra);
+            "
+          >
+            <div
+              style="
+                width: 36px;
+                height: 36px;
+                border-radius: 12px;
+                background: rgba(168, 50, 50, 0.07);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 7px;
+              "
+            >
+              <i
+                class="fa-solid fa-file-invoice-dollar"
+                style="color: var(--vermelho); font-size: 1rem"
+              ></i>
+            </div>
+            <div
+              style="
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--texto-titulo);
+              "
+            >
+              Nova despesa
+            </div>
+          </div>
+          <div
+            onclick="RanchoApp.mudarAba('proprietarios')"
+            style="
+              background: var(--bege-card);
+              border: 0.5px solid var(--bege-borda);
+              border-radius: 16px;
+              padding: 13px 8px;
+              text-align: center;
+              cursor: pointer;
+              box-shadow: var(--sombra);
+            "
+          >
+            <div
+              style="
+                width: 36px;
+                height: 36px;
+                border-radius: 12px;
+                background: rgba(37, 211, 102, 0.08);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 7px;
+              "
+            >
+              <i
+                class="fa-brands fa-whatsapp"
+                style="color: #25d366; font-size: 1rem"
+              ></i>
+            </div>
+            <div
+              style="
+                font-size: 0.75rem;
+                font-weight: 600;
+                color: var(--texto-titulo);
+              "
+            >
+              Cobrar cliente
+            </div>
+          </div>
+        </div>
+
+        <!-- Relatório PDF -->
+        <div
+          style="
+            background: var(--bege-card);
+            border: 0.5px solid var(--bege-borda);
+            border-radius: 16px;
+            margin: 0 14px 16px;
+            padding: 11px 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--sombra);
+          "
+        >
+          <i
+            class="fa-solid fa-file-pdf"
+            style="color: var(--texto-suave); font-size: 0.9rem; flex-shrink: 0"
+          ></i>
+          <select
+            id="relatorioMes"
+            class="form-select border-0 bg-transparent shadow-none"
+            style="
+              flex: 1;
+              font-size: 0.8rem;
+              font-weight: 600;
+              padding: 2px 4px;
+            "
+          >
+            <option value="1">Janeiro</option>
+            <option value="2">Fevereiro</option>
+            <option value="3">Março</option>
+            <option value="4">Abril</option>
+            <option value="5">Maio</option>
+            <option value="6">Junho</option>
+            <option value="7">Julho</option>
+            <option value="8">Agosto</option>
+            <option value="9">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+          <select
+            id="relatorioAno"
+            class="form-select border-0 bg-transparent shadow-none"
+            style="
+              width: 76px;
+              font-size: 0.8rem;
+              font-weight: 600;
+              padding: 2px 4px;
+            "
+          >
+            <option value="2025">2025</option>
+            <option value="2026" selected>2026</option>
+            <option value="2027">2027</option>
+          </select>
+          <button
+            onclick="RanchoApp.gerarRelatorio()"
+            style="
+              background: linear-gradient(
+                135deg,
+                var(--marrom-medio),
+                var(--marrom-escuro)
+              );
+              color: var(--dourado-claro);
+              border: none;
+              border-radius: 10px;
+              padding: 7px 12px;
+              font-size: 0.78rem;
+              font-weight: 600;
+              white-space: nowrap;
+              cursor: pointer;
+              flex-shrink: 0;
+            "
+          >
+            Gerar PDF
+          </button>
+        </div>
       </div>
 
       <!-- ── ABA ANIMAIS / MAPA DE OCUPAÇÃO ── -->

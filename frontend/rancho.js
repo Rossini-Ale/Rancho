@@ -251,166 +251,124 @@ const RanchoApp = {
   // HOME DASHBOARD
   // ══════════════════════════════════════════
   async carregarHome() {
+    this.setDataHoje();
     await Promise.all([
       this.carregarKPIs(),
-      this.carregarHistorico(),
-      this.carregarDespesasCategorias(),
       this.carregarAlertas(),
-      this.carregarAnimaisHome(),
+      this.carregarMiniMapa(),
     ]);
+  },
+
+  setDataHoje() {
+    const el = document.getElementById("dataHoje");
+    if (!el) return;
+    const agora = new Date();
+    const dias = [
+      "Domingo",
+      "Segunda",
+      "Terça",
+      "Quarta",
+      "Quinta",
+      "Sexta",
+      "Sábado",
+    ];
+    const meses = [
+      "janeiro",
+      "fevereiro",
+      "março",
+      "abril",
+      "maio",
+      "junho",
+      "julho",
+      "agosto",
+      "setembro",
+      "outubro",
+      "novembro",
+      "dezembro",
+    ];
+    el.textContent = `${dias[agora.getDay()]}-feira, ${agora.getDate()} de ${meses[agora.getMonth()]} de ${agora.getFullYear()}`;
+    // Saudação por hora
+    const h = agora.getHours();
+    const saudEl = document.getElementById("saudacaoLabel");
+    if (saudEl)
+      saudEl.textContent =
+        h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
   },
 
   async carregarKPIs() {
     try {
-      const d = await ApiService.fetchData("/api/dashboard/kpis");
+      // Busca KPIs gerais + cobranças em paralelo
+      const [d, cob] = await Promise.all([
+        ApiService.fetchData("/api/dashboard/kpis"),
+        ApiService.fetchData("/api/dashboard/cobrancas"),
+      ]);
       if (!d) return;
 
-      document.getElementById("kpiAnimais").textContent = d.animais.total;
-      const trendA = document.getElementById("kpiAnimaisTrend");
-      trendA.className = "kpi-trend neu";
-      trendA.textContent =
-        d.animais.novos > 0 ? `+${d.animais.novos} este mês` : "Nenhum novo";
-
-      const recF = d.receita.total.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      });
-      document.getElementById("kpiReceita").textContent = recF;
-      const trendR = document.getElementById("kpiReceitaTrend");
-      if (d.receita.pct !== null) {
-        trendR.className = `kpi-trend ${d.receita.pct >= 0 ? "up" : "dn"}`;
-        trendR.textContent = `${d.receita.pct > 0 ? "+" : ""}${d.receita.pct}% vs mês ant.`;
-      } else {
-        trendR.className = "kpi-trend neu";
-        trendR.textContent = "Primeiro mês";
+      // Animais
+      const elA = document.getElementById("kpiAnimais");
+      const elAT = document.getElementById("kpiAnimaisTrend");
+      if (elA) elA.textContent = d.animais.total;
+      if (elAT) {
+        elAT.className = "kpi-trend neu";
+        elAT.textContent =
+          d.animais.novos > 0 ? `+${d.animais.novos} este mês` : "Nenhum novo";
       }
 
-      document.getElementById("kpiClientes").textContent = d.clientes.total;
-      const trendC = document.getElementById("kpiClientesTrend");
-      trendC.className = "kpi-trend neu";
-      trendC.textContent =
-        d.clientes.novos > 0 ? `+${d.clientes.novos} novos` : "Nenhum novo";
+      // Receita
+      const elR = document.getElementById("kpiReceita");
+      const elRT = document.getElementById("kpiReceitaTrend");
+      if (elR)
+        elR.textContent = d.receita.total.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+      if (elRT) {
+        if (d.receita.pct !== null) {
+          elRT.className = `kpi-trend ${d.receita.pct >= 0 ? "up" : "dn"}`;
+          elRT.textContent = `${d.receita.pct > 0 ? "+" : ""}${d.receita.pct}% vs mês ant.`;
+        } else {
+          elRT.className = "kpi-trend neu";
+          elRT.textContent = "Primeiro mês";
+        }
+      }
 
-      const despF = d.despesas.total.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      });
-      document.getElementById("kpiDespesas").textContent = despF;
-      const trendD = document.getElementById("kpiDespesasTrend");
-      if (d.despesas.pct !== null) {
-        trendD.className = `kpi-trend ${d.despesas.pct <= 0 ? "up" : "dn"}`;
-        trendD.textContent = `${d.despesas.pct > 0 ? "+" : ""}${d.despesas.pct}% vs mês ant.`;
-      } else {
-        trendD.className = "kpi-trend neu";
-        trendD.textContent = "Primeiro mês";
+      // Em atraso (vem de cobrancas)
+      const elAt = document.getElementById("kpiAtraso");
+      const elAtT = document.getElementById("kpiAtrasoTrend");
+      if (elAt && cob)
+        elAt.textContent = cob.totalPendente.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+      if (elAtT && cob) {
+        const qtd = new Set([
+          ...(cob.pendentes || []).map((p) => p.proprietario_id),
+          ...(cob.custosDiretos || []).map((c) => c.proprietario_id),
+        ]).size;
+        elAtT.className = `kpi-trend ${qtd > 0 ? "dn" : "up"}`;
+        elAtT.textContent =
+          qtd > 0 ? `${qtd} cliente${qtd !== 1 ? "s" : ""}` : "Tudo em dia";
+      }
+
+      // Despesas
+      const elD = document.getElementById("kpiDespesas");
+      const elDT = document.getElementById("kpiDespesasTrend");
+      if (elD)
+        elD.textContent = d.despesas.total.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+      if (elDT) {
+        if (d.despesas.pct !== null) {
+          elDT.className = `kpi-trend ${d.despesas.pct <= 0 ? "up" : "dn"}`;
+          elDT.textContent = `${d.despesas.pct > 0 ? "+" : ""}${d.despesas.pct}% vs mês ant.`;
+        } else {
+          elDT.className = "kpi-trend neu";
+          elDT.textContent = "Primeiro mês";
+        }
       }
     } catch (e) {
       console.error("KPIs:", e);
-    }
-  },
-
-  async carregarHistorico() {
-    try {
-      const dados = await ApiService.fetchData("/api/dashboard/historico");
-      if (!dados || !dados.length) return;
-      const ctx = document.getElementById("graficoHistorico");
-      if (!ctx) return;
-      if (this.chartHistorico) this.chartHistorico.destroy();
-      this.chartHistorico = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: dados.map((d) => d.label),
-          datasets: [
-            {
-              label: "Receita",
-              data: dados.map((d) => d.receita),
-              borderColor: "#3D7A5E",
-              backgroundColor: "rgba(61,122,94,0.08)",
-              borderWidth: 2,
-              fill: true,
-              tension: 0.4,
-              pointBackgroundColor: "#3D7A5E",
-              pointRadius: 4,
-            },
-            {
-              label: "Despesas",
-              data: dados.map((d) => d.despesas),
-              borderColor: "#A83232",
-              backgroundColor: "rgba(168,50,50,0.06)",
-              borderWidth: 2,
-              fill: true,
-              tension: 0.4,
-              pointBackgroundColor: "#A83232",
-              pointRadius: 4,
-              borderDash: [4, 3],
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: {
-              grid: { display: false },
-              ticks: { font: { size: 11 }, color: "#8A6840" },
-            },
-            y: {
-              grid: { color: "rgba(196,154,74,0.1)" },
-              ticks: {
-                font: { size: 10 },
-                color: "#8A6840",
-                callback: (v) => "R$" + v,
-              },
-            },
-          },
-        },
-      });
-    } catch (e) {
-      console.error("Histórico:", e);
-    }
-  },
-
-  async carregarDespesasCategorias() {
-    const wrap = document.getElementById("graficoCategorias");
-    if (!wrap) return;
-    try {
-      const dados = await ApiService.fetchData(
-        "/api/dashboard/despesas-categorias",
-      );
-      if (!dados || !dados.length) {
-        wrap.innerHTML = `<div class="text-center py-3" style="color:var(--texto-suave);font-size:0.82rem;">Nenhuma despesa este mês.</div>`;
-        return;
-      }
-      const total = dados.reduce((s, d) => s + parseFloat(d.total), 0);
-      const cores = [
-        "#8B5230",
-        "#C49A4A",
-        "#7A52A0",
-        "#3D7A5E",
-        "#A83232",
-        "#5B8DC9",
-      ];
-      wrap.innerHTML = dados
-        .map((d, i) => {
-          const pct =
-            total > 0 ? Math.round((parseFloat(d.total) / total) * 100) : 0;
-          const valF = parseFloat(d.total).toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          });
-          return `
-          <div class="bar-item">
-            <div class="bar-top">
-              <span class="bar-top-label">${d.categoria}</span>
-              <span class="bar-top-val">${valF} <span style="color:var(--texto-suave);font-size:0.7rem;">(${pct}%)</span></span>
-            </div>
-            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${cores[i % cores.length]};"></div></div>
-          </div>`;
-        })
-        .join("");
-    } catch (e) {
-      wrap.innerHTML = `<div style="color:var(--texto-suave);font-size:0.82rem;">Erro ao carregar.</div>`;
     }
   },
 
@@ -420,87 +378,79 @@ const RanchoApp = {
     try {
       const dados = await ApiService.fetchData("/api/dashboard/alertas");
       if (!dados || !dados.length) {
-        wrap.innerHTML = `<div style="padding:0 14px 8px;color:var(--texto-suave);font-size:0.82rem;">Nenhum lembrete no momento.</div>`;
+        wrap.innerHTML = `<div style="padding:0 14px 8px;color:var(--texto-suave);font-size:0.82rem;">Nenhum alerta no momento.</div>`;
         return;
       }
-      const icones = { vencido: "vencido", pago: "pago", atencao: "atencao" };
       wrap.innerHTML = dados
-        .slice(0, 4)
-        .map(
-          (a) => `
-        <div class="alerta-item">
-          <div class="alerta-dot ${icones[a.tipo] || "atencao"}"></div>
-          <div style="flex:1;">
-            <div class="alerta-titulo">${a.titulo}</div>
-            <div class="alerta-sub">${a.sub}${a.valor ? ` — ${parseFloat(a.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""}</div>
-          </div>
-          <span class="alerta-tempo">${a.tempo}</span>
-        </div>`,
-        )
+        .slice(0, 5)
+        .map((a) => {
+          const cores = {
+            vencido: "var(--vermelho)",
+            pago: "var(--verde)",
+            atencao: "var(--dourado)",
+          };
+          const cor = cores[a.tipo] || "var(--texto-suave)";
+          const valF = a.valor
+            ? ` · ${parseFloat(a.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`
+            : "";
+          return `
+          <div class="alerta-item" style="cursor:default;">
+            <div class="alerta-dot ${a.tipo}" style="background:${cor};${a.tipo === "vencido" ? "box-shadow:0 0 5px rgba(229,57,53,0.35);" : ""}"></div>
+            <div style="flex:1;min-width:0;">
+              <div class="alerta-titulo">${a.titulo}</div>
+              <div class="alerta-sub">${a.sub}${valF}</div>
+            </div>
+            <span class="alerta-tempo">${a.tempo}</span>
+          </div>`;
+        })
         .join("");
     } catch (e) {
       wrap.innerHTML = `<div style="padding:0 14px;color:var(--texto-suave);font-size:0.82rem;">Erro ao carregar alertas.</div>`;
     }
   },
 
-  async carregarAnimaisHome() {
-    const wrap = document.getElementById("listaAnimaisHome");
-    if (!wrap) return;
+  async carregarMiniMapa() {
+    const gridEl = document.getElementById("miniMapaGrid");
+    const labelEl = document.getElementById("miniMapaLabel");
+    const pctEl = document.getElementById("miniMapaPct");
+    const barraEl = document.getElementById("miniMapaBarra");
+    if (!gridEl) return;
     try {
-      // Reutiliza o GET /cavalos que já traz total_gasto_mes e tem_pendente — sem chamada extra
-      const cavalos = await ApiService.fetchData("/api/gestao/cavalos");
-      if (!cavalos || !cavalos.length) {
-        wrap.innerHTML = `<div style="padding:0 14px 12px;color:var(--texto-suave);font-size:0.82rem;">Nenhum animal cadastrado.</div>`;
+      const dados = await ApiService.fetchData("/api/dashboard/ocupacao");
+      if (!dados) return;
+
+      const { totalAnimais, totalOcupados, totalSemLocal, taxaOcupacao } =
+        dados.stats;
+
+      if (labelEl)
+        labelEl.textContent = `${totalOcupados} animal${totalOcupados !== 1 ? "is" : ""} com local${totalSemLocal > 0 ? ` · ${totalSemLocal} sem local` : ""}`;
+      if (pctEl) pctEl.textContent = `${taxaOcupacao}%`;
+      if (barraEl) barraEl.style.width = `${taxaOcupacao}%`;
+
+      // Monta grade compacta — todos os animais
+      const todos = [];
+      dados.grupos.forEach((g) =>
+        g.slots.forEach((s) =>
+          todos.push({ nome: s.animais[0].nome, ocup: true }),
+        ),
+      );
+      dados.semLocal.forEach((a) => todos.push({ nome: a.nome, ocup: false }));
+
+      if (!todos.length) {
+        gridEl.innerHTML = `<div style="color:var(--texto-suave);font-size:0.78rem;">Nenhum animal cadastrado.</div>`;
         return;
       }
-      wrap.innerHTML = cavalos
-        .slice(0, 4)
-        .map((c) => {
-          const ns = c.nome.replace(/'/g, "\\'");
-          const total = parseFloat(c.total_gasto_mes || 0);
-          const totalF = total.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          });
-          const pendente = c.tem_pendente == 1;
-          const dotClr = pendente ? "#E53935" : "var(--verde)";
-          const badgeC = total > 0 ? "badge-pendente" : "badge-pago";
-          const badgeTx = total > 0 ? `${totalF} pend.` : "Em dia";
-          return `
-          <div class="animal-card">
-            <div class="animal-card-top" onclick="RanchoApp.abrirModalEditar(${c.id},'${ns}','${(c.lugar || "").replace(/'/g, "\\'")}','${c.proprietario_id || ""}','${(c.observacoes || "").replace(/'/g, "\\'")}')">
-              <div class="avatar-circle avatar-cavalo">${c.nome.charAt(0).toUpperCase()}</div>
-              <div style="flex:1;min-width:0;">
-                <div class="animal-nome">
-                  ${c.nome}
-                  <span class="status-dot" style="background:${dotClr};${pendente ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span>
-                </div>
-                <div class="animal-sub">
-                  <span class="tag-local"><i class="fa-solid fa-location-dot" style="font-size:0.62rem;color:var(--marrom-claro);"></i>${c.lugar || "Sem local"}</span>
-                  ${c.nome_proprietario ? `<span class="tag-prop"><i class="fa-solid fa-user" style="font-size:0.62rem;"></i>${c.nome_proprietario}</span>` : ""}
-                </div>
-              </div>
-              <span class="badge-status ${badgeC}">${badgeTx}</span>
-            </div>
-            <div class="animal-card-base">
-              <div>
-                <div class="gasto-label">Gasto no mês</div>
-                <div class="gasto-valor">${totalF}</div>
-              </div>
-              <div style="display:flex;gap:8px;">
-                <button class="btn-action icon-brown" onclick="RanchoApp.abrirMensalidade(${c.id},'${ns}')" title="Mensalidade">
-                  <i class="fa-solid fa-calendar-plus" style="font-size:0.82rem;"></i>
-                </button>
-                <button class="btn-action icon-gold" onclick="RanchoApp.abrirFinanceiro(${c.id},'${ns}')" title="Custos">
-                  <i class="fa-solid fa-coins" style="font-size:0.82rem;"></i>
-                </button>
-              </div>
-            </div>
-          </div>`;
+
+      gridEl.innerHTML = todos
+        .map((a) => {
+          const bg = a.ocup ? "rgba(61,122,94,0.15)" : "rgba(196,154,74,0.12)";
+          const clr = a.ocup ? "#3D7A5E" : "#8A6840";
+          const bdr = a.ocup ? "none" : "0.5px dashed rgba(196,154,74,0.4)";
+          return `<div style="width:28px;height:28px;border-radius:8px;background:${bg};border:${bdr};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${clr};" title="${a.nome}">${a.nome.charAt(0).toUpperCase()}</div>`;
         })
         .join("");
     } catch (e) {
-      console.error("carregarAnimaisHome:", e);
+      if (gridEl) gridEl.innerHTML = "";
     }
   },
 
