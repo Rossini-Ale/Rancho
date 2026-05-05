@@ -1747,6 +1747,17 @@ const RanchoApp = {
     else this.mostrarNotificacao("Sem dados.", "erro");
   },
 
+  // ── Relatório Mensal ──
+  gerarRelatorio() {
+    const mes =
+      parseInt(document.getElementById("relatorioMes")?.value) ||
+      new Date().getMonth() + 1;
+    const ano =
+      parseInt(document.getElementById("relatorioAno")?.value) ||
+      new Date().getFullYear();
+    Relatorio.gerar(mes, ano);
+  },
+
   // ── Config ──
   abrirModalConfig() {
     this.vibrar();

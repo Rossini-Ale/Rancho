@@ -252,4 +252,138 @@ router.get("/historico", async (req, res) => {
   }
 });
 
+// ── GET /api/dashboard/relatorio?mes=5&ano=2026 ─────────────
+// Retorna todos os dados necessários para o relatório mensal
+router.get("/relatorio", async (req, res) => {
+  const uid = req.user.id;
+  const mes = parseInt(req.query.mes) || new Date().getMonth() + 1;
+  const ano = parseInt(req.query.ano) || new Date().getFullYear();
+
+  const mesAnt = mes === 1 ? 12 : mes - 1;
+  const anoAnt = mes === 1 ? ano - 1 : ano;
+
+  const nomesMeses = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+  ];
+
+  try {
+    const [[{ receitaMes }]] = await pool.query(
+      "SELECT COALESCE(SUM(valor),0) AS receitaMes FROM Mensalidades WHERE usuario_id=? AND mes=? AND ano=? AND pago=1",
+      [uid, mes, ano],
+    );
+    const [[{ receitaAnt }]] = await pool.query(
+      "SELECT COALESCE(SUM(valor),0) AS receitaAnt FROM Mensalidades WHERE usuario_id=? AND mes=? AND ano=? AND pago=1",
+      [uid, mesAnt, anoAnt],
+    );
+    const [[{ despesasMes }]] = await pool.query(
+      `SELECT COALESCE(SUM(valor),0) AS despesasMes FROM Custos
+       WHERE usuario_id=? AND cavalo_id IS NULL AND proprietario_id IS NULL
+         AND MONTH(data_despesa)=? AND YEAR(data_despesa)=?`,
+      [uid, mes, ano],
+    );
+    const [[{ despesasAnt }]] = await pool.query(
+      `SELECT COALESCE(SUM(valor),0) AS despesasAnt FROM Custos
+       WHERE usuario_id=? AND cavalo_id IS NULL AND proprietario_id IS NULL
+         AND MONTH(data_despesa)=? AND YEAR(data_despesa)=?`,
+      [uid, mesAnt, anoAnt],
+    );
+    const [[{ pendencias }]] = await pool.query(
+      "SELECT COALESCE(SUM(valor),0) AS pendencias FROM Mensalidades WHERE usuario_id=? AND mes=? AND ano=? AND pago=0",
+      [uid, mes, ano],
+    );
+    const [[{ clientesPendentes }]] = await pool.query(
+      `SELECT COUNT(DISTINCT cv.proprietario_id) AS clientesPendentes
+       FROM Mensalidades m JOIN Cavalos cv ON m.cavalo_id = cv.id
+       WHERE m.usuario_id=? AND m.mes=? AND m.ano=? AND m.pago=0`,
+      [uid, mes, ano],
+    );
+    const [categorias] = await pool.query(
+      `SELECT categoria, COALESCE(SUM(valor),0) AS total
+       FROM Custos WHERE usuario_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=?
+       GROUP BY categoria ORDER BY total DESC`,
+      [uid, mes, ano],
+    );
+    const [topAnimais] = await pool.query(
+      `SELECT c.nome, p.nome AS proprietario,
+         COALESCE(SUM(cu.valor),0) +
+         COALESCE((SELECT m.valor FROM Mensalidades m WHERE m.cavalo_id=c.id AND m.mes=? AND m.ano=? AND m.usuario_id=? LIMIT 1),0) AS total
+       FROM Cavalos c
+       LEFT JOIN Proprietarios p ON c.proprietario_id = p.id
+       LEFT JOIN Custos cu ON cu.cavalo_id = c.id
+         AND MONTH(cu.data_despesa)=? AND YEAR(cu.data_despesa)=? AND cu.usuario_id=?
+       WHERE c.usuario_id=?
+       GROUP BY c.id, c.nome, p.nome
+       HAVING total > 0
+       ORDER BY total DESC LIMIT 5`,
+      [mes, ano, uid, mes, ano, uid, uid],
+    );
+    const historico = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(ano, mes - 1 - i, 1);
+      const m = d.getMonth() + 1;
+      const a = d.getFullYear();
+      const [[{ rec }]] = await pool.query(
+        "SELECT COALESCE(SUM(valor),0) AS rec FROM Mensalidades WHERE usuario_id=? AND mes=? AND ano=? AND pago=1",
+        [uid, m, a],
+      );
+      const [[{ desp }]] = await pool.query(
+        "SELECT COALESCE(SUM(valor),0) AS desp FROM Custos WHERE usuario_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND cavalo_id IS NULL AND proprietario_id IS NULL",
+        [uid, m, a],
+      );
+      historico.push({
+        label: nomesMeses[m - 1].substring(0, 3),
+        receita: parseFloat(rec),
+        despesas: parseFloat(desp),
+      });
+    }
+
+    const recF = parseFloat(receitaMes);
+    const despF = parseFloat(despesasMes);
+    const pctReceita =
+      parseFloat(receitaAnt) > 0
+        ? Math.round(
+            ((recF - parseFloat(receitaAnt)) / parseFloat(receitaAnt)) * 100,
+          )
+        : null;
+    const pctDespesas =
+      parseFloat(despesasAnt) > 0
+        ? Math.round(
+            ((despF - parseFloat(despesasAnt)) / parseFloat(despesasAnt)) * 100,
+          )
+        : null;
+
+    res.json({
+      mes,
+      ano,
+      nomeMes: nomesMeses[mes - 1],
+      kpis: {
+        receita: { total: recF, pct: pctReceita },
+        despesas: { total: despF, pct: pctDespesas },
+        lucro: { total: recF - despF },
+        pendencias: {
+          total: parseFloat(pendencias),
+          clientes: clientesPendentes,
+        },
+      },
+      categorias,
+      topAnimais,
+      historico,
+    });
+  } catch (err) {
+    console.error("Erro GET /relatorio:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
