@@ -866,17 +866,26 @@ const RanchoApp = {
     const ls = slot.nome.replace(/'/g, "\\'");
     const os = (animal.observacoes || "").replace(/'/g, "\\'");
     const pid = animal.proprietario_id || "";
-    const dotClr = animal.tem_pendente ? "#E53935" : "var(--verde)";
     const inicial = animal.nome.charAt(0).toUpperCase();
+    const totalF =
+      animal.total_mes > 0
+        ? animal.total_mes.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          })
+        : null;
 
     return `
-      <div onclick="RanchoApp.abrirModalEditar(${animal.id},'${ns}','${ls}','${pid}','${os}')"
-        style="background:rgba(61,122,94,0.09);border:0.5px solid rgba(61,122,94,0.25);border-radius:13px;padding:9px 7px;text-align:center;cursor:pointer;">
+      <div style="background:rgba(61,122,94,0.09);border:0.5px solid rgba(61,122,94,0.25);border-radius:13px;padding:9px 7px;text-align:center;cursor:pointer;"
+        onclick="RanchoApp.abrirAcoesAnimal(${animal.id},'${ns}','${ls}','${pid}','${os}')">
         <div style="font-size:8px;color:#3D7A5E;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${slot.nome}</div>
-        <div style="width:28px;height:28px;border-radius:50%;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:600;margin:0 auto 3px;">${inicial}</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:600;margin:0 auto 3px;position:relative;">
+          ${inicial}
+          ${animal.tem_pendente ? `<span style="position:absolute;top:-1px;right:-1px;width:7px;height:7px;border-radius:50%;background:#E53935;border:1px solid white;"></span>` : ""}
+        </div>
         <div style="font-size:9px;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
         <div style="font-size:8px;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem prop."}</div>
-        ${animal.tem_pendente ? `<div style="width:6px;height:6px;border-radius:50%;background:#E53935;margin:3px auto 0;box-shadow:0 0 4px rgba(229,57,53,0.5);"></div>` : ""}
+        ${totalF ? `<div style="font-size:8px;font-weight:600;color:var(--vermelho);margin-top:3px;">${totalF}</div>` : ""}
       </div>`;
   },
 
@@ -886,13 +895,51 @@ const RanchoApp = {
     const pid = animal.proprietario_id || "";
 
     return `
-      <div onclick="RanchoApp.abrirModalEditar(${animal.id},'${ns}','${animal.lugar || ""}','${pid}','${os}')"
+      <div onclick="RanchoApp.abrirAcoesAnimal(${animal.id},'${ns}','${animal.lugar || ""}','${pid}','${os}')"
         style="background:rgba(196,154,74,0.08);border:0.5px solid rgba(196,154,74,0.3);border-radius:13px;padding:9px 7px;text-align:center;cursor:pointer;">
-        <div style="font-size:8px;color:var(--dourado);font-weight:600;margin-bottom:3px;">—</div>
+        <div style="font-size:8px;color:var(--dourado);font-weight:600;margin-bottom:3px;">Sem local</div>
         <div style="width:28px;height:28px;border-radius:50%;background:rgba(196,154,74,0.2);display:flex;align-items:center;justify-content:center;color:#633806;font-size:11px;font-weight:600;margin:0 auto 3px;">${animal.nome.charAt(0).toUpperCase()}</div>
         <div style="font-size:9px;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
         <div style="font-size:8px;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem prop."}</div>
       </div>`;
+  },
+
+  // ── Modal de Ações Rápidas do Animal ──
+  abrirAcoesAnimal(id, nome, lugar, propId, obs) {
+    this.vibrar();
+    // Preenche o modal de ações
+    const modal = document.getElementById("modalAcoesAnimal");
+    if (!modal) return;
+    document.getElementById("acoesAnimalNome").textContent = nome;
+    document.getElementById("acoesAnimalLocal").textContent =
+      lugar || "Sem local";
+
+    // Configura os botões
+    document.getElementById("btnAcaoEditar").onclick = () => {
+      this.bsModalAcoesAnimal.hide();
+      this.abrirModalEditar(id, nome, lugar, propId, obs);
+    };
+    document.getElementById("btnAcaoCusto").onclick = () => {
+      this.bsModalAcoesAnimal.hide();
+      setTimeout(() => this.abrirFinanceiro(id, nome), 350);
+    };
+    document.getElementById("btnAcaoMensalidade").onclick = () => {
+      this.bsModalAcoesAnimal.hide();
+      setTimeout(() => this.abrirMensalidade(id, nome), 350);
+    };
+    document.getElementById("btnAcaoExcluir").onclick = () => {
+      this.bsModalAcoesAnimal.hide();
+      setTimeout(() => {
+        // Simula o modal de edição aberto para usar excluirCavaloAtual
+        document.getElementById("cavaloId").value = id;
+        this.excluirCavaloAtual();
+      }, 350);
+    };
+
+    if (!this.bsModalAcoesAnimal) {
+      this.bsModalAcoesAnimal = new bootstrap.Modal(modal);
+    }
+    this.bsModalAcoesAnimal.show();
   },
 
   skeletonRows(n) {

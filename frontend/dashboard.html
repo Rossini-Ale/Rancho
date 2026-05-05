@@ -806,6 +806,277 @@
       </div>
     </div>
 
+    <!-- Modal Ações Animal -->
+    <div class="modal fade" id="modalAcoesAnimal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-body p-0">
+            <!-- Cabeçalho -->
+            <div
+              style="
+                background: var(--marrom-escuro);
+                border-radius: 20px 20px 0 0;
+                padding: 16px 18px 14px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+              "
+            >
+              <div
+                style="
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 50%;
+                  background: rgba(232, 201, 122, 0.15);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  flex-shrink: 0;
+                "
+              >
+                <i
+                  class="fa-solid fa-horse-head"
+                  style="color: var(--dourado-claro); font-size: 1rem"
+                ></i>
+              </div>
+              <div>
+                <div
+                  style="
+                    font-family: &quot;Lora&quot;, serif;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: var(--dourado-claro);
+                  "
+                  id="acoesAnimalNome"
+                >
+                  Animal
+                </div>
+                <div
+                  style="
+                    font-size: 0.72rem;
+                    color: rgba(232, 201, 122, 0.6);
+                    margin-top: 2px;
+                  "
+                  id="acoesAnimalLocal"
+                >
+                  Local
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn-close btn-close-white ms-auto"
+                data-bs-dismiss="modal"
+                style="font-size: 0.7rem"
+              ></button>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div
+              style="
+                padding: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+              "
+            >
+              <button
+                id="btnAcaoCusto"
+                style="
+                  background: rgba(196, 154, 74, 0.1);
+                  border: 0.5px solid rgba(196, 154, 74, 0.3);
+                  border-radius: 14px;
+                  padding: 13px 16px;
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                  cursor: pointer;
+                  width: 100%;
+                  text-align: left;
+                "
+              >
+                <div
+                  style="
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    background: rgba(196, 154, 74, 0.15);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-coins"
+                    style="color: var(--dourado); font-size: 0.9rem"
+                  ></i>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.88rem;
+                      font-weight: 600;
+                      color: var(--texto-titulo);
+                      font-family: &quot;DM Sans&quot;, sans-serif;
+                    "
+                  >
+                    Lançar Custo
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--texto-suave)">
+                    Exames, ferradura, frete...
+                  </div>
+                </div>
+              </button>
+
+              <button
+                id="btnAcaoMensalidade"
+                style="
+                  background: rgba(61, 122, 94, 0.08);
+                  border: 0.5px solid rgba(61, 122, 94, 0.25);
+                  border-radius: 14px;
+                  padding: 13px 16px;
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                  cursor: pointer;
+                  width: 100%;
+                  text-align: left;
+                "
+              >
+                <div
+                  style="
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    background: rgba(61, 122, 94, 0.12);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-calendar-plus"
+                    style="color: var(--verde); font-size: 0.9rem"
+                  ></i>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.88rem;
+                      font-weight: 600;
+                      color: var(--texto-titulo);
+                      font-family: &quot;DM Sans&quot;, sans-serif;
+                    "
+                  >
+                    Mensalidade
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--texto-suave)">
+                    Lançar mensalidade do mês
+                  </div>
+                </div>
+              </button>
+
+              <button
+                id="btnAcaoEditar"
+                style="
+                  background: var(--bege-fundo);
+                  border: 0.5px solid var(--bege-borda);
+                  border-radius: 14px;
+                  padding: 13px 16px;
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                  cursor: pointer;
+                  width: 100%;
+                  text-align: left;
+                "
+              >
+                <div
+                  style="
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    background: rgba(107, 58, 31, 0.08);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-pen"
+                    style="color: var(--marrom-claro); font-size: 0.9rem"
+                  ></i>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.88rem;
+                      font-weight: 600;
+                      color: var(--texto-titulo);
+                      font-family: &quot;DM Sans&quot;, sans-serif;
+                    "
+                  >
+                    Editar Animal
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--texto-suave)">
+                    Nome, local, proprietário...
+                  </div>
+                </div>
+              </button>
+
+              <button
+                id="btnAcaoExcluir"
+                style="
+                  background: rgba(168, 50, 50, 0.06);
+                  border: 0.5px solid rgba(168, 50, 50, 0.2);
+                  border-radius: 14px;
+                  padding: 11px 16px;
+                  display: flex;
+                  align-items: center;
+                  gap: 12px;
+                  cursor: pointer;
+                  width: 100%;
+                  text-align: left;
+                "
+              >
+                <div
+                  style="
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    background: rgba(168, 50, 50, 0.08);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                  "
+                >
+                  <i
+                    class="fa-solid fa-trash"
+                    style="color: var(--vermelho); font-size: 0.85rem"
+                  ></i>
+                </div>
+                <div>
+                  <div
+                    style="
+                      font-size: 0.85rem;
+                      font-weight: 600;
+                      color: var(--vermelho);
+                      font-family: &quot;DM Sans&quot;, sans-serif;
+                    "
+                  >
+                    Remover Animal
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Config -->
     <div class="modal fade" id="modalConfig" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
