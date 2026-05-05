@@ -339,134 +339,7 @@
         <div id="listaProprietariosMainBody"></div>
       </div>
 
-      <!-- ── ABA RANCHO ── -->
-      <div id="tabRancho" class="d-none">
-        <div style="padding: 14px">
-          <div class="card-total-rancho mb-3">
-            <div class="ct-label">Total gasto no mês</div>
-            <div class="ct-valor" id="totalRanchoMesDisplay">R$ 0,00</div>
-          </div>
-
-          <div
-            class="card-v2 mb-3"
-            id="areaGraficoRancho"
-            style="display: none"
-          >
-            <p class="small-label text-center mb-3">Distribuição</p>
-            <div style="height: 180px; position: relative">
-              <canvas
-                id="graficoRancho"
-                role="img"
-                aria-label="Gráfico de distribuição de despesas por categoria"
-                >Distribuição por categoria.</canvas
-              >
-            </div>
-          </div>
-
-          <div class="form-despesa-wrap mb-3">
-            <div class="small-label mb-2">Nova Despesa</div>
-            <form id="formCustoRancho" class="d-flex flex-wrap gap-2">
-              <input
-                type="text"
-                class="form-control border-0"
-                id="ranchoCat"
-                placeholder="Categoria"
-                list="sugestoesCategorias"
-                required
-                style="flex: 1; min-width: 110px"
-              />
-              <datalist id="sugestoesCategorias">
-                <option value="Alimentação" />
-                <option value="Manutenção" />
-                <option value="Funcionários" />
-                <option value="Energia" />
-                <option value="Combustível" />
-              </datalist>
-              <input
-                type="text"
-                class="form-control border-0"
-                id="ranchoDesc"
-                placeholder="Descrição"
-                required
-                style="flex: 2; min-width: 140px"
-              />
-              <input
-                type="text"
-                inputmode="decimal"
-                class="form-control border-0 text-end"
-                id="ranchoValor"
-                placeholder="R$"
-                style="width: 85px"
-                required
-              />
-              <button
-                type="submit"
-                class="btn btn-success rounded-circle"
-                style="width: 38px; height: 38px; padding: 0; flex-shrink: 0"
-              >
-                <i class="fa-solid fa-plus"></i>
-              </button>
-            </form>
-          </div>
-
-          <div class="filter-chips mb-3" id="chipsCategoriaRancho">
-            <div
-              class="chip active"
-              onclick="RanchoApp.filtrarCategoriaRancho('', this)"
-            >
-              Todas
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Alimentação', this)"
-            >
-              Alimentação
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Manutenção', this)"
-            >
-              Manutenção
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Funcionários', this)"
-            >
-              Funcionários
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Energia', this)"
-            >
-              Energia
-            </div>
-            <div
-              class="chip"
-              onclick="RanchoApp.filtrarCategoriaRancho('Combustível', this)"
-            >
-              Combustível
-            </div>
-          </div>
-
-          <div class="mes-nav mb-3">
-            <button class="mes-nav-btn" onclick="RanchoApp.mudarMesRancho(-1)">
-              <i class="fa-solid fa-chevron-left"></i>
-            </button>
-            <span class="mes-nav-label" id="labelMesAnoRancho">MÊS</span>
-            <button class="mes-nav-btn" onclick="RanchoApp.mudarMesRancho(1)">
-              <i class="fa-solid fa-chevron-right"></i>
-            </button>
-          </div>
-
-          <div class="card-v2" style="padding: 0; overflow: hidden">
-            <table class="table mb-0 align-middle">
-              <tbody id="listaRanchoBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── ABA FINANÇAS / COBRANÇAS ── -->
+      <!-- ── ABA FINANÇAS / COBRANÇAS + DESPESAS ── -->
       <div id="tabFinancas" class="d-none">
         <div style="padding: 14px 14px 4px">
           <div
@@ -476,7 +349,7 @@
               color: var(--texto-titulo);
             "
           >
-            Cobranças
+            Finanças
           </div>
         </div>
 
@@ -533,7 +406,7 @@
           <div id="resultadosBusca" style="display: none"></div>
         </div>
 
-        <!-- Lista Cobranças -->
+        <!-- Cobranças Pendentes -->
         <div style="padding: 8px 14px 4px">
           <div
             style="
@@ -543,7 +416,7 @@
               margin-bottom: 8px;
             "
           >
-            Pendências
+            Cobranças Pendentes
           </div>
           <div id="listaCobrancas">
             <div
@@ -556,6 +429,148 @@
             >
               Carregando...
             </div>
+          </div>
+        </div>
+
+        <!-- ── SEÇÃO DESPESAS DO RANCHO ── -->
+        <div style="padding: 12px 14px 4px">
+          <div
+            style="
+              height: 0.5px;
+              background: var(--bege-borda);
+              margin-bottom: 14px;
+            "
+          ></div>
+
+          <!-- Card Total Despesas -->
+          <div class="card-total-rancho mb-3">
+            <div class="ct-label">Total gasto no mês</div>
+            <div class="ct-valor" id="totalRanchoMesDisplay">R$ 0,00</div>
+          </div>
+
+          <!-- Gráfico Despesas -->
+          <div
+            class="card-v2 mb-3"
+            id="areaGraficoRancho"
+            style="display: none"
+          >
+            <p class="small-label text-center mb-3">Distribuição</p>
+            <div style="height: 180px; position: relative">
+              <canvas
+                id="graficoRancho"
+                role="img"
+                aria-label="Gráfico de distribuição de despesas"
+                >Distribuição por categoria.</canvas
+              >
+            </div>
+          </div>
+
+          <!-- Formulário Nova Despesa -->
+          <div class="form-despesa-wrap mb-3">
+            <div class="small-label mb-2">Nova Despesa</div>
+            <form id="formCustoRancho" class="d-flex flex-wrap gap-2">
+              <input
+                type="text"
+                class="form-control border-0"
+                id="ranchoCat"
+                placeholder="Categoria"
+                list="sugestoesCategorias"
+                required
+                style="flex: 1; min-width: 110px"
+              />
+              <datalist id="sugestoesCategorias">
+                <option value="Alimentação" />
+                <option value="Manutenção" />
+                <option value="Funcionários" />
+                <option value="Energia" />
+                <option value="Combustível" />
+              </datalist>
+              <input
+                type="text"
+                class="form-control border-0"
+                id="ranchoDesc"
+                placeholder="Descrição"
+                required
+                style="flex: 2; min-width: 140px"
+              />
+              <input
+                type="text"
+                inputmode="decimal"
+                class="form-control border-0 text-end"
+                id="ranchoValor"
+                placeholder="R$"
+                style="width: 85px"
+                required
+              />
+              <button
+                type="submit"
+                class="btn btn-success rounded-circle"
+                style="width: 38px; height: 38px; padding: 0; flex-shrink: 0"
+              >
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </form>
+          </div>
+
+          <!-- Chips Categoria -->
+          <div class="filter-chips mb-3" id="chipsCategoriaRancho">
+            <div
+              class="chip active"
+              onclick="RanchoApp.filtrarCategoriaRancho('', this)"
+            >
+              Todas
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Alimentação', this)"
+            >
+              Alimentação
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Manutenção', this)"
+            >
+              Manutenção
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Funcionários', this)"
+            >
+              Funcionários
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Energia', this)"
+            >
+              Energia
+            </div>
+            <div
+              class="chip"
+              onclick="RanchoApp.filtrarCategoriaRancho('Combustível', this)"
+            >
+              Combustível
+            </div>
+          </div>
+
+          <!-- Nav Mês -->
+          <div class="mes-nav mb-3">
+            <button class="mes-nav-btn" onclick="RanchoApp.mudarMesRancho(-1)">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <span class="mes-nav-label" id="labelMesAnoRancho">MÊS</span>
+            <button class="mes-nav-btn" onclick="RanchoApp.mudarMesRancho(1)">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          </div>
+
+          <!-- Lista Despesas -->
+          <div
+            class="card-v2"
+            style="padding: 0; overflow: hidden; margin-bottom: 20px"
+          >
+            <table class="table mb-0 align-middle">
+              <tbody id="listaRanchoBody"></tbody>
+            </table>
           </div>
         </div>
       </div>

@@ -145,7 +145,10 @@ const RanchoApp = {
     else if (this.abaAtual === "cavalos") await this.carregarTabelaCavalos();
     else if (this.abaAtual === "proprietarios")
       await this.carregarTabelaProprietarios();
-    else if (this.abaAtual === "rancho") await this.carregarDespesasRancho();
+    else if (this.abaAtual === "financas") {
+      await this.carregarFinancas();
+      await this.carregarDespesasRancho();
+    }
   },
 
   // ── Listeners ──
@@ -509,14 +512,12 @@ const RanchoApp = {
       home: "tabHome",
       cavalos: "tabCavalos",
       proprietarios: "tabProprietarios",
-      rancho: "tabRancho",
       financas: "tabFinancas",
     };
     const navs = {
       home: "navBtnHome",
       cavalos: "navBtnCavalos",
       proprietarios: "navBtnProps",
-      rancho: "navBtnRancho",
       financas: "navBtnFinancas",
     };
     Object.values(tabs).forEach((id) => {
@@ -539,11 +540,11 @@ const RanchoApp = {
     if (aba === "home") this.carregarHome();
     else if (aba === "cavalos") this.carregarTabelaCavalos();
     else if (aba === "proprietarios") this.carregarTabelaProprietarios();
-    else if (aba === "rancho") {
+    else if (aba === "financas") {
       this.dataFiltroRancho = new Date();
       this.atualizarLabelMesRancho();
-      this.carregarDespesasRancho();
-    } else if (aba === "financas") this.carregarFinancas();
+      this.carregarFinancas();
+    }
   },
 
   adicionarItemAtual() {
@@ -551,7 +552,7 @@ const RanchoApp = {
     if (this.abaAtual === "cavalos") this.abrirModalNovoCavalo();
     else if (this.abaAtual === "proprietarios")
       this.abrirModalGerenciarProprietarios();
-    else if (this.abaAtual === "rancho")
+    else if (this.abaAtual === "financas")
       document.getElementById("ranchoDesc")?.focus();
     else this.abrirModalNovoCavalo();
   },
@@ -1771,7 +1772,11 @@ const RanchoApp = {
   // ABA FINANÇAS — COBRANÇAS
   // ══════════════════════════════════════════
   async carregarFinancas() {
-    await Promise.all([this.carregarCobrancas(), this.setupBuscaGlobal()]);
+    await Promise.all([
+      this.carregarCobrancas(),
+      this.carregarDespesasRancho(),
+      this.setupBuscaGlobal(),
+    ]);
   },
 
   async carregarCobrancas() {
