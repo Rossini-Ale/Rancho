@@ -78,6 +78,12 @@ const RanchoApp = {
     const primeiroNome = this.nomeUsuario.split(" ")[0];
     const iniciais = this._gerarIniciais(this.nomeUsuario);
 
+    // Navbar mobile — avatar + brand
+    const navAv = document.getElementById("navbarAvatar");
+    if (navAv) navAv.textContent = iniciais;
+    const brand = document.getElementById("brandName");
+    if (brand) brand.textContent = this.nomeRancho || "HF Controll";
+
     // Sidebar
     const sideNome = document.getElementById("sidebarNomeUsuario");
     if (sideNome) sideNome.textContent = primeiroNome || "Usuário";
@@ -89,10 +95,6 @@ const RanchoApp = {
     // Topbar desktop
     const topAv = document.getElementById("topbarAvatar");
     if (topAv) topAv.textContent = iniciais;
-
-    // Navbar brand
-    const brand = document.getElementById("brandName");
-    if (brand) brand.textContent = this.nomeRancho || "HF Controll";
   },
 
   _gerarIniciais(nome) {
