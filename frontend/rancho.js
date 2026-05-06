@@ -8,6 +8,9 @@ const RanchoApp = {
   bsModalConfig: null,
   bsToast: null,
   bsModalConfirm: null,
+  bsModalPerfil: null,
+  nomeUsuario: "",
+  nomeRancho: "",
   deferredPrompt: null,
   chartHistorico: null,
   chartFinanceiro: null,
@@ -49,11 +52,156 @@ const RanchoApp = {
     this.setupPullToRefresh();
     this.setupPWA();
     this.setupListeners();
-    this.setSaudacao();
+
+    // Carrega nome do usuário logado
+    await this.carregarUsuario();
 
     await this.carregarConfiguracoes();
     await this.carregarProprietariosSelect();
     await this.carregarHome();
+  },
+
+  async carregarUsuario() {
+    try {
+      const perfil = await ApiService.fetchData("/api/gestao/perfil");
+      if (!perfil) return;
+      this.nomeUsuario = perfil.nome || "";
+      this.nomeRancho = perfil.nome_rancho || "HF Controll";
+      this.chavePixCache = perfil.chave_pix || "";
+      this._aplicarPerfil();
+    } catch (e) {
+      console.warn("carregarUsuario:", e);
+    }
+  },
+
+  _aplicarPerfil() {
+    const primeiroNome = this.nomeUsuario.split(" ")[0];
+    const iniciais = this._gerarIniciais(this.nomeUsuario);
+
+    // Sidebar
+    const sideNome = document.getElementById("sidebarNomeUsuario");
+    if (sideNome) sideNome.textContent = primeiroNome || "Usuário";
+    const sideAv = document.getElementById("sidebarAvatar");
+    if (sideAv) sideAv.textContent = iniciais;
+    const sideRancho = document.getElementById("sidebarRanchoNome");
+    if (sideRancho) sideRancho.textContent = this.nomeRancho;
+
+    // Topbar desktop
+    const topAv = document.getElementById("topbarAvatar");
+    if (topAv) topAv.textContent = iniciais;
+
+    // Navbar brand
+    const brand = document.getElementById("brandName");
+    if (brand) brand.textContent = this.nomeRancho || "HF Controll";
+  },
+
+  _gerarIniciais(nome) {
+    if (!nome) return "HF";
+    const p = nome.trim().split(" ").filter(Boolean);
+    if (p.length >= 2) return (p[0][0] + p[1][0]).toUpperCase();
+    return p[0].substring(0, 2).toUpperCase();
+  },
+
+  // ══════════════════════════════════════════
+  // MODAL DE PERFIL
+  // ══════════════════════════════════════════
+  async abrirModalPerfil() {
+    this.vibrar();
+    if (!this.bsModalPerfil) {
+      this.bsModalPerfil = new bootstrap.Modal(
+        document.getElementById("modalPerfil"),
+      );
+    }
+    // Preenche campos com dados atuais
+    document.getElementById("perfilNome").value = this.nomeUsuario || "";
+    document.getElementById("perfilNomeRancho").value = this.nomeRancho || "";
+    document.getElementById("perfilChavePix").value = this.chavePixCache || "";
+    document.getElementById("perfilTelefone").value = "";
+    // Busca telefone do backend
+    try {
+      const p = await ApiService.fetchData("/api/gestao/perfil");
+      if (p?.telefone)
+        document.getElementById("perfilTelefone").value = p.telefone;
+    } catch (e) {}
+
+    this.atualizarPreviaPerifil();
+    this.bsModalPerfil.show();
+
+    // Listener do form
+    const form = document.getElementById("formPerfil");
+    const novo = form.cloneNode(true);
+    form.parentNode.replaceChild(novo, form);
+    document
+      .getElementById("formPerfil")
+      .addEventListener("submit", (e) => this.salvarPerfil(e));
+    // Re-bind inputs da prévia
+    document
+      .getElementById("perfilNome")
+      .addEventListener("input", () => this.atualizarPreviaPerifil());
+    document
+      .getElementById("perfilNomeRancho")
+      .addEventListener("input", () => this.atualizarPreviaPerifil());
+    // Máscara telefone
+    document
+      .getElementById("perfilTelefone")
+      .addEventListener("input", (e) => this.mascaraTelefone(e));
+  },
+
+  atualizarPreviaPerifil() {
+    const nome =
+      document.getElementById("perfilNome")?.value.trim() || "Usuário";
+    const rancho =
+      document.getElementById("perfilNomeRancho")?.value.trim() ||
+      "HF Controll";
+    const primeiroNome = nome.split(" ")[0];
+    const iniciais = this._gerarIniciais(nome);
+    const h = new Date().getHours();
+    const periodo = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+
+    const av = document.getElementById("perfilAvatar");
+    const nm = document.getElementById("perfilNomePrevia");
+    const rc = document.getElementById("perfilRanchoPrevia");
+    const pt = document.getElementById("perfilPreviaTexto");
+    const pa = document.getElementById("perfilPreviaAvatar");
+    const pr = document.getElementById("perfilPreviaRancho");
+
+    if (av) av.textContent = iniciais;
+    if (nm) nm.textContent = nome;
+    if (rc) rc.textContent = rancho;
+    if (pt) pt.textContent = `${periodo}, ${primeiroNome}!`;
+    if (pa) pa.textContent = iniciais;
+    if (pr) pr.textContent = rancho;
+  },
+
+  async salvarPerfil(e) {
+    e.preventDefault();
+    const btn = document.getElementById("btnSalvarPerfil");
+    this.setLoading(btn, true, "Salvando...");
+    const body = {
+      nome: document.getElementById("perfilNome").value.trim(),
+      nome_rancho: document.getElementById("perfilNomeRancho").value.trim(),
+      chave_pix: document.getElementById("perfilChavePix").value.trim(),
+      telefone: document.getElementById("perfilTelefone").value.trim(),
+    };
+    try {
+      await ApiService.putData("/api/gestao/perfil", body);
+      this.nomeUsuario = body.nome;
+      this.nomeRancho = body.nome_rancho;
+      this.chavePixCache = body.chave_pix;
+      this._aplicarPerfil();
+      // Atualiza saudação na home
+      this.setDataHoje();
+      this.bsModalPerfil.hide();
+      this.mostrarNotificacao("Perfil salvo!");
+    } catch (e) {
+      this.mostrarNotificacao("Erro ao salvar perfil.", "erro");
+    } finally {
+      this.setLoading(
+        btn,
+        false,
+        '<i class="fa-solid fa-floppy-disk me-2"></i>Salvar perfil',
+      );
+    }
   },
 
   // ── Saudação ──
@@ -260,8 +408,6 @@ const RanchoApp = {
   },
 
   setDataHoje() {
-    const el = document.getElementById("dataHoje");
-    if (!el) return;
     const agora = new Date();
     const dias = [
       "Domingo",
@@ -286,13 +432,25 @@ const RanchoApp = {
       "novembro",
       "dezembro",
     ];
-    el.textContent = `${dias[agora.getDay()]}-feira, ${agora.getDate()} de ${meses[agora.getMonth()]} de ${agora.getFullYear()}`;
-    // Saudação por hora
+    const dataTexto = `${dias[agora.getDay()]}-feira, ${agora.getDate()} de ${meses[agora.getMonth()]} de ${agora.getFullYear()}`;
     const h = agora.getHours();
-    const saudEl = document.getElementById("saudacaoLabel");
-    if (saudEl)
-      saudEl.textContent =
-        h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+    const periodo = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+    const primeiroNome = this.nomeUsuario ? this.nomeUsuario.split(" ")[0] : "";
+    const saudacao = primeiroNome
+      ? `${periodo}, ${primeiroNome}!`
+      : `${periodo}!`;
+
+    const elData = document.getElementById("dataHoje");
+    if (elData) elData.textContent = dataTexto;
+    const elSaud = document.getElementById("saudacaoLabel");
+    if (elSaud) elSaud.textContent = saudacao;
+
+    // Topbar desktop
+    const topSaud = document.getElementById("topbarSaudacao");
+    if (topSaud) topSaud.textContent = saudacao;
+    const topData = document.getElementById("topbarData");
+    if (topData)
+      topData.textContent = `${dias[agora.getDay()]}, ${agora.getDate()} de ${meses[agora.getMonth()]} de ${agora.getFullYear()}`;
   },
 
   async carregarKPIs() {
@@ -2962,7 +3120,7 @@ const RanchoApp = {
   },
   async carregarConfiguracoes() {
     try {
-      const r = await ApiService.fetchData("/api/gestao/config");
+      const r = await ApiService.fetchData("/api/gestao/perfil");
       if (r) {
         this.chavePixCache = r.chave_pix || "";
         const inp = document.getElementById("configChavePix");

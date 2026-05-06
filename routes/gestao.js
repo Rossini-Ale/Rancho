@@ -735,4 +735,74 @@ router.delete("/veterinario/:id", async (req, res) => {
   }
 });
 
+// ── GET /api/gestao/perfil ────────────────────────────────
+// Retorna perfil completo do usuário (nome, rancho, pix, tel)
+router.get("/perfil", async (req, res) => {
+  const uid = req.user.id;
+  try {
+    // Busca nome/username da tabela Usuarios
+    const [[user]] = await pool.query(
+      "SELECT nome, username FROM Usuarios WHERE id = ?",
+      [uid],
+    );
+    // Busca config (pix + dados do perfil)
+    const [[cfg]] = await pool.query(
+      "SELECT chave_pix, nome_usuario, nome_rancho, telefone FROM Config WHERE usuario_id = ?",
+      [uid],
+    );
+    res.json({
+      nome: cfg?.nome_usuario || user?.nome || user?.username || "",
+      nome_rancho: cfg?.nome_rancho || "HF Controll",
+      chave_pix: cfg?.chave_pix || "",
+      telefone: cfg?.telefone || "",
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── PUT /api/gestao/perfil ────────────────────────────────
+// Salva perfil completo
+router.put("/perfil", async (req, res) => {
+  const uid = req.user.id;
+  const { nome, nome_rancho, chave_pix, telefone } = req.body;
+  try {
+    // Upsert na tabela Config
+    const [[cfg]] = await pool.query(
+      "SELECT id FROM Config WHERE usuario_id = ?",
+      [uid],
+    );
+    if (cfg) {
+      await pool.query(
+        "UPDATE Config SET nome_usuario=?, nome_rancho=?, chave_pix=?, telefone=? WHERE usuario_id=?",
+        [
+          nome || null,
+          nome_rancho || null,
+          chave_pix || null,
+          telefone || null,
+          uid,
+        ],
+      );
+    } else {
+      await pool.query(
+        "INSERT INTO Config (usuario_id, nome_usuario, nome_rancho, chave_pix, telefone) VALUES (?,?,?,?,?)",
+        [
+          uid,
+          nome || null,
+          nome_rancho || null,
+          chave_pix || null,
+          telefone || null,
+        ],
+      );
+    }
+    // Atualiza também o nome na tabela Usuarios
+    if (nome) {
+      await pool.query("UPDATE Usuarios SET nome=? WHERE id=?", [nome, uid]);
+    }
+    res.json({ message: "Perfil salvo!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
