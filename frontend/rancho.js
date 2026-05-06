@@ -2939,6 +2939,11 @@ const RanchoApp = {
       this.mostrarNotificacao("Apagado!");
     });
   },
+  // ── Config ──
+  abrirModalConfig() {
+    this.vibrar();
+    this.bsModalConfig.show();
+  },
   async salvarConfig(e) {
     e.preventDefault();
     const btn = e.submitter;
