@@ -1019,6 +1019,7 @@ main {
 @media (min-width: 768px) {
   body {
     overflow: auto;
+    font-size: 16px;
   }
   .navbar {
     display: none !important;
@@ -1260,9 +1261,53 @@ main {
     padding: 0 0 20px !important;
   }
 
-  /* Mapa de ocupação */
+  /* ── Escala de fontes desktop ── */
+  .kpi-value {
+    font-size: 1.8rem !important;
+  }
+  .kpi-value.sm {
+    font-size: 1.3rem !important;
+  }
+  .kpi-label {
+    font-size: 0.72rem !important;
+  }
+  .kpi-trend {
+    font-size: 0.75rem !important;
+  }
+  .section-title {
+    font-size: 1.05rem !important;
+  }
+  .alerta-titulo {
+    font-size: 0.88rem !important;
+  }
+  .alerta-sub {
+    font-size: 0.78rem !important;
+  }
+  .alerta-tempo {
+    font-size: 0.75rem !important;
+  }
+  .topbar-saudacao {
+    font-size: 0.95rem !important;
+  }
+  .topbar-data {
+    font-size: 0.8rem !important;
+  }
+  .sidebar-item span {
+    font-size: 0.88rem !important;
+  }
+  .sidebar-nav-lbl {
+    font-size: 0.7rem !important;
+  }
+  .small-label {
+    font-size: 0.75rem !important;
+  }
+  main.pb-5 {
+    font-size: 0.92rem;
+  }
+
+  /* Mapa de ocupação: 4 colunas no desktop */
   #mapaOcupacao > div > div[style*="grid-template-columns"] {
-    grid-template-columns: repeat(5, 1fr) !important;
+    grid-template-columns: repeat(4, 1fr) !important;
   }
 
   /* Listas */

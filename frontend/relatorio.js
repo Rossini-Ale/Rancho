@@ -84,7 +84,7 @@ const Relatorio = {
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text(
-        `HF Controll  ·  Emitido em ${new Date().toLocaleDateString("pt-BR")}`,
+        `${window.RanchoApp?.nomeRancho || "HF Controll"}  ·  Emitido em ${new Date().toLocaleDateString("pt-BR")}`,
         36,
         24,
       );
@@ -317,7 +317,11 @@ const Relatorio = {
       doc.setTextColor(...this.cores.suave);
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.text("HF Controll  ·  Relatório Mensal Automático", 18, H - 10);
+      doc.text(
+        `${window.RanchoApp?.nomeRancho || "HF Controll"}  ·  Relatório Mensal Automático`,
+        18,
+        H - 10,
+      );
       doc.setTextColor(...this.cores.verde);
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");

@@ -171,6 +171,44 @@ router.get("/alertas", async (req, res) => {
       });
     });
 
+    // Alertas da ficha veterinária — próximas datas vencendo
+    try {
+      const [fichaVet] = await pool.query(
+        `SELECT fv.tipo, fv.proxima_data, c.nome AS cavalo,
+           DATEDIFF(fv.proxima_data, CURDATE()) AS dias_restantes
+         FROM FichaVeterinaria fv
+         JOIN Cavalos c ON fv.cavalo_id = c.id
+         WHERE fv.usuario_id = ?
+           AND fv.proxima_data IS NOT NULL
+           AND fv.proxima_data >= CURDATE() - INTERVAL 1 DAY
+           AND fv.proxima_data <= CURDATE() + INTERVAL 14 DAY
+         ORDER BY fv.proxima_data ASC
+         LIMIT 4`,
+        [uid],
+      );
+      fichaVet.forEach((f) => {
+        const dias = parseInt(f.dias_restantes);
+        const tipo = dias < 0 ? "vencido" : dias <= 3 ? "vencido" : "atencao";
+        const tempo =
+          dias < 0
+            ? "Vencida"
+            : dias === 0
+              ? "Hoje"
+              : dias === 1
+                ? "Amanhã"
+                : `${dias} dias`;
+        alertas.push({
+          tipo,
+          titulo: `${f.tipo} — ${f.cavalo}`,
+          sub: dias < 0 ? "Data vencida, agendar!" : "Agendar em breve",
+          valor: null,
+          tempo,
+        });
+      });
+    } catch (e) {
+      // FichaVeterinaria pode não existir em bancos antigos — ignora silenciosamente
+    }
+
     res.json(alertas.slice(0, 8));
   } catch (err) {
     console.error("Erro GET /alertas:", err);

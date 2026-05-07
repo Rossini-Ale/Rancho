@@ -221,25 +221,35 @@ const RanchoApp = {
 
   // ── Dark Mode ──
   initDarkMode() {
-    const btn = document.getElementById("btnDarkMode");
-    if (localStorage.getItem("theme") === "dark") {
-      document.body.setAttribute("data-theme", "dark");
-      btn.querySelector("i").classList.replace("fa-moon", "fa-sun");
-    }
-    btn?.addEventListener("click", () => {
-      this.vibrar();
-      const dark = document.body.getAttribute("data-theme") === "dark";
-      document.body[dark ? "removeAttribute" : "setAttribute"](
+    const aplicarTema = (dark) => {
+      document.body[dark ? "setAttribute" : "removeAttribute"](
         "data-theme",
         "dark",
       );
-      localStorage.setItem("theme", dark ? "light" : "dark");
-      btn
-        .querySelector("i")
-        .classList.replace(
-          dark ? "fa-sun" : "fa-moon",
-          dark ? "fa-moon" : "fa-sun",
-        );
+      localStorage.setItem("theme", dark ? "dark" : "light");
+      // Sincroniza ícones em todos os botões
+      ["btnDarkMode", "btnDarkModeDesktop"].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const i = btn.querySelector("i");
+        if (i) {
+          i.classList.remove("fa-moon", "fa-sun");
+          i.classList.add(dark ? "fa-sun" : "fa-moon");
+        }
+      });
+    };
+
+    // Aplica tema salvo
+    const temaAtual = localStorage.getItem("theme") === "dark";
+    if (temaAtual) aplicarTema(true);
+
+    // Listener em ambos os botões
+    ["btnDarkMode", "btnDarkModeDesktop"].forEach((id) => {
+      document.getElementById(id)?.addEventListener("click", () => {
+        this.vibrar();
+        const dark = document.body.getAttribute("data-theme") === "dark";
+        aplicarTema(!dark);
+      });
     });
   },
 
@@ -947,7 +957,7 @@ const RanchoApp = {
               <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">${grupo.tipo}</span>
               <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${grupo.ocupados} ocupado${grupo.ocupados !== 1 ? "s" : ""}</span>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px;">
               ${grupo.slots.map((slot) => this._cardOcupado(slot)).join("")}
             </div>
           </div>
@@ -962,7 +972,7 @@ const RanchoApp = {
               <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">Sem local</span>
               <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${dados.semLocal.length} animal${dados.semLocal.length !== 1 ? "is" : ""}</span>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">
               ${dados.semLocal.map((a) => this._cardSemLocal(a)).join("")}
             </div>
           </div>`;
@@ -1002,16 +1012,19 @@ const RanchoApp = {
         : null;
 
     return `
-      <div style="background:rgba(61,122,94,0.09);border:0.5px solid rgba(61,122,94,0.25);border-radius:13px;padding:9px 7px;text-align:center;cursor:pointer;"
+      <div style="background:rgba(61,122,94,0.09);border:0.5px solid rgba(61,122,94,0.25);border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;"
         onclick="RanchoApp.abrirAcoesAnimal(${animal.id},'${ns}','${ls}','${pid}','${os}')">
-        <div style="font-size:8px;color:#3D7A5E;font-weight:600;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${slot.nome}</div>
-        <div style="width:28px;height:28px;border-radius:50%;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:600;margin:0 auto 3px;position:relative;">
+        <div style="width:40px;height:40px;border-radius:50%;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:15px;font-weight:600;flex-shrink:0;position:relative;">
           ${inicial}
-          ${animal.tem_pendente ? `<span style="position:absolute;top:-1px;right:-1px;width:7px;height:7px;border-radius:50%;background:#E53935;border:1px solid white;"></span>` : ""}
+          ${animal.tem_pendente ? `<span style="position:absolute;top:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:#E53935;border:1.5px solid white;"></span>` : ""}
         </div>
-        <div style="font-size:9px;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
-        <div style="font-size:8px;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem prop."}</div>
-        ${totalF ? `<div style="font-size:8px;font-weight:600;color:var(--vermelho);margin-top:3px;">${totalF}</div>` : ""}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.7rem;color:#3D7A5E;font-weight:600;margin-bottom:1px;">${slot.nome}</div>
+          <div style="font-size:0.88rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
+          <div style="font-size:0.75rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem proprietário"}</div>
+          ${totalF ? `<div style="font-size:0.72rem;font-weight:600;color:var(--vermelho);margin-top:2px;">${totalF}</div>` : ""}
+        </div>
+        <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--texto-suave);flex-shrink:0;"></i>
       </div>`;
   },
 
@@ -1022,11 +1035,16 @@ const RanchoApp = {
 
     return `
       <div onclick="RanchoApp.abrirAcoesAnimal(${animal.id},'${ns}','${animal.lugar || ""}','${pid}','${os}')"
-        style="background:rgba(196,154,74,0.08);border:0.5px solid rgba(196,154,74,0.3);border-radius:13px;padding:9px 7px;text-align:center;cursor:pointer;">
-        <div style="font-size:8px;color:var(--dourado);font-weight:600;margin-bottom:3px;">Sem local</div>
-        <div style="width:28px;height:28px;border-radius:50%;background:rgba(196,154,74,0.2);display:flex;align-items:center;justify-content:center;color:#633806;font-size:11px;font-weight:600;margin:0 auto 3px;">${animal.nome.charAt(0).toUpperCase()}</div>
-        <div style="font-size:9px;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
-        <div style="font-size:8px;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem prop."}</div>
+        style="background:rgba(196,154,74,0.08);border:0.5px solid rgba(196,154,74,0.3);border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(196,154,74,0.2);display:flex;align-items:center;justify-content:center;color:#633806;font-size:15px;font-weight:600;flex-shrink:0;">
+          ${animal.nome.charAt(0).toUpperCase()}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.7rem;color:var(--dourado);font-weight:600;margin-bottom:1px;">Sem local</div>
+          <div style="font-size:0.88rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
+          <div style="font-size:0.75rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem proprietário"}</div>
+        </div>
+        <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--texto-suave);flex-shrink:0;"></i>
       </div>`;
   },
 
@@ -1953,7 +1971,7 @@ const RanchoApp = {
             <div style="width:28px;height:28px;border-radius:9px;background:rgba(232,201,122,0.15);display:flex;align-items:center;justify-content:center;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="#E8C97A"><path d="M19 5c-1.5 0-2.8.8-3.5 2H12c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7v-2.5c1.2-.7 2-2 2-3.5C21 6.1 20.1 5 19 5z"/></svg>
             </div>
-            <span style="font-size:13px;color:#E8C97A;font-weight:500;">HF Controll</span>
+            <span style="font-size:13px;color:#E8C97A;font-weight:500;">${this.nomeRancho || "HF Controll"}</span>
           </div>
           <span style="font-size:10px;color:rgba(232,201,122,0.45);">Fatura · ${nomesMeses[mes - 1]} ${ano}</span>
         </div>
@@ -1998,7 +2016,7 @@ const RanchoApp = {
 
         <div style="padding:10px 18px 14px;display:flex;justify-content:space-between;align-items:center;border-top:0.5px solid rgba(255,255,255,0.06);margin-top:10px;">
           <span style="font-size:9px;color:rgba(232,201,122,0.25);">Gerado em ${dataGeracao}</span>
-          <span style="font-size:9px;color:rgba(232,201,122,0.25);">HF Controll</span>
+          <span style="font-size:9px;color:rgba(232,201,122,0.25);">${this.nomeRancho || "HF Controll"}</span>
         </div>`;
 
       document.body.appendChild(card);
@@ -2336,7 +2354,7 @@ const RanchoApp = {
             <div style="width:28px;height:28px;border-radius:9px;background:rgba(232,201,122,0.15);display:flex;align-items:center;justify-content:center;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="#E8C97A"><path d="M19 5c-1.5 0-2.8.8-3.5 2H12c-3.9 0-7 3.1-7 7s3.1 7 7 7 7-3.1 7-7v-2.5c1.2-.7 2-2 2-3.5C21 6.1 20.1 5 19 5z"/></svg>
             </div>
-            <span style="font-size:13px;color:#E8C97A;font-weight:500;">HF Controll</span>
+            <span style="font-size:13px;color:#E8C97A;font-weight:500;">${this.nomeRancho || "HF Controll"}</span>
           </div>
           <span style="font-size:10px;color:rgba(232,201,122,0.45);">${nomeMes} ${ano}</span>
         </div>
@@ -2382,7 +2400,7 @@ const RanchoApp = {
 
         <div style="padding:10px 18px 14px;display:flex;justify-content:space-between;align-items:center;border-top:0.5px solid rgba(255,255,255,0.06);">
           <span style="font-size:9px;color:rgba(232,201,122,0.25);">Gerado em ${dataGeracao}</span>
-          <span style="font-size:9px;color:rgba(232,201,122,0.25);">HF Controll</span>
+          <span style="font-size:9px;color:rgba(232,201,122,0.25);">${this.nomeRancho || "HF Controll"}</span>
         </div>`;
 
       document.body.appendChild(card);
@@ -2845,7 +2863,7 @@ const RanchoApp = {
               "Enviar confirmação?",
               `Enviar mensagem de confirmação para ${nome} via WhatsApp?`,
               () => {
-                const msg = `Olá *${nome}*! ✅\n\nConfirmamos o recebimento do pagamento referente a *${periodo}*.\n\nObrigado pela pontualidade! 🤝\n\n_HF Controll_`;
+                const msg = `Olá *${nome}*! ✅\n\nConfirmamos o recebimento do pagamento referente a *${periodo}*.\n\nObrigado pela pontualidade! 🤝\n\n${this.nomeRancho || "HF Controll"}`;
                 window.open(
                   `https://wa.me/55${telLimpo}?text=${encodeURIComponent(msg)}`,
                   "_blank",
