@@ -275,37 +275,60 @@ const RanchoApp = {
   setupPullToRefresh() {
     let startY = 0,
       currentY = 0,
-      isPulling = false;
+      isPulling = false,
+      startX = 0;
     const ptr = document.getElementById("ptrIndicator");
+
     document.addEventListener(
       "touchstart",
       (e) => {
-        if (!window.scrollY) {
-          startY = e.touches[0].clientY;
-          isPulling = true;
-        }
+        // Só ativa se estiver no topo E não houver modal aberto E for toque único
+        const modalAberto = document.querySelector(".modal.show");
+        if (modalAberto) return;
+        if (e.touches.length !== 1) return;
+        if (window.scrollY > 0) return;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        currentY = startY;
+        isPulling = true;
       },
       { passive: true },
     );
+
     document.addEventListener(
       "touchmove",
       (e) => {
         if (!isPulling) return;
         currentY = e.touches[0].clientY;
-        const d = currentY - startY;
-        if (d > 0 && !window.scrollY) {
+        const dy = currentY - startY;
+        const dx = Math.abs(e.touches[0].clientX - startX);
+
+        // Cancela se for swipe horizontal (navegação) ou scroll muito pequeno
+        if (dx > 20) {
+          isPulling = false;
+          return;
+        }
+
+        if (dy > 0 && !window.scrollY) {
           if (e.cancelable) e.preventDefault();
-          ptr.style.transform = `translateY(${Math.min(d / 2, 70)}px)`;
-          ptr.style.opacity = Math.min(d / 100, 1);
-        } else isPulling = false;
+          ptr.style.transform = `translateY(${Math.min(dy / 2, 70)}px)`;
+          ptr.style.opacity = Math.min(dy / 100, 1);
+        } else {
+          isPulling = false;
+          ptr.style.transform = "translateY(-50px)";
+          ptr.style.opacity = 0;
+        }
       },
       { passive: false },
     );
+
     document.addEventListener("touchend", async () => {
       if (!isPulling) return;
       isPulling = false;
       const d = currentY - startY;
-      if (d > 60) {
+
+      // Threshold mais alto (120px) para não disparar com cliques
+      if (d > 120) {
         this.vibrar(30);
         ptr.classList.add("refreshing");
         ptr.style.transform = "translateY(50px)";
@@ -1823,12 +1846,15 @@ const RanchoApp = {
         btnB.innerHTML =
           '<i class="fa-solid fa-check-circle me-2"></i> Confirmar Pagamento';
         btnB.className = "btn btn-primary py-3 rounded-4 fw-bold shadow-sm";
+        btnB.onclick = () => this.baixarFaturaMes();
       } else {
         document.getElementById("totalGeralProp").innerHTML =
           '<span class="text-success"><i class="fa-solid fa-check-double me-2"></i>Pago</span>';
-        btnB.disabled = true;
-        btnB.className = "btn btn-success py-3 rounded-4 fw-bold opacity-50";
-        btnB.innerHTML = "Fatura Quitada";
+        btnB.disabled = false;
+        btnB.className = "btn btn-outline-danger py-2 rounded-4 fw-bold";
+        btnB.innerHTML =
+          '<i class="fa-solid fa-rotate-left me-2"></i> Estornar pagamento';
+        btnB.onclick = () => this.estornarFaturaMes();
       }
       const novoBtnZ = btnZ.cloneNode(true);
       btnZ.parentNode.replaceChild(novoBtnZ, btnZ);
@@ -2911,6 +2937,33 @@ const RanchoApp = {
               },
             );
           }, 400);
+        }
+      },
+    );
+  },
+
+  async estornarFaturaMes() {
+    this.abrirConfirmacao(
+      "Estornar pagamento",
+      "Tem certeza? Isso vai marcar a fatura como pendente novamente.",
+      async () => {
+        const propId = this.proprietarioAtualId;
+        const mes = this.dataFiltroProp.getMonth() + 1;
+        const ano = this.dataFiltroProp.getFullYear();
+        const nome = document.getElementById("tituloDetalhesProp").textContent;
+        const tel = document.getElementById(
+          "subtituloDetalhesProp",
+        ).textContent;
+        try {
+          await ApiService.putData("/api/gestao/custos/estornar-mes", {
+            proprietario_id: propId,
+            mes,
+            ano,
+          });
+          this.carregarFaturaProprietario(propId, nome, tel);
+          this.mostrarNotificacao("Pagamento estornado.");
+        } catch (e) {
+          this.mostrarNotificacao("Erro ao estornar.", "erro");
         }
       },
     );

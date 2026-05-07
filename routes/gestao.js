@@ -430,6 +430,36 @@ router.put("/custos/baixar-mes", async (req, res) => {
   }
 });
 
+// ── PUT /api/gestao/custos/estornar-mes ──────────────────
+// Desfaz o pagamento do mês (volta pago=0)
+router.put("/custos/estornar-mes", async (req, res) => {
+  const { proprietario_id, mes, ano } = req.body;
+  const uid = req.user.id;
+  try {
+    const [[prop]] = await pool.query(
+      "SELECT id FROM Proprietarios WHERE id=? AND usuario_id=?",
+      [proprietario_id, uid],
+    );
+    if (!prop) return res.status(403).json({ message: "Sem permissão." });
+
+    await pool.query(
+      "UPDATE Custos SET pago=0 WHERE usuario_id=? AND proprietario_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=?",
+      [uid, proprietario_id, mes, ano],
+    );
+    await pool.query(
+      `UPDATE Mensalidades m
+       INNER JOIN Cavalos c ON m.cavalo_id = c.id
+       SET m.pago=0
+       WHERE c.proprietario_id=? AND m.mes=? AND m.ano=? AND m.usuario_id=?`,
+      [proprietario_id, mes, ano, uid],
+    );
+    res.json({ message: "Estornado" });
+  } catch (err) {
+    console.error("Erro estornar-mes:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.put("/custos/:id", async (req, res) => {
   const { descricao, valor, categoria } = req.body;
   try {
