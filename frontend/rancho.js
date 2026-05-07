@@ -227,30 +227,48 @@ const RanchoApp = {
         "dark",
       );
       localStorage.setItem("theme", dark ? "dark" : "light");
-      // Sincroniza ícones em todos os botões
-      ["btnDarkMode", "btnDarkModeDesktop"].forEach((id) => {
-        const btn = document.getElementById(id);
-        if (!btn) return;
-        const i = btn.querySelector("i");
-        if (i) {
-          i.classList.remove("fa-moon", "fa-sun");
-          i.classList.add(dark ? "fa-sun" : "fa-moon");
-        }
-      });
+      ["btnDarkMode", "btnDarkModeDesktop", "btnDarkModeSidebar"].forEach(
+        (id) => {
+          const btn = document.getElementById(id);
+          if (!btn) return;
+          const i = btn.querySelector("i");
+          if (i) {
+            i.classList.remove("fa-moon", "fa-sun");
+            i.classList.add(dark ? "fa-sun" : "fa-moon");
+          }
+          // Atualiza label do sidebar
+          const span = btn.querySelector("span");
+          if (span) span.textContent = dark ? "Modo claro" : "Modo escuro";
+        },
+      );
     };
 
     // Aplica tema salvo
-    const temaAtual = localStorage.getItem("theme") === "dark";
-    if (temaAtual) aplicarTema(true);
+    if (localStorage.getItem("theme") === "dark") aplicarTema(true);
 
-    // Listener em ambos os botões
-    ["btnDarkMode", "btnDarkModeDesktop"].forEach((id) => {
-      document.getElementById(id)?.addEventListener("click", () => {
-        this.vibrar();
-        const dark = document.body.getAttribute("data-theme") === "dark";
-        aplicarTema(!dark);
-      });
-    });
+    // Adiciona listeners após DOM pronto
+    const bindBtns = () => {
+      ["btnDarkMode", "btnDarkModeDesktop", "btnDarkModeSidebar"].forEach(
+        (id) => {
+          const btn = document.getElementById(id);
+          if (!btn || btn._darkBound) return;
+          btn._darkBound = true;
+          btn.addEventListener("click", () => {
+            this.vibrar();
+            const dark = document.body.getAttribute("data-theme") === "dark";
+            aplicarTema(!dark);
+          });
+        },
+      );
+    };
+
+    // Tenta agora e também depois do DOM carregar completamente
+    bindBtns();
+    if (document.readyState !== "complete") {
+      window.addEventListener("load", bindBtns);
+    }
+    // Fallback com pequeno delay para garantir sidebar renderizada
+    setTimeout(bindBtns, 300);
   },
 
   // ── Pull to Refresh ──
@@ -596,7 +614,7 @@ const RanchoApp = {
         dados.stats;
 
       if (labelEl)
-        labelEl.textContent = `${totalOcupados} animal${totalOcupados !== 1 ? "is" : ""} com local${totalSemLocal > 0 ? ` · ${totalSemLocal} sem local` : ""}`;
+        labelEl.textContent = `${totalOcupados} anim${totalOcupados !== 1 ? "ais" : "al"} com local${totalSemLocal > 0 ? ` · ${totalSemLocal} sem local` : ""}`;
       if (pctEl) pctEl.textContent = `${taxaOcupacao}%`;
       if (barraEl) barraEl.style.width = `${taxaOcupacao}%`;
 
@@ -970,7 +988,7 @@ const RanchoApp = {
           <div style="padding:6px 14px 4px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
               <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">Sem local</span>
-              <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${dados.semLocal.length} animal${dados.semLocal.length !== 1 ? "is" : ""}</span>
+              <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${dados.semLocal.length} anim${dados.semLocal.length !== 1 ? "ais" : "al"}</span>
             </div>
             <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">
               ${dados.semLocal.map((a) => this._cardSemLocal(a)).join("")}
@@ -1141,37 +1159,59 @@ const RanchoApp = {
         const badgeClr = p.temPendencia ? "#7B1A1A" : "#1B5E20";
         const el = document.createElement("div");
         el.innerHTML = `
-          <div class="animal-card" style="display:flex;align-items:center;gap:12px;">
-            <div class="avatar-circle avatar-dono" style="flex-shrink:0;">${p.nome.charAt(0).toUpperCase()}</div>
-            <div style="flex:1;min-width:0;cursor:pointer;"
-              onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
-              <div class="animal-nome">
-                ${p.nome}
-                <span class="status-dot" style="background:${dotClr};${p.temPendencia ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span>
+          <div class="animal-card" style="display:flex;flex-direction:column;gap:0;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="avatar-circle avatar-dono" style="flex-shrink:0;">${p.nome.charAt(0).toUpperCase()}</div>
+              <div style="flex:1;min-width:0;cursor:pointer;"
+                onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
+                <div class="animal-nome">
+                  ${p.nome}
+                  <span class="status-dot" style="background:${dotClr};${p.temPendencia ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span>
+                </div>
+                <div class="animal-sub">
+                  <span style="font-size:0.72rem;color:var(--marrom-claro);font-weight:600;">
+                    <i class="fa-solid fa-horse-head" style="font-size:0.62rem;"></i> ${p.txtAnimais}
+                  </span>
+                  ${p.telefone ? `<span class="tag-prop"><i class="fa-solid fa-phone" style="font-size:0.62rem;"></i>${p.telefone}</span>` : ""}
+                </div>
               </div>
-              <div class="animal-sub">
-                <span style="font-size:0.72rem;color:var(--marrom-claro);font-weight:600;">
-                  <i class="fa-solid fa-horse-head" style="font-size:0.62rem;"></i> ${p.txtAnimais}
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;">
+                <span style="background:${badgeBg};color:${badgeClr};border-radius:10px;padding:3px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;">
+                  ${p.txtValor}
                 </span>
-                ${p.telefone ? `<span class="tag-prop"><i class="fa-solid fa-phone" style="font-size:0.62rem;"></i>${p.telefone}</span>` : ""}
+                <div style="display:flex;gap:6px;">
+                  <button class="btn-action icon-brown" style="width:32px;height:32px;"
+                    onclick="RanchoApp.abrirHistoricoCliente(${p.id},'${p.nome}')"
+                    title="Histórico">
+                    <i class="fa-solid fa-clock-rotate-left" style="font-size:0.72rem;"></i>
+                  </button>
+                  <button class="btn-action icon-brown" style="width:32px;height:32px;"
+                    onclick="RanchoApp.abrirModalGerenciarProprietarios(${p.id},'${p.nome}','${p.telefone || ""}')"
+                    title="Editar">
+                    <i class="fa-solid fa-pen" style="font-size:0.72rem;"></i>
+                  </button>
+                </div>
               </div>
             </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;">
-              <span style="background:${badgeBg};color:${badgeClr};border-radius:10px;padding:3px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;">
-                ${p.txtValor}
-              </span>
-              <div style="display:flex;gap:6px;">
-                <button class="btn-action icon-brown" style="width:32px;height:32px;"
-                  onclick="RanchoApp.abrirHistoricoCliente(${p.id},'${p.nome}')"
-                  title="Histórico">
-                  <i class="fa-solid fa-clock-rotate-left" style="font-size:0.72rem;"></i>
-                </button>
-                <button class="btn-action icon-brown" style="width:32px;height:32px;"
-                  onclick="RanchoApp.abrirModalGerenciarProprietarios(${p.id},'${p.nome}','${p.telefone || ""}')"
-                  title="Editar">
-                  <i class="fa-solid fa-pen" style="font-size:0.72rem;"></i>
-                </button>
-              </div>
+            <!-- Botões rápidos — só aparecem no desktop via CSS -->
+            <div class="cliente-quick-actions" style="display:none;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--bege-borda);">
+              <button onclick="RanchoApp.proprietarioAtualId=${p.id};RanchoApp.abrirModalLoteMensalidade()"
+                style="flex:1;background:var(--marrom-escuro);color:var(--dourado-claro);border:none;border-radius:10px;padding:7px;font-size:0.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                <i class="fa-solid fa-calendar-check" style="font-size:0.75rem;"></i> Mensalidade em lote
+              </button>
+              <button onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')"
+                style="flex:1;background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:10px;padding:7px;font-size:0.78rem;font-weight:600;color:var(--texto-titulo);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                <i class="fa-solid fa-file-invoice-dollar" style="font-size:0.75rem;"></i> Ver fatura
+              </button>
+              ${
+                p.telefone
+                  ? `
+              <button onclick="RanchoApp.cobrarWhatsApp('${p.nome}','${p.telefone}','${p.txtValor}','Mensalidades pendentes','')"
+                style="background:rgba(37,211,102,0.1);border:0.5px solid rgba(37,211,102,0.3);border-radius:10px;padding:7px 12px;font-size:0.78rem;font-weight:600;color:#1a8a3a;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                <i class="fa-brands fa-whatsapp" style="font-size:0.85rem;"></i>
+              </button>`
+                  : ""
+              }
             </div>
           </div>`;
         wrap.appendChild(el.firstElementChild);
@@ -1979,7 +2019,7 @@ const RanchoApp = {
         <div style="padding:14px 18px 12px;border-bottom:0.5px solid rgba(255,255,255,0.07);">
           <div style="width:38px;height:38px;border-radius:50%;background:rgba(232,201,122,0.12);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#E8C97A;margin-bottom:8px;">${nomeProp.charAt(0).toUpperCase()}</div>
           <div style="font-size:1.05rem;color:#E8C97A;font-weight:500;">${nomeProp}</div>
-          <div style="font-size:10px;color:rgba(232,201,122,0.45);margin-top:2px;">${meus.length} animal${meus.length !== 1 ? "is" : ""} · ${periodo}</div>
+          <div style="font-size:10px;color:rgba(232,201,122,0.45);margin-top:2px;">${meus.length} anim${meus.length !== 1 ? "ais" : "al"} · ${periodo}</div>
           <div style="background:rgba(232,201,122,0.07);border:0.5px solid rgba(232,201,122,0.15);border-radius:12px;padding:11px 13px;margin-top:10px;">
             <div style="font-size:9px;color:rgba(232,201,122,0.4);text-transform:uppercase;letter-spacing:0.6px;">Total do mês</div>
             <div style="font-size:1.7rem;color:#E8C97A;margin-top:3px;font-weight:500;">${totalGeral.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>

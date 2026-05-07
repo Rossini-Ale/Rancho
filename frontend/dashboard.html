@@ -68,20 +68,13 @@
         >
           <i class="fa-solid fa-file-invoice-dollar"></i><span>Finanças</span>
         </button>
-
-        <span class="sidebar-nav-lbl">Relatórios</span>
-        <button class="sidebar-item" onclick="RanchoApp.gerarRelatorio()">
-          <i class="fa-solid fa-file-pdf"></i><span>Gerar PDF</span>
-        </button>
-        <button
-          class="sidebar-item"
-          onclick="RanchoApp.compartilharResumoMes()"
-        >
-          <i class="fa-brands fa-whatsapp"></i><span>Resumo WhatsApp</span>
-        </button>
       </div>
 
       <div class="sidebar-footer">
+        <!-- Dark mode -->
+        <button class="sidebar-item" id="btnDarkModeSidebar">
+          <i class="fa-solid fa-moon"></i><span>Modo escuro</span>
+        </button>
         <!-- Perfil do usuário -->
         <div
           onclick="RanchoApp.abrirModalPerfil()"
@@ -92,7 +85,7 @@
             padding: 10px 12px;
             border-radius: 12px;
             cursor: pointer;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             transition: background 0.15s;
           "
           onmouseover="this.style.background = 'rgba(232,201,122,0.07)'"
@@ -161,17 +154,6 @@
               placeholder="Buscar animal, cliente..."
             />
           </div>
-          <button
-            class="topbar-icon-btn"
-            id="btnDarkModeDesktop"
-            title="Modo escuro"
-          >
-            <i class="fa-solid fa-moon"></i>
-          </button>
-          <div class="topbar-avatar" id="topbarAvatar">HF</div>
-          <button class="topbar-icon-btn" id="logoutDesktop" title="Sair">
-            <i class="fa-solid fa-right-from-bracket"></i>
-          </button>
         </div>
       </div>
 
@@ -435,7 +417,7 @@
           <div
             style="
               display: grid;
-              grid-template-columns: 1fr 1fr 1fr;
+              grid-template-columns: 1fr 1fr;
               gap: 8px;
               padding: 0 14px 12px;
             "
@@ -477,6 +459,45 @@
                 "
               >
                 Novo animal
+              </div>
+            </div>
+            <div
+              onclick="RanchoApp.abrirModalGerenciarProprietarios()"
+              style="
+                background: var(--bege-card);
+                border: 0.5px solid var(--bege-borda);
+                border-radius: 16px;
+                padding: 13px 8px;
+                text-align: center;
+                cursor: pointer;
+                box-shadow: var(--sombra);
+              "
+            >
+              <div
+                style="
+                  width: 36px;
+                  height: 36px;
+                  border-radius: 12px;
+                  background: rgba(61, 30, 10, 0.07);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin: 0 auto 7px;
+                "
+              >
+                <i
+                  class="fa-solid fa-user-plus"
+                  style="color: var(--marrom-claro); font-size: 1rem"
+                ></i>
+              </div>
+              <div
+                style="
+                  font-size: 0.75rem;
+                  font-weight: 600;
+                  color: var(--texto-titulo);
+                "
+              >
+                Novo cliente
               </div>
             </div>
             <div
@@ -525,7 +546,7 @@
               </div>
             </div>
             <div
-              onclick="RanchoApp.mudarAba('proprietarios')"
+              onclick="RanchoApp.mudarAba('financas')"
               style="
                 background: var(--bege-card);
                 border: 0.5px solid var(--bege-borda);
@@ -666,7 +687,45 @@
 
         <!-- ── ABA ANIMAIS / MAPA DE OCUPAÇÃO ── -->
         <div id="tabCavalos" class="d-none">
-          <!-- KPIs -->
+          <!-- Cabeçalho desktop com botão adicionar -->
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 14px 14px 4px;
+            "
+          >
+            <div
+              style="
+                font-family: &quot;Lora&quot;, serif;
+                font-size: 1.15rem;
+                color: var(--texto-titulo);
+              "
+            >
+              Mapa de Ocupação
+            </div>
+            <button
+              id="btnNovoAnimalAba"
+              onclick="RanchoApp.abrirModalNovoCavalo()"
+              style="
+                display: none;
+                background: var(--marrom-escuro);
+                color: var(--dourado-claro);
+                border: none;
+                border-radius: 10px;
+                padding: 7px 14px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                align-items: center;
+                gap: 6px;
+                cursor: pointer;
+              "
+            >
+              <i class="fa-solid fa-plus" style="font-size: 0.75rem"></i> Novo
+              animal
+            </button>
+          </div>
           <div
             style="
               display: grid;
@@ -785,13 +844,41 @@
         <div id="tabProprietarios" class="d-none">
           <div
             style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
               padding: 14px 14px 4px;
-              font-family: &quot;Lora&quot;, serif;
-              font-size: 1.15rem;
-              color: var(--texto-titulo);
             "
           >
-            Meus Clientes
+            <div
+              style="
+                font-family: &quot;Lora&quot;, serif;
+                font-size: 1.15rem;
+                color: var(--texto-titulo);
+              "
+            >
+              Meus Clientes
+            </div>
+            <button
+              id="btnNovoClienteAba"
+              onclick="RanchoApp.abrirModalGerenciarProprietarios()"
+              style="
+                display: none;
+                background: var(--marrom-escuro);
+                color: var(--dourado-claro);
+                border: none;
+                border-radius: 10px;
+                padding: 7px 14px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                align-items: center;
+                gap: 6px;
+                cursor: pointer;
+              "
+            >
+              <i class="fa-solid fa-plus" style="font-size: 0.75rem"></i> Novo
+              cliente
+            </button>
           </div>
           <div id="listaProprietariosMainBody"></div>
         </div>
@@ -2642,23 +2729,11 @@
           const sel = document.getElementById("relatorioMes");
           if (sel) sel.value = m;
 
-          // Logout desktop
-          document
-            .getElementById("logoutDesktop")
-            ?.addEventListener("click", () => {
-              document.getElementById("logoutButton")?.click();
-            });
+          // Logout sidebar
           document
             .getElementById("logoutSidebar")
             ?.addEventListener("click", () => {
               document.getElementById("logoutButton")?.click();
-            });
-
-          // Dark mode desktop
-          document
-            .getElementById("btnDarkModeDesktop")
-            ?.addEventListener("click", () => {
-              document.getElementById("btnDarkMode")?.click();
             });
 
           // Busca global no topbar desktop

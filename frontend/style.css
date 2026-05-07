@@ -1322,4 +1322,26 @@ main {
     max-width: 580px !important;
     margin: auto !important;
   }
+
+  /* Botões de ação nas abas — só desktop */
+  #btnNovoAnimalAba,
+  #btnNovoClienteAba {
+    display: flex !important;
+  }
+
+  /* Quick actions dos cards de cliente — só desktop */
+  .cliente-quick-actions {
+    display: flex !important;
+  }
+
+  /* Clientes em grid 2 colunas no desktop */
+  #listaProprietariosMainBody {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 !important;
+  }
+  #listaProprietariosMainBody > * {
+    margin: 0 !important;
+  }
 }
