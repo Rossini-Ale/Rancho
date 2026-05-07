@@ -77,20 +77,23 @@ const RanchoApp = {
   _aplicarPerfil() {
     const primeiroNome = this.nomeUsuario.split(" ")[0];
     const iniciais = this._gerarIniciais(this.nomeUsuario);
+    const nomeRancho = this.nomeRancho || "HF Controll";
 
-    // Navbar mobile — avatar + brand
+    // Navbar mobile — avatar + nome do rancho
     const navAv = document.getElementById("navbarAvatar");
     if (navAv) navAv.textContent = iniciais;
     const brand = document.getElementById("brandName");
-    if (brand) brand.textContent = this.nomeRancho || "HF Controll";
+    if (brand) brand.textContent = nomeRancho;
 
-    // Sidebar
+    // Sidebar desktop
     const sideNome = document.getElementById("sidebarNomeUsuario");
     if (sideNome) sideNome.textContent = primeiroNome || "Usuário";
     const sideAv = document.getElementById("sidebarAvatar");
     if (sideAv) sideAv.textContent = iniciais;
     const sideRancho = document.getElementById("sidebarRanchoNome");
-    if (sideRancho) sideRancho.textContent = this.nomeRancho;
+    if (sideRancho) sideRancho.textContent = nomeRancho;
+    const sideBrand = document.getElementById("sidebarBrandName");
+    if (sideBrand) sideBrand.textContent = nomeRancho;
 
     // Topbar desktop
     const topAv = document.getElementById("topbarAvatar");
