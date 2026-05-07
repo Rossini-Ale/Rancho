@@ -131,14 +131,14 @@ router.get("/alertas", async (req, res) => {
 
     // Pagamentos confirmados nos últimos 7 dias
     const [pagos] = await pool.query(
-      `SELECT m.valor, c.nome AS cavalo, p.nome AS proprietario, m.updated_at
+      `SELECT m.valor, c.nome AS cavalo, p.nome AS proprietario
        FROM Mensalidades m
        JOIN Cavalos c ON m.cavalo_id = c.id
        LEFT JOIN Proprietarios p ON c.proprietario_id = p.id
        WHERE m.usuario_id = ? AND m.pago = 1
-         AND m.updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-       ORDER BY m.updated_at DESC LIMIT 3`,
-      [uid],
+         AND m.mes = ? AND m.ano = ?
+       ORDER BY m.id DESC LIMIT 3`,
+      [uid, mes, ano],
     );
     pagos.forEach((m) => {
       alertas.push({
@@ -146,7 +146,7 @@ router.get("/alertas", async (req, res) => {
         titulo: `Pagamento confirmado — ${m.cavalo}`,
         sub: m.proprietario || "Sem proprietário",
         valor: parseFloat(m.valor),
-        tempo: "Recente",
+        tempo: "Este mês",
       });
     });
 
