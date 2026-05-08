@@ -85,11 +85,28 @@ router.get("/cavalos", async (req, res) => {
 router.post("/cavalos", async (req, res) => {
   try {
     const { nome, lugar, proprietario_id, observacoes } = req.body;
+    const uid = req.user.id;
     const propId =
       !proprietario_id || proprietario_id === "null" ? null : proprietario_id;
+
+    // Valida local duplicado
+    if (lugar && lugar.trim()) {
+      const [[existente]] = await pool.query(
+        "SELECT id, nome FROM Cavalos WHERE usuario_id=? AND LOWER(TRIM(lugar))=LOWER(TRIM(?)) AND lugar != '' AND lugar IS NOT NULL",
+        [uid, lugar.trim()],
+      );
+      if (existente) {
+        return res
+          .status(409)
+          .json({
+            message: `O local "${lugar.trim()}" já está ocupado por ${existente.nome}.`,
+          });
+      }
+    }
+
     await pool.query(
       "INSERT INTO Cavalos (nome, lugar, proprietario_id, observacoes, usuario_id) VALUES (?,?,?,?,?)",
-      [nome, lugar, propId, observacoes, req.user.id],
+      [nome, lugar?.trim() || null, propId, observacoes, uid],
     );
     res.status(201).json({ message: "Cavalo criado!" });
   } catch (err) {
@@ -101,11 +118,28 @@ router.post("/cavalos", async (req, res) => {
 router.put("/cavalos/:id", async (req, res) => {
   try {
     const { nome, lugar, proprietario_id, observacoes } = req.body;
+    const uid = req.user.id;
     const propId =
       !proprietario_id || proprietario_id === "null" ? null : proprietario_id;
+
+    // Valida local duplicado (ignora o próprio animal)
+    if (lugar && lugar.trim()) {
+      const [[existente]] = await pool.query(
+        "SELECT id, nome FROM Cavalos WHERE usuario_id=? AND LOWER(TRIM(lugar))=LOWER(TRIM(?)) AND lugar != '' AND lugar IS NOT NULL AND id != ?",
+        [uid, lugar.trim(), req.params.id],
+      );
+      if (existente) {
+        return res
+          .status(409)
+          .json({
+            message: `O local "${lugar.trim()}" já está ocupado por ${existente.nome}.`,
+          });
+      }
+    }
+
     const [result] = await pool.query(
       "UPDATE Cavalos SET nome=?,lugar=?,proprietario_id=?,observacoes=? WHERE id=? AND usuario_id=?",
-      [nome, lugar, propId, observacoes, req.params.id, req.user.id],
+      [nome, lugar?.trim() || null, propId, observacoes, req.params.id, uid],
     );
     if (result.affectedRows === 0)
       return res

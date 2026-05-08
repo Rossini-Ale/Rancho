@@ -1515,22 +1515,38 @@ const RanchoApp = {
     e.preventDefault();
     const b = e.submitter;
     this.setLoading(b, true, "Salvar");
+    const id = document.getElementById("cavaloId").value;
+    const lugar = document.getElementById("cavaloLugar").value?.trim() || null;
     const body = {
       nome: document.getElementById("cavaloNome").value,
-      lugar: document.getElementById("cavaloLugar").value,
+      lugar,
       proprietario_id: document.getElementById("cavaloProprietario").value,
       observacoes: document.getElementById("cavaloObs").value,
     };
-    const id = document.getElementById("cavaloId").value;
     try {
       if (id) await ApiService.putData(`/api/gestao/cavalos/${id}`, body);
       else await ApiService.postData("/api/gestao/cavalos", body);
       this.bsModalCavalo.hide();
-      this.carregarTabelaCavalos();
+      await this.carregarTabelaCavalos();
       if (this.abaAtual === "home") this.carregarHome();
       this.mostrarNotificacao("Salvo!");
-    } catch (e) {
-      this.mostrarNotificacao("Erro", "erro");
+    } catch (err) {
+      const msg = err?.message || "";
+      // Mostra erro de local ocupado em destaque no próprio campo
+      if (msg.toLowerCase().includes("ocupado")) {
+        const campoLugar = document.getElementById("cavaloLugar");
+        if (campoLugar) {
+          campoLugar.style.borderColor = "var(--vermelho)";
+          campoLugar.style.boxShadow = "0 0 0 3px rgba(168,50,50,0.15)";
+          setTimeout(() => {
+            campoLugar.style.borderColor = "";
+            campoLugar.style.boxShadow = "";
+          }, 3000);
+        }
+        this.mostrarNotificacao(msg, "erro");
+      } else {
+        this.mostrarNotificacao("Erro ao salvar.", "erro");
+      }
     } finally {
       this.setLoading(b, false, "Salvar");
     }
