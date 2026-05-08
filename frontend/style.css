@@ -1329,11 +1329,6 @@ main {
     display: flex !important;
   }
 
-  /* Quick actions dos cards de cliente — só desktop */
-  .cliente-quick-actions {
-    display: flex !important;
-  }
-
   /* Clientes em grid 2 colunas no desktop */
   #listaProprietariosMainBody {
     display: grid !important;

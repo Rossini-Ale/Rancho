@@ -129,48 +129,6 @@ router.get("/alertas", async (req, res) => {
       });
     });
 
-    // Pagamentos confirmados nos últimos 7 dias
-    const [pagos] = await pool.query(
-      `SELECT m.valor, c.nome AS cavalo, p.nome AS proprietario
-       FROM Mensalidades m
-       JOIN Cavalos c ON m.cavalo_id = c.id
-       LEFT JOIN Proprietarios p ON c.proprietario_id = p.id
-       WHERE m.usuario_id = ? AND m.pago = 1
-         AND m.mes = ? AND m.ano = ?
-       ORDER BY m.id DESC LIMIT 3`,
-      [uid, mes, ano],
-    );
-    pagos.forEach((m) => {
-      alertas.push({
-        tipo: "pago",
-        titulo: `Pagamento confirmado — ${m.cavalo}`,
-        sub: m.proprietario || "Sem proprietário",
-        valor: parseFloat(m.valor),
-        tempo: "Este mês",
-      });
-    });
-
-    // Animais sem mensalidade no mês atual
-    const [semMensalidade] = await pool.query(
-      `SELECT c.nome FROM Cavalos c
-       WHERE c.usuario_id = ?
-         AND c.id NOT IN (
-           SELECT cavalo_id FROM Mensalidades
-           WHERE usuario_id = ? AND mes = ? AND ano = ?
-         )
-       LIMIT 3`,
-      [uid, uid, mes, ano],
-    );
-    semMensalidade.forEach((c) => {
-      alertas.push({
-        tipo: "atencao",
-        titulo: `Sem mensalidade — ${c.nome}`,
-        sub: "Nenhuma mensalidade lançada neste mês",
-        valor: null,
-        tempo: "Agora",
-      });
-    });
-
     // Alertas da ficha veterinária — próximas datas vencendo
     try {
       const [fichaVet] = await pool.query(
@@ -206,7 +164,7 @@ router.get("/alertas", async (req, res) => {
         });
       });
     } catch (e) {
-      // FichaVeterinaria pode não existir em bancos antigos — ignora silenciosamente
+      // FichaVeterinaria pode não existir em bancos antigos
     }
 
     res.json(alertas.slice(0, 8));

@@ -142,19 +142,7 @@
           <div class="topbar-saudacao" id="topbarSaudacao">Bom dia</div>
           <div class="topbar-data" id="topbarData"></div>
         </div>
-        <div class="topbar-right">
-          <div class="topbar-search">
-            <i
-              class="fa-solid fa-magnifying-glass"
-              style="font-size: 0.75rem; color: var(--texto-suave)"
-            ></i>
-            <input
-              type="text"
-              id="inputBuscaTopbar"
-              placeholder="Buscar animal, cliente..."
-            />
-          </div>
-        </div>
+        <div class="topbar-right"></div>
       </div>
 
       <!-- ══ NAVBAR MOBILE ══ -->
@@ -500,200 +488,18 @@
                 Novo cliente
               </div>
             </div>
-            <div
-              onclick="
-                RanchoApp.mudarAba('financas');
-                setTimeout(
-                  () => document.getElementById('ranchoDesc')?.focus(),
-                  400,
-                );
-              "
-              style="
-                background: var(--bege-card);
-                border: 0.5px solid var(--bege-borda);
-                border-radius: 16px;
-                padding: 13px 8px;
-                text-align: center;
-                cursor: pointer;
-                box-shadow: var(--sombra);
-              "
-            >
-              <div
-                style="
-                  width: 36px;
-                  height: 36px;
-                  border-radius: 12px;
-                  background: rgba(168, 50, 50, 0.07);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  margin: 0 auto 7px;
-                "
-              >
-                <i
-                  class="fa-solid fa-file-invoice-dollar"
-                  style="color: var(--vermelho); font-size: 1rem"
-                ></i>
-              </div>
-              <div
-                style="
-                  font-size: 0.75rem;
-                  font-weight: 600;
-                  color: var(--texto-titulo);
-                "
-              >
-                Nova despesa
-              </div>
-            </div>
-            <div
-              onclick="RanchoApp.mudarAba('financas')"
-              style="
-                background: var(--bege-card);
-                border: 0.5px solid var(--bege-borda);
-                border-radius: 16px;
-                padding: 13px 8px;
-                text-align: center;
-                cursor: pointer;
-                box-shadow: var(--sombra);
-              "
-            >
-              <div
-                style="
-                  width: 36px;
-                  height: 36px;
-                  border-radius: 12px;
-                  background: rgba(37, 211, 102, 0.08);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  margin: 0 auto 7px;
-                "
-              >
-                <i
-                  class="fa-brands fa-whatsapp"
-                  style="color: #25d366; font-size: 1rem"
-                ></i>
-              </div>
-              <div
-                style="
-                  font-size: 0.75rem;
-                  font-weight: 600;
-                  color: var(--texto-titulo);
-                "
-              >
-                Cobrar cliente
-              </div>
-            </div>
-          </div>
-
-          <!-- Relatório PDF -->
-          <div
-            style="
-              background: var(--bege-card);
-              border: 0.5px solid var(--bege-borda);
-              border-radius: 16px;
-              margin: 0 14px 16px;
-              padding: 11px 13px;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              box-shadow: var(--sombra);
-            "
-          >
-            <i
-              class="fa-solid fa-file-pdf"
-              style="
-                color: var(--texto-suave);
-                font-size: 0.9rem;
-                flex-shrink: 0;
-              "
-            ></i>
-            <select
-              id="relatorioMes"
-              class="form-select border-0 bg-transparent shadow-none"
-              style="
-                flex: 1;
-                font-size: 0.8rem;
-                font-weight: 600;
-                padding: 2px 4px;
-              "
-            >
-              <option value="1">Janeiro</option>
-              <option value="2">Fevereiro</option>
-              <option value="3">Março</option>
-              <option value="4">Abril</option>
-              <option value="5">Maio</option>
-              <option value="6">Junho</option>
-              <option value="7">Julho</option>
-              <option value="8">Agosto</option>
-              <option value="9">Setembro</option>
-              <option value="10">Outubro</option>
-              <option value="11">Novembro</option>
-              <option value="12">Dezembro</option>
-            </select>
-            <select
-              id="relatorioAno"
-              class="form-select border-0 bg-transparent shadow-none"
-              style="
-                width: 76px;
-                font-size: 0.8rem;
-                font-weight: 600;
-                padding: 2px 4px;
-              "
-            >
-              <option value="2025">2025</option>
-              <option value="2026" selected>2026</option>
-              <option value="2027">2027</option>
-            </select>
-            <button
-              onclick="RanchoApp.gerarRelatorio()"
-              style="
-                background: linear-gradient(
-                  135deg,
-                  var(--marrom-medio),
-                  var(--marrom-escuro)
-                );
-                color: var(--dourado-claro);
-                border: none;
-                border-radius: 10px;
-                padding: 7px 12px;
-                font-size: 0.78rem;
-                font-weight: 600;
-                white-space: nowrap;
-                cursor: pointer;
-                flex-shrink: 0;
-              "
-            >
-              Gerar PDF
-            </button>
-            <button
-              onclick="RanchoApp.compartilharResumoMes()"
-              title="Compartilhar resumo"
-              style="
-                background: rgba(37, 211, 102, 0.12);
-                color: #25d366;
-                border: 0.5px solid rgba(37, 211, 102, 0.25);
-                border-radius: 10px;
-                padding: 7px 10px;
-                font-size: 0.82rem;
-                cursor: pointer;
-                flex-shrink: 0;
-              "
-            >
-              <i class="fa-brands fa-whatsapp"></i>
-            </button>
           </div>
         </div>
 
         <!-- ── ABA ANIMAIS / MAPA DE OCUPAÇÃO ── -->
         <div id="tabCavalos" class="d-none">
-          <!-- Cabeçalho desktop com botão adicionar -->
+          <!-- Cabeçalho com busca e ordenação -->
           <div
             style="
+              padding: 14px 14px 8px;
               display: flex;
               align-items: center;
               justify-content: space-between;
-              padding: 14px 14px 4px;
             "
           >
             <div
@@ -703,7 +509,7 @@
                 color: var(--texto-titulo);
               "
             >
-              Mapa de Ocupação
+              Animais
             </div>
             <button
               id="btnNovoAnimalAba"
@@ -725,6 +531,70 @@
               <i class="fa-solid fa-plus" style="font-size: 0.75rem"></i> Novo
               animal
             </button>
+          </div>
+          <div
+            style="
+              display: flex;
+              gap: 8px;
+              padding: 0 14px 10px;
+              align-items: center;
+            "
+          >
+            <div
+              style="
+                flex: 1;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: var(--bege-card);
+                border: 0.5px solid var(--bege-borda);
+                border-radius: 12px;
+                padding: 8px 12px;
+              "
+            >
+              <i
+                class="fa-solid fa-magnifying-glass"
+                style="
+                  color: var(--texto-suave);
+                  font-size: 0.75rem;
+                  flex-shrink: 0;
+                "
+              ></i>
+              <input
+                type="text"
+                id="buscaAnimais"
+                placeholder="Buscar animal ou proprietário..."
+                oninput="RanchoApp.filtrarAnimais()"
+                style="
+                  border: none;
+                  background: none;
+                  outline: none;
+                  font-size: 0.85rem;
+                  width: 100%;
+                  color: var(--texto-titulo);
+                "
+              />
+            </div>
+            <select
+              id="ordenarAnimais"
+              onchange="RanchoApp.filtrarAnimais()"
+              style="
+                background: var(--bege-card);
+                border: 0.5px solid var(--bege-borda);
+                border-radius: 12px;
+                padding: 8px 10px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: var(--texto-titulo);
+                cursor: pointer;
+                outline: none;
+                flex-shrink: 0;
+              "
+            >
+              <option value="nome">Nome A-Z</option>
+              <option value="local">Local</option>
+              <option value="proprietario">Proprietário</option>
+            </select>
           </div>
           <div
             style="
@@ -844,10 +714,10 @@
         <div id="tabProprietarios" class="d-none">
           <div
             style="
+              padding: 14px 14px 8px;
               display: flex;
               align-items: center;
               justify-content: space-between;
-              padding: 14px 14px 4px;
             "
           >
             <div
@@ -857,7 +727,7 @@
                 color: var(--texto-titulo);
               "
             >
-              Meus Clientes
+              Clientes
             </div>
             <button
               id="btnNovoClienteAba"
@@ -880,12 +750,55 @@
               cliente
             </button>
           </div>
+          <div style="padding: 0 14px 10px">
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                background: var(--bege-card);
+                border: 0.5px solid var(--bege-borda);
+                border-radius: 12px;
+                padding: 8px 12px;
+              "
+            >
+              <i
+                class="fa-solid fa-magnifying-glass"
+                style="
+                  color: var(--texto-suave);
+                  font-size: 0.75rem;
+                  flex-shrink: 0;
+                "
+              ></i>
+              <input
+                type="text"
+                id="buscaClientes"
+                placeholder="Buscar cliente..."
+                oninput="RanchoApp.filtrarClientes()"
+                style="
+                  border: none;
+                  background: none;
+                  outline: none;
+                  font-size: 0.85rem;
+                  width: 100%;
+                  color: var(--texto-titulo);
+                "
+              />
+            </div>
+          </div>
           <div id="listaProprietariosMainBody"></div>
         </div>
 
         <!-- ── ABA FINANÇAS / COBRANÇAS + DESPESAS ── -->
         <div id="tabFinancas" class="d-none">
-          <div style="padding: 14px 14px 4px">
+          <div
+            style="
+              padding: 14px 14px 8px;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            "
+          >
             <div
               style="
                 font-family: &quot;Lora&quot;, serif;
@@ -895,6 +808,104 @@
             >
               Finanças
             </div>
+          </div>
+
+          <!-- Relatório PDF -->
+          <div
+            style="
+              background: var(--bege-card);
+              border: 0.5px solid var(--bege-borda);
+              border-radius: 16px;
+              margin: 0 14px 12px;
+              padding: 11px 13px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              box-shadow: var(--sombra);
+            "
+          >
+            <i
+              class="fa-solid fa-file-pdf"
+              style="
+                color: var(--texto-suave);
+                font-size: 0.9rem;
+                flex-shrink: 0;
+              "
+            ></i>
+            <select
+              id="relatorioMes"
+              class="form-select border-0 bg-transparent shadow-none"
+              style="
+                flex: 1;
+                font-size: 0.8rem;
+                font-weight: 600;
+                padding: 2px 4px;
+              "
+            >
+              <option value="1">Janeiro</option>
+              <option value="2">Fevereiro</option>
+              <option value="3">Março</option>
+              <option value="4">Abril</option>
+              <option value="5">Maio</option>
+              <option value="6">Junho</option>
+              <option value="7">Julho</option>
+              <option value="8">Agosto</option>
+              <option value="9">Setembro</option>
+              <option value="10">Outubro</option>
+              <option value="11">Novembro</option>
+              <option value="12">Dezembro</option>
+            </select>
+            <select
+              id="relatorioAno"
+              class="form-select border-0 bg-transparent shadow-none"
+              style="
+                width: 76px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                padding: 2px 4px;
+              "
+            >
+              <option value="2025">2025</option>
+              <option value="2026" selected>2026</option>
+              <option value="2027">2027</option>
+            </select>
+            <button
+              onclick="RanchoApp.gerarRelatorio()"
+              style="
+                background: linear-gradient(
+                  135deg,
+                  var(--marrom-medio),
+                  var(--marrom-escuro)
+                );
+                color: var(--dourado-claro);
+                border: none;
+                border-radius: 10px;
+                padding: 7px 12px;
+                font-size: 0.78rem;
+                font-weight: 600;
+                white-space: nowrap;
+                cursor: pointer;
+                flex-shrink: 0;
+              "
+            >
+              Gerar PDF
+            </button>
+            <button
+              onclick="RanchoApp.compartilharResumoMes()"
+              title="Compartilhar resumo"
+              style="
+                background: rgba(37, 211, 102, 0.12);
+                color: #25d366;
+                border: 0.5px solid rgba(37, 211, 102, 0.25);
+                border-radius: 10px;
+                padding: 7px 10px;
+                font-size: 0.82rem;
+                cursor: pointer;
+                flex-shrink: 0;
+              "
+            >
+              <i class="fa-brands fa-whatsapp"></i>
+            </button>
           </div>
 
           <!-- Resumo KPIs -->
@@ -954,13 +965,67 @@
           <div style="padding: 8px 14px 4px">
             <div
               style="
-                font-family: &quot;Lora&quot;, serif;
-                font-size: 0.95rem;
-                color: var(--texto-titulo);
-                margin-bottom: 8px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 10px;
               "
             >
-              Cobranças Pendentes
+              <div
+                style="
+                  flex: 1;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  background: var(--bege-card);
+                  border: 0.5px solid var(--bege-borda);
+                  border-radius: 12px;
+                  padding: 8px 12px;
+                "
+              >
+                <i
+                  class="fa-solid fa-magnifying-glass"
+                  style="
+                    color: var(--texto-suave);
+                    font-size: 0.75rem;
+                    flex-shrink: 0;
+                  "
+                ></i>
+                <input
+                  type="text"
+                  id="buscaFinancas"
+                  placeholder="Buscar cliente..."
+                  oninput="RanchoApp.filtrarFinancas()"
+                  style="
+                    border: none;
+                    background: none;
+                    outline: none;
+                    font-size: 0.85rem;
+                    width: 100%;
+                    color: var(--texto-titulo);
+                  "
+                />
+              </div>
+              <select
+                id="ordenarFinancas"
+                onchange="RanchoApp.filtrarFinancas()"
+                style="
+                  background: var(--bege-card);
+                  border: 0.5px solid var(--bege-borda);
+                  border-radius: 12px;
+                  padding: 8px 10px;
+                  font-size: 0.8rem;
+                  font-weight: 600;
+                  color: var(--texto-titulo);
+                  cursor: pointer;
+                  outline: none;
+                  flex-shrink: 0;
+                "
+              >
+                <option value="nome">Nome A-Z</option>
+                <option value="valor">Maior valor</option>
+                <option value="status">Pendente primeiro</option>
+              </select>
             </div>
             <div id="listaCobrancas">
               <div

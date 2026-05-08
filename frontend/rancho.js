@@ -1216,8 +1216,8 @@ const RanchoApp = {
                 </div>
               </div>
             </div>
-            <!-- Botões rápidos — só aparecem no desktop via CSS -->
-            <div class="cliente-quick-actions" style="display:none;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--bege-borda);">
+            <!-- Botões rápidos — visíveis em todos os tamanhos -->
+            <div class="cliente-quick-actions" style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--bege-borda);">
               <button onclick="RanchoApp.proprietarioAtualId=${p.id};RanchoApp.abrirModalLoteMensalidade()"
                 style="flex:1;background:var(--marrom-escuro);color:var(--dourado-claro);border:none;border-radius:10px;padding:7px;font-size:0.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
                 <i class="fa-solid fa-calendar-check" style="font-size:0.75rem;"></i> Mensalidade em lote
