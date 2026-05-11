@@ -1126,24 +1126,48 @@ const RanchoApp = {
       return;
     }
 
-    // Renderiza como lista simples quando há busca/ordem ativa, senão usa mapa original
+    // Renderiza como lista simples quando há busca/ordem ativa
     if (busca || ordem !== "nome") {
-      mapa.innerHTML = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 14px 12px;">
+      mapa.innerHTML = `<div style="padding:0 14px 12px;">
         ${todosAnimais
           .map((a) => {
             const ns = a.nome.replace(/'/g, "\\'");
             const ls = (a._local || "").replace(/'/g, "\\'");
             const os = (a.observacoes || "").replace(/'/g, "\\'");
             const pid = a.proprietario_id || "";
-            return `<div style="background:rgba(61,122,94,0.09);border:0.5px solid rgba(61,122,94,0.25);border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;"
-            onclick="RanchoApp.abrirAcoesAnimal(${a.id},'${ns}','${ls}','${pid}','${os}')">
-            <div style="width:40px;height:40px;border-radius:50%;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:15px;font-weight:600;flex-shrink:0;">${a.nome.charAt(0).toUpperCase()}</div>
+            const pend = a.tem_pendente;
+            const totalF =
+              a.total_mes > 0
+                ? a.total_mes.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  })
+                : null;
+            const bordaClr =
+              a._local === "" ? "#C49A4A" : pend ? "#E53935" : "#3D7A5E";
+            const statusTxt =
+              a._local === ""
+                ? "Sem local"
+                : pend && totalF
+                  ? `${totalF} pendente`
+                  : pend
+                    ? "Pendente"
+                    : "Em dia";
+            const statusClr =
+              a._local === "" ? "#C49A4A" : pend ? "#A83232" : "#3D7A5E";
+            const avBg = a._local === "" ? "rgba(196,154,74,0.18)" : "#3D7A5E";
+            const avClr = a._local === "" ? "#8B5230" : "white";
+            return `<div onclick="RanchoApp.abrirAcoesAnimal(${a.id},'${ns}','${ls}','${pid}','${os}')"
+            style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-radius:13px;padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:7px;position:relative;overflow:hidden;box-shadow:var(--sombra);">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${bordaClr};"></div>
+            <div style="width:38px;height:38px;border-radius:11px;background:${avBg};display:flex;align-items:center;justify-content:center;color:${avClr};font-size:14px;font-weight:600;flex-shrink:0;margin-left:4px;">${a.nome.charAt(0).toUpperCase()}</div>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:0.7rem;color:#3D7A5E;font-weight:600;">${a._local || "Sem local"}</div>
+              <div style="font-size:0.7rem;color:#3D7A5E;font-weight:600;margin-bottom:1px;">${a._local || "Sem local"}</div>
               <div style="font-size:0.88rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nome}</div>
               <div style="font-size:0.75rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.proprietario || "Sem proprietário"}</div>
+              <div style="font-size:0.72rem;font-weight:600;color:${statusClr};margin-top:2px;">${statusTxt}</div>
             </div>
-            <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--texto-suave);flex-shrink:0;"></i>
+            <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--bege-borda);flex-shrink:0;"></i>
           </div>`;
           })
           .join("")}
@@ -1152,47 +1176,40 @@ const RanchoApp = {
     }
 
     // Renderiza mapa completo (sem filtro)
-    let html = "";
+    let html = '<div style="padding:0 14px 12px;">';
+
+    // Sem local primeiro — destaque de alerta
+    if (dados.semLocal && dados.semLocal.length > 0) {
+      html += `
+        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.7px;color:#C49A4A;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:5px;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:0.65rem;"></i> Sem local atribuído
+        </div>
+        ${dados.semLocal.map((a) => this._cardSemLocal(a)).join("")}
+        <div style="height:0.5px;background:var(--bege-borda);margin:8px 0 12px;"></div>`;
+    }
 
     // Grupos por tipo (Baias, Piquetes, etc)
     dados.grupos.forEach((grupo) => {
       html += `
-        <div style="padding:6px 14px 4px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">${grupo.tipo}</span>
-            <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${grupo.ocupados} ocupado${grupo.ocupados !== 1 ? "s" : ""}</span>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px;">
-            ${grupo.slots.map((slot) => this._cardOcupado(slot)).join("")}
-          </div>
+        <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.7px;color:var(--texto-suave);font-weight:600;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+          <span>${grupo.tipo}</span>
+          <span style="background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:6px;padding:1px 8px;font-size:0.65rem;">${grupo.ocupados} ocupado${grupo.ocupados !== 1 ? "s" : ""}</span>
         </div>
-        <div style="height:0.5px;background:var(--bege-borda);margin:4px 14px 8px;"></div>`;
+        ${grupo.slots.map((slot) => this._cardOcupado(slot)).join("")}
+        <div style="height:0.5px;background:var(--bege-borda);margin:4px 0 12px;"></div>`;
     });
-
-    // Sem local
-    if (dados.semLocal && dados.semLocal.length > 0) {
-      html += `
-        <div style="padding:6px 14px 4px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">Sem local</span>
-            <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${dados.semLocal.length} anim${dados.semLocal.length !== 1 ? "ais" : "al"}</span>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">
-            ${dados.semLocal.map((a) => this._cardSemLocal(a)).join("")}
-          </div>
-        </div>`;
-    }
 
     // Empty state
     if (!dados.grupos.length && !dados.semLocal.length) {
-      html = `
-        <div style="text-align:center;padding:3rem 1rem;">
-          <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-horse-head"></i></div>
-          <p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum animal cadastrado</p>
-          <button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalNovoCavalo()">
-            <i class="fa-solid fa-plus me-1"></i> Cadastrar primeiro animal
-          </button>
-        </div>`;
+      html = `<div style="text-align:center;padding:3rem 1rem;">
+        <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-horse-head"></i></div>
+        <p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum animal cadastrado</p>
+        <button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalNovoCavalo()">
+          <i class="fa-solid fa-plus me-1"></i> Cadastrar primeiro animal
+        </button>
+      </div>`;
+    } else {
+      html += "</div>";
     }
 
     mapa.innerHTML = html;
@@ -1248,6 +1265,7 @@ const RanchoApp = {
     const os = (animal.observacoes || "").replace(/'/g, "\\'");
     const pid = animal.proprietario_id || "";
     const inicial = animal.nome.charAt(0).toUpperCase();
+    const pend = animal.tem_pendente;
     const totalF =
       animal.total_mes > 0
         ? animal.total_mes.toLocaleString("pt-BR", {
@@ -1255,21 +1273,25 @@ const RanchoApp = {
             currency: "BRL",
           })
         : null;
+    const bordaClr = pend ? "#E53935" : "#3D7A5E";
+    const statusTxt =
+      pend && totalF ? `${totalF} pendente` : pend ? "Pendente" : "Em dia";
+    const statusClr = pend ? "#A83232" : "#3D7A5E";
 
     return `
-      <div style="background:rgba(61,122,94,0.09);border:0.5px solid rgba(61,122,94,0.25);border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;"
-        onclick="RanchoApp.abrirAcoesAnimal(${animal.id},'${ns}','${ls}','${pid}','${os}')">
-        <div style="width:40px;height:40px;border-radius:50%;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:15px;font-weight:600;flex-shrink:0;position:relative;">
+      <div onclick="RanchoApp.abrirAcoesAnimal(${animal.id},'${ns}','${ls}','${pid}','${os}')"
+        style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-radius:13px;padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:7px;position:relative;overflow:hidden;box-shadow:var(--sombra);">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${bordaClr};border-radius:3px 0 0 3px;"></div>
+        <div style="width:38px;height:38px;border-radius:11px;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:600;flex-shrink:0;margin-left:4px;">
           ${inicial}
-          ${animal.tem_pendente ? `<span style="position:absolute;top:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:#E53935;border:1.5px solid white;"></span>` : ""}
         </div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:0.7rem;color:#3D7A5E;font-weight:600;margin-bottom:1px;">${slot.nome}</div>
           <div style="font-size:0.88rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
           <div style="font-size:0.75rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem proprietário"}</div>
-          ${totalF ? `<div style="font-size:0.72rem;font-weight:600;color:var(--vermelho);margin-top:2px;">${totalF}</div>` : ""}
+          <div style="font-size:0.72rem;font-weight:600;color:${statusClr};margin-top:2px;">${statusTxt}</div>
         </div>
-        <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--texto-suave);flex-shrink:0;"></i>
+        <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--bege-borda);flex-shrink:0;"></i>
       </div>`;
   },
 
@@ -1279,17 +1301,20 @@ const RanchoApp = {
     const pid = animal.proprietario_id || "";
 
     return `
-      <div onclick="RanchoApp.abrirAcoesAnimal(${animal.id},'${ns}','${animal.lugar || ""}','${pid}','${os}')"
-        style="background:rgba(196,154,74,0.08);border:0.5px solid rgba(196,154,74,0.3);border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;">
-        <div style="width:40px;height:40px;border-radius:50%;background:rgba(196,154,74,0.2);display:flex;align-items:center;justify-content:center;color:#633806;font-size:15px;font-weight:600;flex-shrink:0;">
+      <div onclick="RanchoApp.abrirAcoesAnimal(${animal.id},'${ns}','','${pid}','${os}')"
+        style="background:rgba(196,154,74,0.07);border:0.5px solid rgba(196,154,74,0.35);border-radius:13px;padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:7px;position:relative;overflow:hidden;box-shadow:var(--sombra);">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:#C49A4A;border-radius:3px 0 0 3px;"></div>
+        <div style="width:38px;height:38px;border-radius:11px;background:rgba(196,154,74,0.18);display:flex;align-items:center;justify-content:center;color:#8B5230;font-size:14px;font-weight:600;flex-shrink:0;margin-left:4px;">
           ${animal.nome.charAt(0).toUpperCase()}
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:0.7rem;color:var(--dourado);font-weight:600;margin-bottom:1px;">Sem local</div>
+          <div style="font-size:0.7rem;color:#C49A4A;font-weight:600;margin-bottom:1px;display:flex;align-items:center;gap:4px;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:0.65rem;"></i> Sem local atribuído
+          </div>
           <div style="font-size:0.88rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
           <div style="font-size:0.75rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem proprietário"}</div>
         </div>
-        <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--texto-suave);flex-shrink:0;"></i>
+        <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--bege-borda);flex-shrink:0;"></i>
       </div>`;
   },
 
