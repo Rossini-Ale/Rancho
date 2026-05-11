@@ -50,7 +50,6 @@ const RanchoApp = {
 
     this.initDarkMode();
     this.setupPullToRefresh();
-    this.setupSwipeNavigation();
     this.setupPWA();
     this.setupListeners();
     this._tratarShortcuts(); // atalhos do manifest (ícone longo toque)
@@ -272,56 +271,6 @@ const RanchoApp = {
   },
 
   // ── Pull to Refresh ──
-  setupSwipeNavigation() {
-    const abas = ["home", "cavalos", "proprietarios", "financas"];
-    let startX = 0,
-      startY = 0,
-      startTime = 0;
-
-    document.addEventListener(
-      "touchstart",
-      (e) => {
-        if (e.touches.length !== 1) return;
-        if (document.querySelector(".modal.show")) return;
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        startTime = Date.now();
-      },
-      { passive: true },
-    );
-
-    document.addEventListener(
-      "touchend",
-      (e) => {
-        if (document.querySelector(".modal.show")) return;
-        const dx = e.changedTouches[0].clientX - startX;
-        const dy = e.changedTouches[0].clientY - startY;
-        const dt = Date.now() - startTime;
-
-        // Swipe horizontal rápido (>60px, <350ms, mais horizontal que vertical)
-        if (Math.abs(dx) < 60 || dt > 350 || Math.abs(dy) > Math.abs(dx) * 0.6)
-          return;
-
-        // Não ativa perto das bordas (evita conflito com gesto do iOS)
-        if (startX < 30 || startX > window.innerWidth - 30) return;
-
-        const idxAtual = abas.indexOf(this.abaAtual);
-        if (idxAtual === -1) return;
-
-        if (dx < 0 && idxAtual < abas.length - 1) {
-          // Swipe esquerda → próxima aba
-          this.vibrar(10);
-          this.mudarAba(abas[idxAtual + 1]);
-        } else if (dx > 0 && idxAtual > 0) {
-          // Swipe direita → aba anterior
-          this.vibrar(10);
-          this.mudarAba(abas[idxAtual - 1]);
-        }
-      },
-      { passive: true },
-    );
-  },
-
   setupPullToRefresh() {
     let startY = 0,
       currentY = 0,
@@ -985,7 +934,7 @@ const RanchoApp = {
       return;
     }
 
-    // Cards com swipe para excluir com swipe para excluir
+    // Cards de despesa — simples com botão de excluir
     lista.innerHTML = itens
       .sort((a, b) => parseFloat(b.valor) - parseFloat(a.valor))
       .map((c) => {
@@ -1006,126 +955,26 @@ const RanchoApp = {
         });
 
         return `
-        <div class="swipe-delete-wrap" style="position:relative;overflow:hidden;border-radius:14px;margin-bottom:8px;">
-          <!-- Fundo vermelho de excluir -->
-          <div class="swipe-delete-bg" style="position:absolute;right:0;top:0;bottom:0;width:80px;background:#A83232;display:flex;align-items:center;justify-content:center;border-radius:0 14px 14px 0;">
-            <i class="fa-solid fa-trash-can" style="color:white;font-size:1rem;"></i>
+        <div style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:11px;box-shadow:var(--sombra);">
+          <div style="width:38px;height:38px;border-radius:11px;background:${cor.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid ${ico}" style="color:${cor.cor};font-size:0.9rem;"></i>
           </div>
-          <!-- Card principal -->
-          <div class="swipe-delete-card" data-id="${c.id}" style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:11px;box-shadow:var(--sombra);position:relative;transform:translateX(0);transition:transform 0.2s ease;will-change:transform;">
-            <div style="width:38px;height:38px;border-radius:11px;background:${cor.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="fa-solid ${ico}" style="color:${cor.cor};font-size:0.9rem;"></i>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;color:var(--texto-titulo);font-size:0.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.descricao}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+              <span style="background:${cor.bg};color:${cor.cor};border-radius:6px;padding:1px 7px;font-size:0.68rem;font-weight:600;">${cat}</span>
+              <span style="font-size:0.7rem;color:var(--texto-suave);">${dataF}</span>
             </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;color:var(--texto-titulo);font-size:0.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.descricao}</div>
-              <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-                <span style="background:${cor.bg};color:${cor.cor};border-radius:6px;padding:1px 7px;font-size:0.68rem;font-weight:600;">${cat}</span>
-                <span style="font-size:0.7rem;color:var(--texto-suave);">${dataF}</span>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-              <span style="font-weight:700;color:var(--vermelho);font-size:0.9rem;">${valF}</span>
-              <button class="btn-action icon-red" style="width:32px;height:32px;border-radius:9px;" onclick="RanchoApp.excluirCustoRancho(${c.id})">
-                <i class="fa-solid fa-trash-can" style="font-size:0.72rem;"></i>
-              </button>
-            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span style="font-weight:700;color:var(--vermelho);font-size:0.9rem;">${valF}</span>
+            <button class="btn-action icon-red" style="width:32px;height:32px;border-radius:9px;" onclick="RanchoApp.excluirCustoRancho(${c.id})">
+              <i class="fa-solid fa-trash-can" style="font-size:0.72rem;"></i>
+            </button>
           </div>
         </div>`;
       })
       .join("");
-
-    // Ativa swipe para excluir nos cards de despesa
-    this._setupSwipeDelete(lista, (id) => this.excluirCustoRancho(id));
-  },
-
-  _setupSwipeDelete(container, onDelete) {
-    container.querySelectorAll(".swipe-delete-card").forEach((card) => {
-      let startX = 0,
-        startY = 0,
-        isDragging = false,
-        opened = false;
-      const THRESHOLD = 60;
-
-      card.addEventListener(
-        "touchstart",
-        (e) => {
-          startX = e.touches[0].clientX;
-          startY = e.touches[0].clientY;
-          isDragging = true;
-          card.style.transition = "none";
-        },
-        { passive: true },
-      );
-
-      card.addEventListener(
-        "touchmove",
-        (e) => {
-          if (!isDragging) return;
-          const dx = e.touches[0].clientX - startX;
-          const dy = e.touches[0].clientY - startY;
-          // Cancela se for mais vertical que horizontal
-          if (Math.abs(dy) > Math.abs(dx)) {
-            isDragging = false;
-            return;
-          }
-          if (dx > 0 && !opened) return; // não arrasta para direita se fechado
-          const move = opened ? Math.min(0, dx - THRESHOLD) : Math.min(0, dx);
-          card.style.transform = `translateX(${Math.max(-80, move)}px)`;
-        },
-        { passive: true },
-      );
-
-      card.addEventListener(
-        "touchend",
-        (e) => {
-          if (!isDragging) return;
-          isDragging = false;
-          card.style.transition = "transform 0.2s ease";
-          const dx = e.changedTouches[0].clientX - startX;
-
-          if (dx < -THRESHOLD) {
-            // Revelou o botão — trava aberto
-            card.style.transform = "translateX(-80px)";
-            opened = true;
-            // Clique fora fecha
-            const fechar = (ev) => {
-              if (!card.contains(ev.target)) {
-                card.style.transform = "translateX(0)";
-                opened = false;
-                document.removeEventListener("touchstart", fechar);
-              }
-            };
-            setTimeout(
-              () =>
-                document.addEventListener("touchstart", fechar, {
-                  passive: true,
-                }),
-              100,
-            );
-          } else if (dx > 20 && opened) {
-            // Volta a fechar
-            card.style.transform = "translateX(0)";
-            opened = false;
-          } else if (opened && dx >= -20) {
-            // Mantém aberto se não arrastou o suficiente para fechar
-            card.style.transform = "translateX(-80px)";
-          } else {
-            card.style.transform = "translateX(0)";
-            opened = false;
-          }
-        },
-        { passive: true },
-      );
-
-      // Toque no fundo vermelho confirma exclusão
-      const bg = card.parentElement.querySelector(".swipe-delete-bg");
-      if (bg) {
-        bg.addEventListener("click", () => {
-          const id = card.dataset.id;
-          if (id) onDelete(parseInt(id));
-        });
-      }
-    });
   },
 
   renderGraficoRancho(custos) {
@@ -1554,32 +1403,34 @@ const RanchoApp = {
     document.getElementById("acoesAnimalLocal").textContent =
       lugar || "Sem local";
 
-    // Botão de ligar — só aparece se o proprietário tem telefone
+    // Botão de ligar — busca telefone do proprietário
     const btnLigar = document.getElementById("btnAcaoLigar");
     const telLabel = document.getElementById("acoesAnimalTelefone");
     if (btnLigar) {
+      btnLigar.style.display = "none";
       if (propId) {
-        // Busca telefone do proprietário em cache
-        ApiService.fetchData("/api/gestao/proprietarios")
-          .then((props) => {
-            const prop = (props || []).find((p) => p.id == propId);
+        const buscarTel = async () => {
+          try {
+            const props = await ApiService.fetchData(
+              "/api/gestao/proprietarios",
+            );
+            const prop = (props || []).find(
+              (p) => String(p.id) === String(propId),
+            );
             if (prop?.telefone) {
               const telLimpo = prop.telefone.replace(/\D/g, "");
               if (telLabel) telLabel.textContent = prop.telefone;
               btnLigar.style.display = "flex";
               btnLigar.onclick = () => {
                 this.bsModalAcoesAnimal.hide();
-                window.location.href = `tel:+55${telLimpo}`;
+                setTimeout(() => {
+                  window.location.href = `tel:+55${telLimpo}`;
+                }, 300);
               };
-            } else {
-              btnLigar.style.display = "none";
             }
-          })
-          .catch(() => {
-            btnLigar.style.display = "none";
-          });
-      } else {
-        btnLigar.style.display = "none";
+          } catch (e) {}
+        };
+        buscarTel();
       }
     }
 
