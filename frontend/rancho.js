@@ -1206,23 +1206,12 @@ const RanchoApp = {
     const busca = (document.getElementById("buscaClientes")?.value || "")
       .toLowerCase()
       .trim();
-    const cards = document.querySelectorAll(
-      "#listaProprietariosMainBody .animal-card",
-    );
-    cards.forEach((card) => {
-      const texto = card.textContent.toLowerCase();
-      card.closest(".animal-card")?.parentElement
-        ? (card.parentElement.style.display = texto.includes(busca)
-            ? ""
-            : "none")
-        : (card.style.display = texto.includes(busca) ? "" : "none");
-    });
-    // Filtra os containers
     document
       .querySelectorAll("#listaProprietariosMainBody > div")
       .forEach((el) => {
-        const texto = el.textContent.toLowerCase();
-        el.style.display = texto.includes(busca) ? "" : "none";
+        el.style.display = el.textContent.toLowerCase().includes(busca)
+          ? ""
+          : "none";
       });
   },
 
@@ -1360,7 +1349,6 @@ const RanchoApp = {
     if (!wrap) return;
     wrap.innerHTML = `<div style="padding:0 14px;">${this.skeletonRows(3)}</div>`;
     try {
-      // UMA única chamada — backend já retorna total_divida e total_animais
       const props = await ApiService.fetchData("/api/gestao/proprietarios");
       wrap.innerHTML = "";
       if (!props || !props.length) {
@@ -1374,13 +1362,12 @@ const RanchoApp = {
           </div>`;
         return;
       }
-      const ordem = document.getElementById("inputOrdenacao")?.value || "az";
+
       const lista = props.map((p) => ({
         ...p,
-        totalSort: parseFloat(p.total_divida || 0),
         temPendencia: parseFloat(p.total_divida || 0) > 0,
         txtAnimais:
-          p.total_animais == 1 ? "1 animal" : `${p.total_animais} animais`,
+          p.total_animais == 1 ? "1 animal" : `${p.total_animais || 0} animais`,
         txtValor:
           parseFloat(p.total_divida || 0) > 0
             ? parseFloat(p.total_divida).toLocaleString("pt-BR", {
@@ -1389,70 +1376,80 @@ const RanchoApp = {
               })
             : "Pago",
       }));
-      this.ordenarLista(lista, ordem).forEach((p) => {
-        const dotClr = p.temPendencia ? "#E53935" : "var(--verde)";
+
+      // Ordena: pendentes primeiro, depois A-Z
+      lista.sort((a, b) => {
+        if (a.temPendencia !== b.temPendencia) return b.temPendencia ? 1 : -1;
+        return a.nome.localeCompare(b.nome);
+      });
+
+      lista.forEach((p) => {
+        // Avatar colorido por status
+        const avBg = p.temPendencia
+          ? "linear-gradient(135deg,#7B1A1A,#A83232)"
+          : "linear-gradient(135deg,#1B5E20,#3D7A5E)";
         const badgeBg = p.temPendencia
           ? "rgba(168,50,50,0.09)"
           : "rgba(61,122,94,0.09)";
         const badgeClr = p.temPendencia ? "#7B1A1A" : "#1B5E20";
+        const nomeS = p.nome.replace(/'/g, "\'");
+        const telS = (p.telefone || "").replace(/'/g, "\'");
+
         const el = document.createElement("div");
+        el.className = "animal-card";
+        el.style.padding = "0";
+        el.style.overflow = "hidden";
         el.innerHTML = `
-          <div class="animal-card" style="display:flex;flex-direction:column;gap:0;">
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div class="avatar-circle avatar-dono" style="flex-shrink:0;">${p.nome.charAt(0).toUpperCase()}</div>
-              <div style="flex:1;min-width:0;cursor:pointer;"
-                onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')">
-                <div class="animal-nome">
-                  ${p.nome}
-                  <span class="status-dot" style="background:${dotClr};${p.temPendencia ? "box-shadow:0 0 5px rgba(229,57,53,0.5);" : ""}"></span>
-                </div>
-                <div class="animal-sub">
-                  <span style="font-size:0.72rem;color:var(--marrom-claro);font-weight:600;">
-                    <i class="fa-solid fa-horse-head" style="font-size:0.62rem;"></i> ${p.txtAnimais}
-                  </span>
-                  ${p.telefone ? `<span class="tag-prop"><i class="fa-solid fa-phone" style="font-size:0.62rem;"></i>${p.telefone}</span>` : ""}
-                </div>
-              </div>
-              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0;">
-                <span style="background:${badgeBg};color:${badgeClr};border-radius:10px;padding:3px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;">
-                  ${p.txtValor}
+          <!-- Topo do card -->
+          <div style="display:flex;align-items:center;gap:10px;padding:13px 14px 11px;cursor:pointer;"
+            onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${nomeS}','${telS}')">
+            <div style="width:42px;height:42px;border-radius:13px;background:${avBg};display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;font-weight:600;flex-shrink:0;">
+              ${p.nome.charAt(0).toUpperCase()}
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-family:'Lora',serif;font-size:0.95rem;font-weight:600;color:var(--texto-titulo);">${p.nome}</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;">
+                <span style="font-size:0.72rem;color:var(--marrom-claro);font-weight:600;">
+                  <i class="fa-solid fa-horse-head" style="font-size:0.62rem;"></i> ${p.txtAnimais}
                 </span>
-                <div style="display:flex;gap:6px;">
-                  <button class="btn-action icon-brown" style="width:32px;height:32px;"
-                    onclick="RanchoApp.abrirHistoricoCliente(${p.id},'${p.nome}')"
-                    title="Histórico">
-                    <i class="fa-solid fa-clock-rotate-left" style="font-size:0.72rem;"></i>
-                  </button>
-                  <button class="btn-action icon-brown" style="width:32px;height:32px;"
-                    onclick="RanchoApp.abrirModalGerenciarProprietarios(${p.id},'${p.nome}','${p.telefone || ""}')"
-                    title="Editar">
-                    <i class="fa-solid fa-pen" style="font-size:0.72rem;"></i>
-                  </button>
-                </div>
+                ${p.telefone ? `<span style="font-size:0.7rem;color:var(--texto-suave);"><i class="fa-solid fa-phone" style="font-size:0.62rem;"></i> ${p.telefone}</span>` : ""}
               </div>
             </div>
-            <!-- Botões rápidos — visíveis em todos os tamanhos -->
-            <div class="cliente-quick-actions" style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--bege-borda);">
-              <button onclick="RanchoApp.proprietarioAtualId=${p.id};RanchoApp.abrirModalLoteMensalidade()"
-                style="flex:1;background:var(--marrom-escuro);color:var(--dourado-claro);border:none;border-radius:10px;padding:7px;font-size:0.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
-                <i class="fa-solid fa-calendar-check" style="font-size:0.75rem;"></i> Mensalidade em lote
-              </button>
-              <button onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${p.nome}','${p.telefone || ""}')"
-                style="flex:1;background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:10px;padding:7px;font-size:0.78rem;font-weight:600;color:var(--texto-titulo);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
-                <i class="fa-solid fa-file-invoice-dollar" style="font-size:0.75rem;"></i> Ver fatura
-              </button>
-              ${
-                p.telefone
-                  ? `
-              <button onclick="RanchoApp.cobrarWhatsApp('${p.nome}','${p.telefone}','${p.txtValor}','Mensalidades pendentes','')"
-                style="background:rgba(37,211,102,0.1);border:0.5px solid rgba(37,211,102,0.3);border-radius:10px;padding:7px 12px;font-size:0.78rem;font-weight:600;color:#1a8a3a;cursor:pointer;display:flex;align-items:center;gap:5px;">
-                <i class="fa-brands fa-whatsapp" style="font-size:0.85rem;"></i>
-              </button>`
-                  : ""
-              }
-            </div>
+            <span style="background:${badgeBg};color:${badgeClr};border-radius:9px;padding:4px 10px;font-size:0.78rem;font-weight:700;white-space:nowrap;flex-shrink:0;">
+              ${p.txtValor}
+            </span>
+          </div>
+
+          <!-- Barra de ações -->
+          <div style="display:flex;border-top:0.5px solid var(--bege-borda);">
+            <button onclick="RanchoApp.proprietarioAtualId=${p.id};RanchoApp.abrirModalLoteMensalidade()"
+              style="flex:1;padding:9px 4px;font-size:0.75rem;font-weight:600;color:var(--marrom-escuro);background:none;border:none;border-right:0.5px solid var(--bege-borda);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:background 0.15s;"
+              onmouseover="this.style.background='var(--bege-hover)'" onmouseout="this.style.background='none'">
+              <i class="fa-solid fa-calendar-check" style="font-size:0.78rem;color:var(--marrom-claro);"></i> Lote
+            </button>
+            <button onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${nomeS}','${telS}')"
+              style="flex:1;padding:9px 4px;font-size:0.75rem;font-weight:600;color:var(--marrom-escuro);background:none;border:none;border-right:0.5px solid var(--bege-borda);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:background 0.15s;"
+              onmouseover="this.style.background='var(--bege-hover)'" onmouseout="this.style.background='none'">
+              <i class="fa-solid fa-file-invoice-dollar" style="font-size:0.78rem;color:var(--marrom-claro);"></i> Fatura
+            </button>
+            ${
+              p.telefone
+                ? `
+            <button onclick="RanchoApp.abrirDetalhesProprietario(${p.id},'${nomeS}','${telS}')"
+              style="flex:1;padding:9px 4px;font-size:0.75rem;font-weight:600;color:#1a8a3a;background:none;border:none;border-right:0.5px solid var(--bege-borda);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:background 0.15s;"
+              onmouseover="this.style.background='rgba(37,211,102,0.05)'" onmouseout="this.style.background='none'">
+              <i class="fa-brands fa-whatsapp" style="font-size:0.85rem;"></i> WhatsApp
+            </button>`
+                : ""
+            }
+            <button onclick="RanchoApp.abrirModalGerenciarProprietarios(${p.id},'${nomeS}','${telS}')"
+              style="flex:0 0 44px;padding:9px 4px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--texto-suave);transition:background 0.15s;"
+              onmouseover="this.style.background='var(--bege-hover)'" onmouseout="this.style.background='none'">
+              <i class="fa-solid fa-pen" style="font-size:0.75rem;"></i>
+            </button>
           </div>`;
-        wrap.appendChild(el.firstElementChild);
+
+        wrap.appendChild(el);
       });
     } catch (e) {
       console.error("carregarTabelaProprietarios:", e);
