@@ -213,42 +213,38 @@
 
         <!-- ── ABA HOME ── -->
         <div id="tabHome" class="fade-in-up">
-          <!-- Saudação + data -->
-          <div style="padding: 16px 14px 8px">
-            <div
-              style="
-                font-size: 0.72rem;
-                color: var(--texto-suave);
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.6px;
-              "
-              id="saudacaoLabel"
-            >
-              Bom dia
-            </div>
+          <!-- Saudação integrada no fundo escuro — só mobile -->
+          <div
+            id="homeSaudacao"
+            style="
+              background: var(--marrom-escuro);
+              padding: 16px 14px 18px;
+              border-bottom: 1px solid rgba(196, 154, 74, 0.1);
+            "
+          >
             <div
               style="
                 font-family: &quot;Lora&quot;, serif;
-                font-size: 1.25rem;
-                color: var(--texto-titulo);
-                margin-top: 2px;
+                font-size: 1.1rem;
+                font-weight: 600;
+                color: var(--dourado-claro);
               "
+              id="saudacaoLabel"
             >
-              Visão geral do rancho
+              Bom dia!
             </div>
             <div
               style="
-                font-size: 0.75rem;
-                color: var(--texto-suave);
-                margin-top: 3px;
+                font-size: 0.72rem;
+                color: rgba(232, 201, 122, 0.4);
+                margin-top: 4px;
               "
               id="dataHoje"
             ></div>
           </div>
 
           <!-- KPIs -->
-          <div class="kpi-grid" style="padding-bottom: 8px">
+          <div class="kpi-grid" style="padding-bottom: 0">
             <div
               class="kpi-card k-marrom"
               onclick="RanchoApp.mudarAba('cavalos')"
@@ -286,208 +282,177 @@
             </div>
           </div>
 
-          <!-- Alertas -->
-          <div id="homeGrid">
-            <div>
-              <div class="section-header">
-                <span class="section-title">Alertas</span>
-                <span
-                  class="section-link"
-                  onclick="RanchoApp.mudarAba('financas')"
-                  >Ver todos</span
-                >
-              </div>
-              <div id="listaAlertas">
-                <div
-                  style="
-                    padding: 0 14px;
-                    color: var(--texto-suave);
-                    font-size: 0.82rem;
-                  "
-                >
-                  Carregando...
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div class="section-header">
-                <span class="section-title">Ocupação</span>
-                <span
-                  class="section-link"
-                  onclick="RanchoApp.mudarAba('cavalos')"
-                  >Ver mapa →</span
-                >
-              </div>
-              <div
-                onclick="RanchoApp.mudarAba('cavalos')"
-                id="miniMapaCard"
-                style="
-                  background: var(--bege-card);
-                  border: 0.5px solid var(--bege-borda);
-                  border-radius: 18px;
-                  margin: 0 14px 12px;
-                  padding: 13px 14px;
-                  cursor: pointer;
-                  box-shadow: var(--sombra);
-                "
-              >
-                <div
-                  style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin-bottom: 8px;
-                  "
-                >
-                  <span
-                    style="
-                      font-size: 0.82rem;
-                      font-weight: 600;
-                      color: var(--texto-titulo);
-                    "
-                    id="miniMapaLabel"
-                    >Carregando...</span
-                  >
-                  <span
-                    style="
-                      font-size: 0.82rem;
-                      font-weight: 600;
-                      color: var(--verde);
-                    "
-                    id="miniMapaPct"
-                    >—</span
-                  >
-                </div>
-                <div
-                  style="
-                    height: 7px;
-                    background: var(--bege-fundo);
-                    border-radius: 4px;
-                    overflow: hidden;
-                    border: 0.5px solid var(--bege-borda);
-                    margin-bottom: 10px;
-                  "
-                >
-                  <div
-                    id="miniMapaBarra"
-                    style="
-                      height: 100%;
-                      background: var(--verde);
-                      border-radius: 4px;
-                      width: 0%;
-                      transition: width 0.6s ease;
-                    "
-                  ></div>
-                </div>
-                <div
-                  id="miniMapaGrid"
-                  style="display: flex; flex-wrap: wrap; gap: 5px"
-                >
-                  <div
-                    style="
-                      width: 28px;
-                      height: 28px;
-                      border-radius: 8px;
-                      background: var(--bege-fundo);
-                      border: 0.5px dashed var(--bege-borda);
-                    "
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Atalhos Rápidos -->
-          <div class="section-header">
-            <span class="section-title">Atalhos</span>
-          </div>
-          <div
-            style="
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 8px;
-              padding: 0 14px 12px;
-            "
-          >
+          <!-- Atalhos logo após KPIs -->
+          <div style="display: flex; gap: 8px; padding: 10px 14px 4px">
             <div
               onclick="RanchoApp.abrirModalNovoCavalo()"
               style="
+                flex: 1;
                 background: var(--bege-card);
                 border: 0.5px solid var(--bege-borda);
-                border-radius: 16px;
-                padding: 13px 8px;
-                text-align: center;
+                border-radius: 13px;
+                padding: 9px 12px;
+                display: flex;
+                align-items: center;
+                gap: 9px;
                 cursor: pointer;
                 box-shadow: var(--sombra);
               "
             >
               <div
                 style="
-                  width: 36px;
-                  height: 36px;
-                  border-radius: 12px;
+                  width: 30px;
+                  height: 30px;
+                  border-radius: 9px;
                   background: rgba(61, 30, 10, 0.07);
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  margin: 0 auto 7px;
+                  flex-shrink: 0;
                 "
               >
                 <i
                   class="fa-solid fa-horse-head"
-                  style="color: var(--marrom-claro); font-size: 1rem"
+                  style="color: var(--marrom-claro); font-size: 0.88rem"
                 ></i>
               </div>
-              <div
+              <span
                 style="
-                  font-size: 0.75rem;
+                  font-size: 0.8rem;
                   font-weight: 600;
                   color: var(--texto-titulo);
                 "
+                >Novo animal</span
               >
-                Novo animal
-              </div>
             </div>
             <div
               onclick="RanchoApp.abrirModalGerenciarProprietarios()"
               style="
+                flex: 1;
                 background: var(--bege-card);
                 border: 0.5px solid var(--bege-borda);
-                border-radius: 16px;
-                padding: 13px 8px;
-                text-align: center;
+                border-radius: 13px;
+                padding: 9px 12px;
+                display: flex;
+                align-items: center;
+                gap: 9px;
                 cursor: pointer;
                 box-shadow: var(--sombra);
               "
             >
               <div
                 style="
-                  width: 36px;
-                  height: 36px;
-                  border-radius: 12px;
+                  width: 30px;
+                  height: 30px;
+                  border-radius: 9px;
                   background: rgba(61, 30, 10, 0.07);
                   display: flex;
                   align-items: center;
                   justify-content: center;
-                  margin: 0 auto 7px;
+                  flex-shrink: 0;
                 "
               >
                 <i
                   class="fa-solid fa-user-plus"
-                  style="color: var(--marrom-claro); font-size: 1rem"
+                  style="color: var(--marrom-claro); font-size: 0.88rem"
                 ></i>
               </div>
-              <div
+              <span
                 style="
-                  font-size: 0.75rem;
+                  font-size: 0.8rem;
                   font-weight: 600;
                   color: var(--texto-titulo);
                 "
+                >Novo cliente</span
               >
-                Novo cliente
-              </div>
             </div>
+          </div>
+
+          <!-- Alertas -->
+          <div class="section-header">
+            <span class="section-title">Alertas</span>
+            <span class="section-link" onclick="RanchoApp.mudarAba('financas')"
+              >Ver todos</span
+            >
+          </div>
+          <div id="listaAlertas">
+            <div
+              style="
+                padding: 0 14px;
+                color: var(--texto-suave);
+                font-size: 0.82rem;
+              "
+            >
+              Carregando...
+            </div>
+          </div>
+
+          <!-- Mini mapa melhorado -->
+          <div class="section-header">
+            <span class="section-title">Ocupação</span>
+            <span class="section-link" onclick="RanchoApp.mudarAba('cavalos')"
+              >Ver mapa →</span
+            >
+          </div>
+          <div
+            id="miniMapaCard"
+            style="
+              background: var(--bege-card);
+              border: 0.5px solid var(--bege-borda);
+              border-radius: 16px;
+              margin: 0 14px 16px;
+              overflow: hidden;
+              box-shadow: var(--sombra);
+            "
+          >
+            <div
+              style="
+                padding: 12px 14px 8px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+              "
+            >
+              <span
+                style="
+                  font-size: 0.82rem;
+                  font-weight: 600;
+                  color: var(--texto-titulo);
+                "
+                id="miniMapaLabel"
+                >Carregando...</span
+              >
+              <span
+                style="
+                  font-size: 0.82rem;
+                  font-weight: 600;
+                  color: var(--verde);
+                "
+                id="miniMapaPct"
+                >—</span
+              >
+            </div>
+            <div
+              style="
+                height: 5px;
+                background: var(--bege-fundo);
+                margin: 0 14px 0;
+                border-radius: 3px;
+                overflow: hidden;
+              "
+            >
+              <div
+                id="miniMapaBarra"
+                style="
+                  height: 100%;
+                  background: var(--verde);
+                  border-radius: 3px;
+                  width: 0%;
+                  transition: width 0.7s ease;
+                "
+              ></div>
+            </div>
+            <div id="miniMapaGrid" style="margin-top: 4px"></div>
           </div>
         </div>
 

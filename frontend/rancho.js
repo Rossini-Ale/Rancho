@@ -488,18 +488,18 @@ const RanchoApp = {
       "novembro",
       "dezembro",
     ];
-    const dataTexto = `${dias[agora.getDay()]}-feira, ${agora.getDate()} de ${meses[agora.getMonth()]} de ${agora.getFullYear()}`;
     const h = agora.getHours();
     const periodo = h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
     const primeiroNome = this.nomeUsuario ? this.nomeUsuario.split(" ")[0] : "";
     const saudacao = primeiroNome
       ? `${periodo}, ${primeiroNome}!`
       : `${periodo}!`;
+    const dataTexto = `${dias[agora.getDay()]}-feira, ${agora.getDate()} de ${meses[agora.getMonth()]} de ${agora.getFullYear()}`;
 
-    const elData = document.getElementById("dataHoje");
-    if (elData) elData.textContent = dataTexto;
     const elSaud = document.getElementById("saudacaoLabel");
     if (elSaud) elSaud.textContent = saudacao;
+    const elData = document.getElementById("dataHoje");
+    if (elData) elData.textContent = dataTexto;
 
     // Topbar desktop
     const topSaud = document.getElementById("topbarSaudacao");
@@ -592,7 +592,14 @@ const RanchoApp = {
     try {
       const dados = await ApiService.fetchData("/api/dashboard/alertas");
       if (!dados || !dados.length) {
-        wrap.innerHTML = `<div style="padding:0 14px 8px;color:var(--texto-suave);font-size:0.82rem;">Nenhum alerta no momento.</div>`;
+        wrap.innerHTML = `
+          <div style="margin:0 14px 8px;background:rgba(61,122,94,0.07);border:0.5px solid rgba(61,122,94,0.2);border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-circle-check" style="color:var(--verde);font-size:1.1rem;flex-shrink:0;"></i>
+            <div>
+              <div style="font-size:0.85rem;font-weight:600;color:var(--verde);">Tudo em dia!</div>
+              <div style="font-size:0.75rem;color:var(--texto-suave);margin-top:1px;">Nenhuma pendência no momento.</div>
+            </div>
+          </div>`;
         return;
       }
       wrap.innerHTML = dados
@@ -633,34 +640,77 @@ const RanchoApp = {
       const dados = await ApiService.fetchData("/api/dashboard/ocupacao");
       if (!dados) return;
 
-      const { totalAnimais, totalOcupados, totalSemLocal, taxaOcupacao } =
-        dados.stats;
+      const { totalOcupados, totalSemLocal, taxaOcupacao } = dados.stats;
 
       if (labelEl)
-        labelEl.textContent = `${totalOcupados} anim${totalOcupados !== 1 ? "ais" : "al"} com local${totalSemLocal > 0 ? ` · ${totalSemLocal} sem local` : ""}`;
+        labelEl.textContent = `${totalOcupados + totalSemLocal} anim${totalOcupados + totalSemLocal !== 1 ? "ais" : "al"}`;
       if (pctEl) pctEl.textContent = `${taxaOcupacao}%`;
       if (barraEl) barraEl.style.width = `${taxaOcupacao}%`;
 
-      // Monta grade compacta — todos os animais
+      // Coleta todos os animais
       const todos = [];
       dados.grupos.forEach((g) =>
-        g.slots.forEach((s) =>
-          todos.push({ nome: s.animais[0].nome, ocup: true }),
-        ),
+        g.slots.forEach((s) => {
+          const a = s.animais[0];
+          todos.push({
+            nome: a.nome,
+            local: s.nome,
+            proprietario: a.proprietario || "",
+            pend: a.tem_pendente,
+            valor: a.total_mes,
+            semLocal: false,
+          });
+        }),
       );
-      dados.semLocal.forEach((a) => todos.push({ nome: a.nome, ocup: false }));
+      dados.semLocal?.forEach((a) =>
+        todos.push({
+          nome: a.nome,
+          local: "",
+          proprietario: a.proprietario || "",
+          pend: false,
+          valor: 0,
+          semLocal: true,
+        }),
+      );
 
       if (!todos.length) {
-        gridEl.innerHTML = `<div style="color:var(--texto-suave);font-size:0.78rem;">Nenhum animal cadastrado.</div>`;
+        gridEl.innerHTML = `<div style="padding:12px 14px;color:var(--texto-suave);font-size:0.8rem;">Nenhum animal cadastrado.</div>`;
         return;
       }
 
+      // Renderiza lista de animais
       gridEl.innerHTML = todos
-        .map((a) => {
-          const bg = a.ocup ? "rgba(61,122,94,0.15)" : "rgba(196,154,74,0.12)";
-          const clr = a.ocup ? "#3D7A5E" : "#8A6840";
-          const bdr = a.ocup ? "none" : "0.5px dashed rgba(196,154,74,0.4)";
-          return `<div style="width:28px;height:28px;border-radius:8px;background:${bg};border:${bdr};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:${clr};" title="${a.nome}">${a.nome.charAt(0).toUpperCase()}</div>`;
+        .map((a, i) => {
+          const avBg = a.semLocal ? "rgba(196,154,74,0.18)" : "#3D7A5E";
+          const avClr = a.semLocal ? "#8B5230" : "white";
+          const localTxt = a.semLocal ? "Sem local" : a.local;
+          const localClr = a.semLocal ? "#C49A4A" : "var(--texto-suave)";
+          const valF =
+            a.valor > 0
+              ? a.valor.toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                })
+              : null;
+          const badgeBg = a.pend
+            ? "rgba(168,50,50,0.09)"
+            : "rgba(61,122,94,0.09)";
+          const badgeClr = a.pend ? "#7B1A1A" : "#1B5E20";
+          const badgeTxt =
+            a.pend && valF ? valF : a.pend ? "Pendente" : "Em dia";
+          const borda =
+            i > 0 ? "border-top:0.5px solid var(--bege-borda);" : "";
+
+          return `<div onclick="RanchoApp.mudarAba('cavalos')" style="${borda}display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;">
+          <div style="width:32px;height:32px;border-radius:9px;background:${avBg};display:flex;align-items:center;justify-content:center;color:${avClr};font-size:12px;font-weight:600;flex-shrink:0;">
+            ${a.nome.charAt(0).toUpperCase()}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.85rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nome}</div>
+            <div style="font-size:0.72rem;color:${localClr};margin-top:1px;">${localTxt}${a.proprietario ? ` · ${a.proprietario}` : ""}</div>
+          </div>
+          ${!a.semLocal ? `<span style="background:${badgeBg};color:${badgeClr};border-radius:7px;padding:2px 8px;font-size:0.7rem;font-weight:600;white-space:nowrap;flex-shrink:0;">${badgeTxt}</span>` : ""}
+        </div>`;
         })
         .join("");
     } catch (e) {

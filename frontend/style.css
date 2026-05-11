@@ -1216,22 +1216,23 @@ main {
     display: flex !important;
     align-items: center;
     justify-content: space-between;
-    background: var(--bege-card);
-    border-bottom: 0.5px solid var(--bege-borda);
-    padding: 11px 24px;
+    background: var(--marrom-escuro);
+    border-bottom: 1px solid rgba(196, 154, 74, 0.1);
+    padding: 14px 24px;
     position: sticky;
     top: 0;
     z-index: 90;
   }
   .topbar-saudacao {
-    font-size: 0.85rem;
+    font-size: 1rem;
     font-weight: 600;
-    color: var(--texto-titulo);
+    color: var(--dourado-claro);
+    font-family: "Lora", serif;
   }
   .topbar-data {
-    font-size: 0.75rem;
-    color: var(--texto-suave);
-    margin-top: 1px;
+    font-size: 0.72rem;
+    color: rgba(232, 201, 122, 0.4);
+    margin-top: 2px;
   }
   .topbar-right {
     display: flex;
@@ -1387,6 +1388,11 @@ main {
   .modal-fullscreen-sm-down {
     max-width: 580px !important;
     margin: auto !important;
+  }
+
+  /* Saudação da home — esconde no desktop (topbar já mostra) */
+  #homeSaudacao {
+    display: none !important;
   }
 
   /* Botões de ação nas abas — só desktop */
