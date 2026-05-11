@@ -578,13 +578,23 @@ router.get("/mensalidades/:cavaloId", async (req, res) => {
     );
     if (!cav) return res.status(403).json({ msg: "Sem permissão" });
 
-    const [rows] = await pool.query(
+    // Filtro opcional por mês/ano
+    const { mes, ano } = req.query;
+    let rows;
+    if (mes && ano) {
+      [rows] = await pool.query(
+        "SELECT * FROM Mensalidades WHERE cavalo_id=? AND usuario_id=? AND mes=? AND ano=? LIMIT 1",
+        [req.params.cavaloId, uid, mes, ano],
+      );
+      return res.json(rows[0] || null);
+    }
+
+    [rows] = await pool.query(
       "SELECT * FROM Mensalidades WHERE cavalo_id=? AND usuario_id=? ORDER BY ano DESC, mes DESC",
       [req.params.cavaloId, uid],
     );
     res.json(rows);
   } catch (err) {
-    console.error("Erro GET /mensalidades:", err);
     res.status(500).json({ error: err.message });
   }
 });

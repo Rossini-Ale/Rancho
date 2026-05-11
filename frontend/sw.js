@@ -2,7 +2,7 @@
 // Service Worker — HF Controll v2
 // Mude a versão abaixo a cada deploy para limpar cache antigo
 // ═══════════════════════════════════════════════════════════
-const CACHE_VERSION = "hf-controll-v2.4";
+const CACHE_VERSION = "hf-controll-v2.5";
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_DYNAMIC = `${CACHE_VERSION}-dynamic`;
 

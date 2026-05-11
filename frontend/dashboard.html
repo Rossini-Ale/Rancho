@@ -1735,6 +1735,31 @@
                   anteriormente.</small
                 >
               </div>
+              <!-- Botão copiar mês anterior -->
+              <button
+                type="button"
+                onclick="RanchoApp.copiarMesAnterior()"
+                id="btnCopiarMesAnt"
+                style="
+                  width: 100%;
+                  background: rgba(196, 154, 74, 0.08);
+                  border: 0.5px solid rgba(196, 154, 74, 0.3);
+                  border-radius: 12px;
+                  padding: 10px 14px;
+                  font-size: 0.82rem;
+                  font-weight: 600;
+                  color: var(--marrom-claro);
+                  cursor: pointer;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 7px;
+                  margin-bottom: 12px;
+                "
+              >
+                <i class="fa-solid fa-copy" style="font-size: 0.8rem"></i>
+                <span id="labelCopiarMes">Copiar valores do mês anterior</span>
+              </button>
               <div
                 id="loteAnimaisLista"
                 style="max-height: 200px; overflow-y: auto"

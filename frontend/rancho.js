@@ -69,9 +69,7 @@ const RanchoApp = {
       this.nomeRancho = perfil.nome_rancho || "HF Controll";
       this.chavePixCache = perfil.chave_pix || "";
       this._aplicarPerfil();
-    } catch (e) {
-      console.warn("carregarUsuario:", e);
-    }
+    } catch (e) {}
   },
 
   _aplicarPerfil() {
@@ -581,9 +579,7 @@ const RanchoApp = {
           elDT.textContent = "Primeiro mês";
         }
       }
-    } catch (e) {
-      console.error("KPIs:", e);
-    }
+    } catch (e) {}
   },
 
   async carregarAlertas() {
@@ -1526,9 +1522,7 @@ const RanchoApp = {
 
         wrap.appendChild(el);
       });
-    } catch (e) {
-      console.error("carregarTabelaProprietarios:", e);
-    }
+    } catch (e) {}
   },
 
   // ── Financeiro ──
@@ -2176,9 +2170,7 @@ const RanchoApp = {
           telefoneProp.replace(/\D/g, ""),
         );
       };
-    } catch (err) {
-      console.error(err);
-    }
+    } catch (err) {}
   },
 
   async compartilharFaturaZap(propId, nomeProp, totalTexto, telefone) {
@@ -2458,7 +2450,7 @@ const RanchoApp = {
         this.mostrarNotificacao("Imagem salva! Agora anexe no WhatsApp.");
       }, "image/png");
     } catch (e) {
-      console.error("compartilharFaturaZap:", e);
+      // erro silencioso
       this.mostrarNotificacao("Erro ao gerar card.", "erro");
     }
   },
@@ -2812,7 +2804,7 @@ const RanchoApp = {
         this.mostrarNotificacao("Imagem salva!");
       }, "image/png");
     } catch (e) {
-      console.error("compartilharResumoMes:", e);
+      // erro silencioso
       this.mostrarNotificacao("Erro ao gerar resumo.", "erro");
     }
   },
@@ -2876,9 +2868,7 @@ const RanchoApp = {
       this._dadosCobrancas = todos;
 
       this._renderCobrancas(todos, wrap);
-    } catch (e) {
-      console.error("carregarCobrancas:", e);
-    }
+    } catch (e) {}
   },
 
   _renderCobrancas(todos, wrap) {
@@ -3064,9 +3054,7 @@ const RanchoApp = {
           })
           .join("") ||
         `<div style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:0.85rem;">Nenhum registro nos últimos 12 meses.</div>`;
-    } catch (e) {
-      console.error("abrirHistoricoCliente:", e);
-    }
+    } catch (e) {}
   },
 
   // ══════════════════════════════════════════
@@ -3299,36 +3287,129 @@ const RanchoApp = {
       );
     }
 
-    // Preenche mês/ano atual
     const hoje = new Date();
     document.getElementById("loteMes").value = hoje.getMonth() + 1;
     document.getElementById("loteAno").value = hoje.getFullYear();
 
-    // Busca animais do cliente atual
+    // Atualiza label do botão copiar
+    const meses = [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro",
+    ];
+    const mesPrev = hoje.getMonth() === 0 ? 11 : hoje.getMonth() - 1;
+    const label = document.getElementById("labelCopiarMes");
+    if (label) label.textContent = `Copiar valores de ${meses[mesPrev]}`;
+
+    // Atualiza label ao mudar mês
+    const selMes = document.getElementById("loteMes");
+    const selAno = document.getElementById("loteAno");
+    const atualizarLabel = () => {
+      const m = parseInt(selMes.value);
+      const prev = m === 1 ? 12 : m - 1;
+      if (label) label.textContent = `Copiar valores de ${meses[prev - 1]}`;
+    };
+    selMes.onchange = atualizarLabel;
+
+    // Busca animais do cliente
     const propId = this.proprietarioAtualId;
     const todos = await ApiService.fetchData("/api/gestao/cavalos");
-    const meus = (todos || []).filter((c) => c.proprietario_id == propId);
+    this._loteAnimais = (todos || []).filter(
+      (c) => c.proprietario_id == propId,
+    );
+    this._renderLoteAnimais();
+    this.bsModalLote.show();
+  },
 
+  _renderLoteAnimais(valoresPreenchidos = {}) {
     const lista = document.getElementById("loteAnimaisLista");
-    if (!meus.length) {
+    if (!this._loteAnimais?.length) {
       lista.innerHTML = `<div class="text-muted small">Nenhum animal cadastrado.</div>`;
-    } else {
-      lista.innerHTML = meus
-        .map(
-          (c) => `
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--bege-borda);">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div class="avatar-circle avatar-cavalo" style="width:28px;height:28px;font-size:11px;">${c.nome.charAt(0)}</div>
-            <span style="font-size:0.85rem;font-weight:600;color:var(--texto-titulo);">${c.nome}</span>
-          </div>
-          <input type="text" inputmode="decimal" placeholder="R$ valor" data-cavalo="${c.id}"
-            style="width:100px;border:0.5px solid var(--bege-borda);border-radius:10px;padding:5px 8px;font-size:0.8rem;text-align:right;background:var(--bege-fundo);" class="lote-valor-individual"/>
-        </div>`,
-        )
-        .join("");
+      return;
+    }
+    lista.innerHTML = this._loteAnimais
+      .map(
+        (c) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--bege-borda);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="avatar-circle avatar-cavalo" style="width:28px;height:28px;font-size:11px;">${c.nome.charAt(0)}</div>
+          <span style="font-size:0.85rem;font-weight:600;color:var(--texto-titulo);">${c.nome}</span>
+        </div>
+        <input type="text" inputmode="decimal" placeholder="R$ valor" data-cavalo="${c.id}"
+          value="${valoresPreenchidos[c.id] ? valoresPreenchidos[c.id].toString().replace(".", ",") : ""}"
+          style="width:100px;border:0.5px solid var(--bege-borda);border-radius:10px;padding:5px 8px;font-size:0.8rem;text-align:right;background:var(--bege-fundo);" class="lote-valor-individual"/>
+      </div>`,
+      )
+      .join("");
+  },
+
+  async copiarMesAnterior() {
+    const mes = parseInt(document.getElementById("loteMes").value);
+    const ano = parseInt(document.getElementById("loteAno").value);
+    const mesPrev = mes === 1 ? 12 : mes - 1;
+    const anoPrev = mes === 1 ? ano - 1 : ano;
+
+    const btn = document.getElementById("btnCopiarMesAnt");
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = "0.6";
     }
 
-    this.bsModalLote.show();
+    try {
+      // Busca mensalidades do mês anterior para cada animal
+      const valores = {};
+      await Promise.all(
+        (this._loteAnimais || []).map(async (c) => {
+          try {
+            const dados = await ApiService.fetchData(
+              `/api/gestao/mensalidades/${c.id}?mes=${mesPrev}&ano=${anoPrev}`,
+            );
+            if (dados?.valor) valores[c.id] = parseFloat(dados.valor);
+          } catch (e) {}
+        }),
+      );
+
+      if (!Object.keys(valores).length) {
+        this.mostrarNotificacao(
+          "Nenhum valor encontrado no mês anterior.",
+          "erro",
+        );
+        return;
+      }
+
+      this._renderLoteAnimais(valores);
+      const meses = [
+        "Janeiro",
+        "Fevereiro",
+        "Março",
+        "Abril",
+        "Maio",
+        "Junho",
+        "Julho",
+        "Agosto",
+        "Setembro",
+        "Outubro",
+        "Novembro",
+        "Dezembro",
+      ];
+      this.mostrarNotificacao(`Valores de ${meses[mesPrev - 1]} copiados!`);
+    } catch (e) {
+      this.mostrarNotificacao("Erro ao buscar valores.", "erro");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = "1";
+      }
+    }
   },
 
   async confirmarLoteMensalidade() {
@@ -3479,9 +3560,7 @@ const RanchoApp = {
           </div>`;
         })
         .join("");
-    } catch (e) {
-      console.error("carregarFichaVet:", e);
-    }
+    } catch (e) {}
   },
 
   async salvarFichaVet() {
