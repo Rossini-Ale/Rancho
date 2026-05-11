@@ -964,77 +964,212 @@ const RanchoApp = {
     try {
       const dados = await ApiService.fetchData("/api/dashboard/ocupacao");
       if (!dados) return;
-
-      // KPIs
-      const el = (id) => document.getElementById(id);
-      if (el("ocupTotal"))
-        el("ocupTotal").textContent = dados.stats.totalOcupados;
-      if (el("ocupSemLocal"))
-        el("ocupSemLocal").textContent = dados.stats.totalSemLocal;
-      if (el("ocupTaxa"))
-        el("ocupTaxa").textContent = `${dados.stats.taxaOcupacao}%`;
-      if (el("ocupPctLabel"))
-        el("ocupPctLabel").textContent = `${dados.stats.taxaOcupacao}%`;
-      if (el("ocupBarra"))
-        el("ocupBarra").style.width = `${dados.stats.taxaOcupacao}%`;
-
-      // Cor da taxa
-      const taxaEl = el("ocupTaxa");
-      if (taxaEl)
-        taxaEl.style.color =
-          dados.stats.taxaOcupacao >= 70
-            ? "var(--verde)"
-            : dados.stats.taxaOcupacao >= 40
-              ? "var(--dourado)"
-              : "var(--vermelho)";
-
-      let html = "";
-
-      // Grupos por tipo (Baias, Piquetes, etc)
-      dados.grupos.forEach((grupo) => {
-        html += `
-          <div style="padding:6px 14px 4px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">${grupo.tipo}</span>
-              <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${grupo.ocupados} ocupado${grupo.ocupados !== 1 ? "s" : ""}</span>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px;">
-              ${grupo.slots.map((slot) => this._cardOcupado(slot)).join("")}
-            </div>
-          </div>
-          <div style="height:0.5px;background:var(--bege-borda);margin:4px 14px 8px;"></div>`;
-      });
-
-      // Sem local
-      if (dados.semLocal && dados.semLocal.length > 0) {
-        html += `
-          <div style="padding:6px 14px 4px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">Sem local</span>
-              <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${dados.semLocal.length} anim${dados.semLocal.length !== 1 ? "ais" : "al"}</span>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">
-              ${dados.semLocal.map((a) => this._cardSemLocal(a)).join("")}
-            </div>
-          </div>`;
-      }
-
-      // Empty state
-      if (!dados.grupos.length && !dados.semLocal.length) {
-        html = `
-          <div style="text-align:center;padding:3rem 1rem;">
-            <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-horse-head"></i></div>
-            <p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum animal cadastrado</p>
-            <button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalNovoCavalo()">
-              <i class="fa-solid fa-plus me-1"></i> Cadastrar primeiro animal
-            </button>
-          </div>`;
-      }
-
-      mapa.innerHTML = html;
+      this._dadosAnimais = dados; // cache para filtro
+      this._renderAnimais();
     } catch (e) {
-      console.error("carregarTabelaCavalos:", e);
+      mapa.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--texto-suave);">Erro ao carregar.</div>`;
     }
+  },
+
+  _renderAnimais() {
+    const dados = this._dadosAnimais;
+    if (!dados) return;
+    const mapa = document.getElementById("mapaOcupacao");
+    if (!mapa) return;
+
+    const busca = (document.getElementById("buscaAnimais")?.value || "")
+      .toLowerCase()
+      .trim();
+    const ordem = document.getElementById("ordenarAnimais")?.value || "nome";
+
+    // KPIs
+    const el = (id) => document.getElementById(id);
+    if (el("ocupTotal"))
+      el("ocupTotal").textContent = dados.stats.totalOcupados;
+    if (el("ocupSemLocal"))
+      el("ocupSemLocal").textContent = dados.stats.totalSemLocal;
+    if (el("ocupTaxa"))
+      el("ocupTaxa").textContent = `${dados.stats.taxaOcupacao}%`;
+    if (el("ocupPctLabel"))
+      el("ocupPctLabel").textContent = `${dados.stats.taxaOcupacao}%`;
+    if (el("ocupBarra"))
+      el("ocupBarra").style.width = `${dados.stats.taxaOcupacao}%`;
+    const taxaEl = el("ocupTaxa");
+    if (taxaEl)
+      taxaEl.style.color =
+        dados.stats.taxaOcupacao >= 70
+          ? "var(--verde)"
+          : dados.stats.taxaOcupacao >= 40
+            ? "var(--dourado)"
+            : "var(--vermelho)";
+    const labelEl = el("ocupLabel");
+    if (labelEl)
+      labelEl.textContent = `${dados.stats.totalOcupados} ${dados.stats.totalOcupados !== 1 ? "animais" : "animal"} com local${dados.stats.totalSemLocal > 0 ? ` · ${dados.stats.totalSemLocal} sem local` : ""}`;
+
+    // Coleta todos os animais flat para busca/ordenação
+    let todosAnimais = [];
+    dados.grupos.forEach((g) =>
+      g.slots.forEach((s) => {
+        if (s.animais?.length)
+          todosAnimais.push({
+            ...s.animais[0],
+            _local: s.nome,
+            _grupo: g.local,
+          });
+      }),
+    );
+    dados.semLocal?.forEach((a) =>
+      todosAnimais.push({ ...a, _local: "", _grupo: "Sem local" }),
+    );
+
+    // Filtra por busca
+    if (busca) {
+      todosAnimais = todosAnimais.filter(
+        (a) =>
+          a.nome?.toLowerCase().includes(busca) ||
+          a.proprietario?.toLowerCase().includes(busca) ||
+          a._local?.toLowerCase().includes(busca),
+      );
+    }
+
+    // Ordena
+    todosAnimais.sort((a, b) => {
+      if (ordem === "local")
+        return (a._local || "zzz").localeCompare(b._local || "zzz");
+      if (ordem === "proprietario")
+        return (a.proprietario || "zzz").localeCompare(b.proprietario || "zzz");
+      return a.nome.localeCompare(b.nome);
+    });
+
+    if (!todosAnimais.length) {
+      mapa.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--texto-suave);font-size:0.85rem;">Nenhum animal encontrado.</div>`;
+      return;
+    }
+
+    // Renderiza como lista simples quando há busca/ordem ativa, senão usa mapa original
+    if (busca || ordem !== "nome") {
+      mapa.innerHTML = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 14px 12px;">
+        ${todosAnimais
+          .map((a) => {
+            const ns = a.nome.replace(/'/g, "\\'");
+            const ls = (a._local || "").replace(/'/g, "\\'");
+            const os = (a.observacoes || "").replace(/'/g, "\\'");
+            const pid = a.proprietario_id || "";
+            return `<div style="background:rgba(61,122,94,0.09);border:0.5px solid rgba(61,122,94,0.25);border-radius:14px;padding:12px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;"
+            onclick="RanchoApp.abrirAcoesAnimal(${a.id},'${ns}','${ls}','${pid}','${os}')">
+            <div style="width:40px;height:40px;border-radius:50%;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:15px;font-weight:600;flex-shrink:0;">${a.nome.charAt(0).toUpperCase()}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.7rem;color:#3D7A5E;font-weight:600;">${a._local || "Sem local"}</div>
+              <div style="font-size:0.88rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.nome}</div>
+              <div style="font-size:0.75rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.proprietario || "Sem proprietário"}</div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--texto-suave);flex-shrink:0;"></i>
+          </div>`;
+          })
+          .join("")}
+      </div>`;
+      return;
+    }
+
+    // Renderiza mapa completo (sem filtro)
+    let html = "";
+
+    // Grupos por tipo (Baias, Piquetes, etc)
+    dados.grupos.forEach((grupo) => {
+      html += `
+        <div style="padding:6px 14px 4px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">${grupo.tipo}</span>
+            <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${grupo.ocupados} ocupado${grupo.ocupados !== 1 ? "s" : ""}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:4px;">
+            ${grupo.slots.map((slot) => this._cardOcupado(slot)).join("")}
+          </div>
+        </div>
+        <div style="height:0.5px;background:var(--bege-borda);margin:4px 14px 8px;"></div>`;
+    });
+
+    // Sem local
+    if (dados.semLocal && dados.semLocal.length > 0) {
+      html += `
+        <div style="padding:6px 14px 4px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-family:'Lora',serif;font-size:0.95rem;color:var(--texto-titulo);">Sem local</span>
+            <span style="font-size:0.72rem;color:var(--texto-suave);background:var(--bege-fundo);border:0.5px solid var(--bege-borda);border-radius:8px;padding:2px 8px;">${dados.semLocal.length} anim${dados.semLocal.length !== 1 ? "ais" : "al"}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px;">
+            ${dados.semLocal.map((a) => this._cardSemLocal(a)).join("")}
+          </div>
+        </div>`;
+    }
+
+    // Empty state
+    if (!dados.grupos.length && !dados.semLocal.length) {
+      html = `
+        <div style="text-align:center;padding:3rem 1rem;">
+          <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-horse-head"></i></div>
+          <p style="color:var(--texto-suave);font-family:'Lora',serif;font-weight:600;margin-bottom:12px;">Nenhum animal cadastrado</p>
+          <button class="btn btn-primary rounded-pill px-4" onclick="RanchoApp.abrirModalNovoCavalo()">
+            <i class="fa-solid fa-plus me-1"></i> Cadastrar primeiro animal
+          </button>
+        </div>`;
+    }
+
+    mapa.innerHTML = html;
+  },
+
+  filtrarAnimais() {
+    this._renderAnimais();
+  },
+
+  filtrarClientes() {
+    const busca = (document.getElementById("buscaClientes")?.value || "")
+      .toLowerCase()
+      .trim();
+    const cards = document.querySelectorAll(
+      "#listaProprietariosMainBody .animal-card",
+    );
+    cards.forEach((card) => {
+      const texto = card.textContent.toLowerCase();
+      card.closest(".animal-card")?.parentElement
+        ? (card.parentElement.style.display = texto.includes(busca)
+            ? ""
+            : "none")
+        : (card.style.display = texto.includes(busca) ? "" : "none");
+    });
+    // Filtra os containers
+    document
+      .querySelectorAll("#listaProprietariosMainBody > div")
+      .forEach((el) => {
+        const texto = el.textContent.toLowerCase();
+        el.style.display = texto.includes(busca) ? "" : "none";
+      });
+  },
+
+  filtrarFinancas() {
+    const busca = (document.getElementById("buscaFinancas")?.value || "")
+      .toLowerCase()
+      .trim();
+    const ordem = document.getElementById("ordenarFinancas")?.value || "nome";
+    const lista = document.getElementById("listaCobrancas");
+    if (!lista || !this._dadosCobrancas) return;
+
+    let itens = [...this._dadosCobrancas];
+
+    // Filtra
+    if (busca)
+      itens = itens.filter((i) => i.nome?.toLowerCase().includes(busca));
+
+    // Ordena
+    itens.sort((a, b) => {
+      if (ordem === "valor")
+        return (b.total_pendente || 0) - (a.total_pendente || 0);
+      if (ordem === "status")
+        return (b.tem_pendencia ? 1 : 0) - (a.tem_pendencia ? 1 : 0);
+      return a.nome.localeCompare(b.nome);
+    });
+
+    this._renderCobrancas(itens, lista);
   },
 
   _cardOcupado(slot) {
@@ -2537,7 +2672,6 @@ const RanchoApp = {
     await Promise.all([
       this.carregarCobrancas(),
       this.carregarDespesasRancho(),
-      this.setupBuscaGlobal(),
     ]);
   },
 
@@ -2578,7 +2712,7 @@ const RanchoApp = {
         pctEl.className = `kpi-trend ${dados.pctReceita >= 0 ? "up" : "dn"}`;
       }
 
-      // Lista de pendências
+      // Cache para filtro
       const todos = [
         ...dados.pendentes.map((p) => ({ ...p, tipo: "mensalidade" })),
         ...dados.custosDiretos.map((c) => ({
@@ -2587,66 +2721,74 @@ const RanchoApp = {
           cavalo: null,
         })),
       ].sort((a, b) => b.dias_atraso - a.dias_atraso);
+      this._dadosCobrancas = todos;
 
-      if (!todos.length) {
-        wrap.innerHTML = `
-          <div style="text-align:center;padding:3rem 1rem;">
-            <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-circle-check"></i></div>
-            <p style="color:var(--verde);font-family:'Lora',serif;font-weight:600;margin-bottom:4px;">Tudo em dia!</p>
-            <small style="color:var(--texto-suave);">Nenhuma cobrança pendente.</small>
-          </div>`;
-        return;
-      }
+      this._renderCobrancas(todos, wrap);
+    } catch (e) {
+      console.error("carregarCobrancas:", e);
+    }
+  },
 
-      wrap.innerHTML = todos
-        .map((item) => {
-          const diasCor =
-            item.dias_atraso > 30
-              ? "var(--vermelho)"
-              : item.dias_atraso > 7
-                ? "var(--dourado)"
-                : "var(--texto-suave)";
-          const diasBg =
-            item.dias_atraso > 30
-              ? "rgba(168,50,50,0.09)"
-              : item.dias_atraso > 7
-                ? "rgba(196,154,74,0.12)"
-                : "rgba(138,104,64,0.08)";
-          const borderClr =
-            item.dias_atraso > 30
-              ? "var(--vermelho)"
-              : item.dias_atraso > 7
-                ? "var(--dourado)"
-                : "var(--bege-borda)";
-          const valF = item.valor.toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-          });
-          const descricao =
-            item.tipo === "mensalidade"
-              ? `${item.cavalo} · ${item.itens || "Mensalidade"}`
-              : item.descricao;
-          const nomesMeses = [
-            "",
-            "Jan",
-            "Fev",
-            "Mar",
-            "Abr",
-            "Mai",
-            "Jun",
-            "Jul",
-            "Ago",
-            "Set",
-            "Out",
-            "Nov",
-            "Dez",
-          ];
-          const periodo =
-            item.tipo === "mensalidade"
-              ? `${nomesMeses[item.mes]}/${item.ano}`
-              : new Date(item.data_despesa).toLocaleDateString("pt-BR");
+  _renderCobrancas(todos, wrap) {
+    if (!wrap) return;
+    if (!todos.length) {
+      wrap.innerHTML = `
+        <div style="text-align:center;padding:3rem 1rem;">
+          <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-circle-check"></i></div>
+          <p style="color:var(--verde);font-family:'Lora',serif;font-weight:600;margin-bottom:4px;">Tudo em dia!</p>
+          <small style="color:var(--texto-suave);">Nenhuma cobrança pendente.</small>
+        </div>`;
+      return;
+    }
+    wrap.innerHTML = todos
+      .map((item) => {
+        const diasCor =
+          item.dias_atraso > 30
+            ? "var(--vermelho)"
+            : item.dias_atraso > 7
+              ? "var(--dourado)"
+              : "var(--texto-suave)";
+        const diasBg =
+          item.dias_atraso > 30
+            ? "rgba(168,50,50,0.09)"
+            : item.dias_atraso > 7
+              ? "rgba(196,154,74,0.12)"
+              : "rgba(138,104,64,0.08)";
+        const borderClr =
+          item.dias_atraso > 30
+            ? "var(--vermelho)"
+            : item.dias_atraso > 7
+              ? "var(--dourado)"
+              : "var(--bege-borda)";
+        const valF = item.valor.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+        const descricao =
+          item.tipo === "mensalidade"
+            ? `${item.cavalo} · ${item.itens || "Mensalidade"}`
+            : item.descricao;
+        const nomesMeses = [
+          "",
+          "Jan",
+          "Fev",
+          "Mar",
+          "Abr",
+          "Mai",
+          "Jun",
+          "Jul",
+          "Ago",
+          "Set",
+          "Out",
+          "Nov",
+          "Dez",
+        ];
+        const periodo =
+          item.tipo === "mensalidade"
+            ? `${nomesMeses[item.mes]}/${item.ano}`
+            : new Date(item.data_despesa).toLocaleDateString("pt-BR");
 
-          return `
+        return `
           <div style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-left:3px solid ${borderClr};border-radius:16px;padding:13px 14px;margin-bottom:10px;box-shadow:var(--sombra);">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
               <div style="flex:1;min-width:0;">
@@ -2669,11 +2811,8 @@ const RanchoApp = {
                 : ""
             }
           </div>`;
-        })
-        .join("");
-    } catch (e) {
-      console.error("carregarCobrancas:", e);
-    }
+      })
+      .join("");
   },
 
   cobrarWhatsApp(nome, telefone, valor, descricao, periodo) {
