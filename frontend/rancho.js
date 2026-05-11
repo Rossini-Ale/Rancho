@@ -1960,21 +1960,115 @@ const RanchoApp = {
       "Novembro",
       "Dezembro",
     ];
-    if (lista?.length)
-      lista.forEach((m) => {
-        const valF = parseFloat(m.valor).toLocaleString("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-        });
-        const badge = m.pago
-          ? '<span class="badge-status badge-pago"><i class="fa-solid fa-check"></i> Pago</span>'
-          : '<span class="badge-status badge-pendente"><i class="fa-solid fa-clock"></i> Pendente</span>';
-        tbody.innerHTML += `<tr style="border-bottom:0.5px solid var(--bege-borda);"><td style="padding:10px 12px;"><div style="font-family:'Lora',serif;font-weight:600;color:var(--texto-titulo);">${meses[m.mes]} / ${m.ano}</div>${m.itens ? `<div style="font-size:0.72rem;color:var(--texto-suave);margin-top:2px;">${m.itens}</div>` : ""}<div style="margin-top:5px;">${badge}</div></td><td style="padding:10px 12px;text-align:right;"><div style="font-weight:600;color:var(--texto-suave);margin-bottom:5px;">${valF}</div><button class="btn-action icon-red" style="width:30px;height:30px;" onclick="RanchoApp.excluirMensalidade(${m.id},${cavaloId})"><i class="fa-solid fa-trash" style="font-size:0.72rem;"></i></button></td></tr>`;
-      });
-    else
+
+    if (!lista?.length) {
       tbody.innerHTML =
         '<tr><td colspan="2" class="text-center text-muted py-4" style="font-size:0.82rem;">Nenhuma mensalidade lançada.</td></tr>';
+      return;
+    }
+
+    lista.forEach((m) => {
+      const valF = parseFloat(m.valor).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+      const badge = m.pago
+        ? '<span class="badge-status badge-pago"><i class="fa-solid fa-check"></i> Pago</span>'
+        : '<span class="badge-status badge-pendente"><i class="fa-solid fa-clock"></i> Pendente</span>';
+
+      const tr = document.createElement("tr");
+      tr.style.borderBottom = "0.5px solid var(--bege-borda)";
+      tr.id = `mens-row-${m.id}`;
+      tr.innerHTML = `
+        <td style="padding:10px 12px;">
+          <div style="font-family:'Lora',serif;font-weight:600;color:var(--texto-titulo);">${meses[m.mes]} / ${m.ano}</div>
+          ${m.itens ? `<div style="font-size:0.72rem;color:var(--texto-suave);margin-top:2px;">${m.itens}</div>` : ""}
+          <div style="margin-top:5px;">${badge}</div>
+        </td>
+        <td style="padding:10px 12px;text-align:right;">
+          <!-- Modo leitura -->
+          <div id="mens-view-${m.id}">
+            <div style="font-weight:600;color:var(--texto-suave);margin-bottom:6px;">${valF}</div>
+            <div style="display:flex;gap:5px;justify-content:flex-end;">
+              <button class="btn-action icon-brown" style="width:30px;height:30px;" title="Editar valor"
+                onclick="RanchoApp.editarMensalidade(${m.id},${cavaloId},${m.valor})">
+                <i class="fa-solid fa-pen" style="font-size:0.7rem;"></i>
+              </button>
+              <button class="btn-action icon-red" style="width:30px;height:30px;" title="Excluir"
+                onclick="RanchoApp.excluirMensalidade(${m.id},${cavaloId})">
+                <i class="fa-solid fa-trash" style="font-size:0.7rem;"></i>
+              </button>
+            </div>
+          </div>
+          <!-- Modo edição (oculto) -->
+          <div id="mens-edit-${m.id}" style="display:none;">
+            <input type="text" inputmode="decimal" id="mens-input-${m.id}"
+              value="${parseFloat(m.valor).toFixed(2).replace(".", ",")}"
+              style="width:90px;border:0.5px solid var(--marrom-claro);border-radius:9px;padding:5px 8px;font-size:0.82rem;text-align:right;background:var(--bege-fundo);margin-bottom:6px;"/>
+            <div style="display:flex;gap:5px;justify-content:flex-end;">
+              <button class="btn-action icon-verde" style="width:30px;height:30px;" title="Salvar"
+                onclick="RanchoApp.salvarEdicaoMensalidade(${m.id},${cavaloId})">
+                <i class="fa-solid fa-check" style="font-size:0.7rem;"></i>
+              </button>
+              <button class="btn-action icon-brown" style="width:30px;height:30px;" title="Cancelar"
+                onclick="RanchoApp.cancelarEdicaoMensalidade(${m.id})">
+                <i class="fa-solid fa-xmark" style="font-size:0.7rem;"></i>
+              </button>
+            </div>
+          </div>
+        </td>`;
+      tbody.appendChild(tr);
+    });
   },
+
+  editarMensalidade(id, cavaloId, valorAtual) {
+    // Fecha qualquer edição aberta
+    document
+      .querySelectorAll("[id^='mens-edit-']")
+      .forEach((el) => (el.style.display = "none"));
+    document
+      .querySelectorAll("[id^='mens-view-']")
+      .forEach((el) => (el.style.display = "block"));
+
+    const view = document.getElementById(`mens-view-${id}`);
+    const edit = document.getElementById(`mens-edit-${id}`);
+    if (!view || !edit) return;
+
+    view.style.display = "none";
+    edit.style.display = "block";
+
+    // Foca e seleciona o input
+    const input = document.getElementById(`mens-input-${id}`);
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  },
+
+  cancelarEdicaoMensalidade(id) {
+    const view = document.getElementById(`mens-view-${id}`);
+    const edit = document.getElementById(`mens-edit-${id}`);
+    if (view) view.style.display = "block";
+    if (edit) edit.style.display = "none";
+  },
+
+  async salvarEdicaoMensalidade(id, cavaloId) {
+    const input = document.getElementById(`mens-input-${id}`);
+    if (!input) return;
+    const valor = parseFloat(input.value.replace(",", "."));
+    if (isNaN(valor) || valor <= 0) {
+      this.mostrarNotificacao("Valor inválido.", "erro");
+      return;
+    }
+    try {
+      await ApiService.putData(`/api/gestao/mensalidades/${id}`, { valor });
+      this.mostrarNotificacao("Mensalidade atualizada!");
+      this.carregarMensalidades(cavaloId);
+    } catch (e) {
+      this.mostrarNotificacao("Erro ao salvar.", "erro");
+    }
+  },
+
   excluirMensalidade(id, cavaloId) {
     this.abrirConfirmacao("Excluir", "Remover cobrança?", async () => {
       try {

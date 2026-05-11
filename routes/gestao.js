@@ -599,6 +599,32 @@ router.get("/mensalidades/:cavaloId", async (req, res) => {
   }
 });
 
+// ── PUT /api/gestao/mensalidades/:id ─────────────────────
+// Edita valor de uma mensalidade existente
+router.put("/mensalidades/:id", async (req, res) => {
+  const uid = req.user.id;
+  const { valor } = req.body;
+  if (!valor || isNaN(parseFloat(valor))) {
+    return res.status(400).json({ message: "Valor inválido." });
+  }
+  try {
+    const [[mens]] = await pool.query(
+      "SELECT id FROM Mensalidades WHERE id=? AND usuario_id=?",
+      [req.params.id, uid],
+    );
+    if (!mens)
+      return res.status(404).json({ message: "Mensalidade não encontrada." });
+
+    await pool.query(
+      "UPDATE Mensalidades SET valor=? WHERE id=? AND usuario_id=?",
+      [parseFloat(valor), req.params.id, uid],
+    );
+    res.json({ message: "Atualizado!" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete("/mensalidades/:id", async (req, res) => {
   try {
     const [[mens]] = await pool.query(
