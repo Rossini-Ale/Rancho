@@ -585,9 +585,6 @@ const RanchoApp = {
 
       // ── Badge no ícone do app ─────────────────────────────
       this.atualizarBadge(qtdPendentes);
-
-      // ── Botão compartilhar resumo ─────────────────────────
-      this.atualizarBotaoCompartilhar(cob, qtdPendentes);
     } catch (e) {}
   },
 
@@ -596,82 +593,19 @@ const RanchoApp = {
     const params = new URLSearchParams(window.location.search);
     const acao = params.get("acao");
     if (!acao) return;
-    // Remove o parâmetro da URL sem recarregar
     window.history.replaceState({}, "", "/");
-    // Executa ação após o app carregar
     setTimeout(() => {
       if (acao === "novo-animal") this.abrirModalNovoCavalo();
       if (acao === "novo-cliente") this.abrirModalGerenciarProprietarios();
     }, 800);
   },
+
   atualizarBadge(qtd) {
     if (!navigator.setAppBadge) return;
     if (qtd > 0) {
       navigator.setAppBadge(qtd).catch(() => {});
     } else {
       navigator.clearAppBadge?.().catch(() => {});
-    }
-  },
-
-  // ── Botão compartilhar resumo ─────────────────────────────
-  atualizarBotaoCompartilhar(cob, qtdPendentes) {
-    // Só mostra se navegador suporta share nativo
-    if (!navigator.share) return;
-
-    const wrap = document.getElementById("btnCompartilharResumo");
-    if (!wrap) return;
-
-    if (qtdPendentes > 0) {
-      wrap.style.display = "flex";
-      wrap.onclick = () => this.compartilharResumoPendencias(cob);
-    } else {
-      wrap.style.display = "none";
-    }
-  },
-
-  async compartilharResumoPendencias(cob) {
-    this.vibrar();
-    const meses = [
-      "Janeiro",
-      "Fevereiro",
-      "Março",
-      "Abril",
-      "Maio",
-      "Junho",
-      "Julho",
-      "Agosto",
-      "Setembro",
-      "Outubro",
-      "Novembro",
-      "Dezembro",
-    ];
-    const agora = new Date();
-    const periodo = `${meses[agora.getMonth()]} ${agora.getFullYear()}`;
-    const rancho = this.nomeRancho || "HF Controll";
-
-    // Monta resumo das pendências
-    const linhas = (cob?.pendentes || []).map((p) => {
-      const val = parseFloat(p.valor || 0).toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-      });
-      return `• ${p.proprietario || p.nome}: ${val}`;
-    });
-
-    const total = (cob?.totalPendente || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-
-    const texto = `📋 *${rancho} — Pendências de ${periodo}*\n\n${linhas.join("\n")}\n\n💰 Total: *${total}*`;
-
-    try {
-      await navigator.share({
-        title: `${rancho} — Pendências`,
-        text: texto,
-      });
-    } catch (e) {
-      // Usuário cancelou ou não suporta — ignora
     }
   },
 
