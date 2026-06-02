@@ -3,6 +3,15 @@ const router = express.Router();
 const pool = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: "Muitas tentativas. Tente novamente em 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Cadastro de novos usuários (Agora inclui Username)
 router.post("/cadastro", async (req, res) => {
@@ -46,7 +55,7 @@ router.post("/cadastro", async (req, res) => {
 });
 
 // Login (Agora por Username)
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     // Recebe username em vez de email
     const { username, password } = req.body; // 'password' para alinhar com o front

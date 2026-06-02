@@ -477,88 +477,89 @@ router.get("/historico-cliente/:propId", async (req, res) => {
   const uid = req.user.id;
   const propId = req.params.propId;
 
+  const nomes = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+
   try {
-    // Verifica permissão
     const [[prop]] = await pool.query(
       "SELECT id, nome, telefone FROM Proprietarios WHERE id=? AND usuario_id=?",
       [propId, uid],
     );
     if (!prop) return res.status(403).json({ message: "Sem permissão." });
 
-    // Cavalos do proprietário
     const [cavalos] = await pool.query(
       "SELECT id, nome FROM Cavalos WHERE proprietario_id=? AND usuario_id=?",
       [propId, uid],
     );
 
-    // Histórico de mensalidades dos últimos 12 meses
-    const historico = [];
+    // Calcula intervalo dos últimos 12 meses
     const hoje = new Date();
+    const meses = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-      const mes = d.getMonth() + 1;
-      const ano = d.getFullYear();
-      const nomes = [
-        "Jan",
-        "Fev",
-        "Mar",
-        "Abr",
-        "Mai",
-        "Jun",
-        "Jul",
-        "Ago",
-        "Set",
-        "Out",
-        "Nov",
-        "Dez",
-      ];
+      meses.push({ mes: d.getMonth() + 1, ano: d.getFullYear() });
+    }
+    const { mes: mesMin, ano: anoMin } = meses[0];
+    const { mes: mesMax, ano: anoMax } = meses[11];
 
-      const mensalidadesMes = [];
-      for (const cavalo of cavalos) {
-        const [mens] = await pool.query(
-          "SELECT * FROM Mensalidades WHERE cavalo_id=? AND mes=? AND ano=? AND usuario_id=?",
-          [cavalo.id, mes, ano, uid],
-        );
-        if (mens.length > 0) {
-          mensalidadesMes.push({
-            cavalo: cavalo.nome,
-            valor: parseFloat(mens[0].valor),
-            pago: mens[0].pago == 1,
-            id: mens[0].id,
-          });
-        }
-      }
+    // Busca todas as mensalidades dos 12 meses em uma query só
+    const [todasMensalidades] = await pool.query(
+      `SELECT m.id, m.mes, m.ano, m.valor, m.pago, m.cavalo_id, c.nome AS cavalo_nome
+       FROM Mensalidades m
+       JOIN Cavalos c ON m.cavalo_id = c.id
+       WHERE m.usuario_id = ? AND c.proprietario_id = ?
+         AND (m.ano * 12 + m.mes) >= (? * 12 + ?)
+         AND (m.ano * 12 + m.mes) <= (? * 12 + ?)`,
+      [uid, propId, anoMin, mesMin, anoMax, mesMax],
+    );
 
-      // Custos diretos do mês
-      const [diretos] = await pool.query(
-        "SELECT * FROM Custos WHERE proprietario_id=? AND cavalo_id IS NULL AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND usuario_id=?",
-        [propId, mes, ano, uid],
-      );
+    // Busca todos os custos diretos dos 12 meses em uma query só
+    const [todosCustos] = await pool.query(
+      `SELECT id, descricao, valor, data_despesa, pago,
+         MONTH(data_despesa) AS mes, YEAR(data_despesa) AS ano
+       FROM Custos
+       WHERE usuario_id = ? AND proprietario_id = ? AND cavalo_id IS NULL
+         AND (YEAR(data_despesa) * 12 + MONTH(data_despesa)) >= (? * 12 + ?)
+         AND (YEAR(data_despesa) * 12 + MONTH(data_despesa)) <= (? * 12 + ?)`,
+      [uid, propId, anoMin, mesMin, anoMax, mesMax],
+    );
+
+    // Agrupa por mês em memória
+    const mensalidadesPorMes = {};
+    todasMensalidades.forEach((m) => {
+      const key = `${m.ano}-${m.mes}`;
+      if (!mensalidadesPorMes[key]) mensalidadesPorMes[key] = [];
+      mensalidadesPorMes[key].push({
+        cavalo: m.cavalo_nome,
+        valor: parseFloat(m.valor),
+        pago: m.pago == 1,
+        id: m.id,
+      });
+    });
+
+    const custosPorMes = {};
+    todosCustos.forEach((c) => {
+      const key = `${c.ano}-${c.mes}`;
+      if (!custosPorMes[key]) custosPorMes[key] = [];
+      custosPorMes[key].push({ ...c, valor: parseFloat(c.valor) });
+    });
+
+    const historico = meses.map(({ mes, ano }) => {
+      const key = `${ano}-${mes}`;
+      const mensalidadesMes = mensalidadesPorMes[key] || [];
+      const diretos = custosPorMes[key] || [];
 
       const totalMes =
         mensalidadesMes.reduce((s, m) => s + m.valor, 0) +
-        diretos.reduce((s, c) => s + parseFloat(c.valor), 0);
+        diretos.reduce((s, c) => s + c.valor, 0);
       const totalPago =
         mensalidadesMes.filter((m) => m.pago).reduce((s, m) => s + m.valor, 0) +
-        diretos
-          .filter((c) => c.pago)
-          .reduce((s, c) => s + parseFloat(c.valor), 0);
+        diretos.filter((c) => c.pago).reduce((s, c) => s + c.valor, 0);
       const temPendente =
         mensalidadesMes.some((m) => !m.pago) || diretos.some((c) => !c.pago);
 
-      historico.push({
-        label: nomes[mes - 1],
-        mes,
-        ano,
-        totalMes,
-        totalPago,
-        temPendente,
-        mensalidades: mensalidadesMes,
-        diretos: diretos.map((c) => ({ ...c, valor: parseFloat(c.valor) })),
-      });
-    }
+      return { label: nomes[mes - 1], mes, ano, totalMes, totalPago, temPendente, mensalidades: mensalidadesMes, diretos };
+    });
 
-    // Estatísticas gerais
     const mesesComDados = historico.filter((h) => h.totalMes > 0);
     const mesesEmDia = mesesComDados.filter((h) => !h.temPendente).length;
     const mesesAtrasados = mesesComDados.filter((h) => h.temPendente).length;
