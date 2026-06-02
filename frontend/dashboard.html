@@ -896,6 +896,25 @@
             </div>
           </div>
 
+          <!-- Balanço P&L -->
+          <div class="pl-card">
+            <div class="small-label mb-3">Resultado do mês</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+              <div class="pl-col">
+                <div class="pl-label">Receita</div>
+                <div class="pl-value" id="plReceita" style="color:var(--verde);">—</div>
+              </div>
+              <div class="pl-col">
+                <div class="pl-label">Despesas</div>
+                <div class="pl-value" id="plDespesas" style="color:var(--vermelho);">—</div>
+              </div>
+              <div class="pl-col pl-resultado-wrap" id="plResultadoWrap">
+                <div class="pl-label">Resultado</div>
+                <div class="pl-value" id="plResultado">—</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Busca Global -->
           <div style="padding: 8px 14px 4px">
             <div
@@ -1358,7 +1377,7 @@
       </div>
 
       <!-- Modal Ações Animal -->
-      <div class="modal fade" id="modalAcoesAnimal" tabindex="-1">
+      <div class="modal fade modal-sheet" id="modalAcoesAnimal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-sm">
           <div class="modal-content border-0 shadow">
             <div class="modal-body p-0">

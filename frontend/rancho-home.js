@@ -34,8 +34,8 @@ Object.assign(RanchoApp, {
   async carregarKPIs() {
     try {
       const [d, cob] = await Promise.all([
-        ApiService.fetchData("/api/dashboard/kpis"),
-        ApiService.fetchData("/api/dashboard/cobrancas"),
+        this._cacheGet("kpis") ?? ApiService.fetchData("/api/dashboard/kpis").then((r) => { this._cacheSet("kpis", r); return r; }),
+        this._cacheGet("cobrancas") ?? ApiService.fetchData("/api/dashboard/cobrancas").then((r) => { this._cacheSet("cobrancas", r); return r; }),
       ]);
       if (!d) return;
 
@@ -95,7 +95,7 @@ Object.assign(RanchoApp, {
     const wrap = document.getElementById("listaAlertas");
     if (!wrap) return;
     try {
-      const dados = await ApiService.fetchData("/api/dashboard/alertas");
+      const dados = this._cacheGet("alertas") ?? await ApiService.fetchData("/api/dashboard/alertas").then((r) => { this._cacheSet("alertas", r); return r; });
       if (!dados || !dados.length) {
         wrap.innerHTML = `
           <div style="margin:0 14px 8px;background:rgba(61,122,94,0.07);border:0.5px solid rgba(61,122,94,0.2);border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
@@ -133,7 +133,7 @@ Object.assign(RanchoApp, {
     const barraEl = document.getElementById("miniMapaBarra");
     if (!gridEl) return;
     try {
-      const dados = await ApiService.fetchData("/api/dashboard/ocupacao");
+      const dados = this._cacheGet("ocupacao") ?? await ApiService.fetchData("/api/dashboard/ocupacao").then((r) => { this._cacheSet("ocupacao", r); return r; });
       if (!dados) return;
 
       const { totalOcupados, totalSemLocal, taxaOcupacao } = dados.stats;

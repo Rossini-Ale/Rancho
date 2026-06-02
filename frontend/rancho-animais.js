@@ -3,9 +3,10 @@ Object.assign(RanchoApp, {
   async carregarTabelaCavalos() {
     const mapa = document.getElementById("mapaOcupacao");
     if (!mapa) return;
-    mapa.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--texto-suave);font-size:0.85rem;">Carregando...</div>`;
+    const cached = this._cacheGet("ocupacao");
+    if (!cached) mapa.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:var(--texto-suave);font-size:0.85rem;">Carregando...</div>`;
     try {
-      const dados = await ApiService.fetchData("/api/dashboard/ocupacao");
+      const dados = cached ?? await ApiService.fetchData("/api/dashboard/ocupacao").then((r) => { this._cacheSet("ocupacao", r); return r; });
       if (!dados) return;
       this._dadosAnimais = dados;
       this._renderAnimais();
@@ -257,6 +258,7 @@ Object.assign(RanchoApp, {
     try {
       if (id) await ApiService.putData(`/api/gestao/cavalos/${id}`, body);
       else await ApiService.postData("/api/gestao/cavalos", body);
+      this._cacheClear("ocupacao", "kpis", "alertas");
       this.bsModalCavalo.hide();
       await this.carregarTabelaCavalos();
       if (this.abaAtual === "home") this.carregarHome();
@@ -284,6 +286,7 @@ Object.assign(RanchoApp, {
     if (id)
       this.abrirConfirmacao("Excluir", "Apagar animal?", async () => {
         await ApiService.deleteData(`/api/gestao/cavalos/${id}`);
+        this._cacheClear("ocupacao", "kpis", "alertas");
         this.bsModalCavalo.hide();
         this.carregarTabelaCavalos();
       });

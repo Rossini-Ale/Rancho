@@ -2,14 +2,35 @@
 Object.assign(RanchoApp, {
   async carregarFinancas() {
     await Promise.all([this.carregarCobrancas(), this.carregarDespesasRancho()]);
+    this._atualizarPL();
+  },
+
+  _atualizarPL() {
+    const receita = this._plReceita ?? 0;
+    const despesas = this._plDespesas ?? 0;
+    const resultado = receita - despesas;
+    const fmt = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const elR = document.getElementById("plReceita");
+    const elD = document.getElementById("plDespesas");
+    const elRes = document.getElementById("plResultado");
+    const elWrap = document.getElementById("plResultadoWrap");
+    if (elR) elR.textContent = fmt(receita);
+    if (elD) elD.textContent = fmt(despesas);
+    if (elRes) {
+      elRes.textContent = fmt(Math.abs(resultado));
+      elRes.style.color = resultado >= 0 ? "var(--verde)" : "var(--vermelho)";
+    }
+    if (elWrap) {
+      elWrap.style.background = resultado >= 0 ? "rgba(61,122,94,0.07)" : "rgba(168,50,50,0.07)";
+    }
   },
 
   async carregarCobrancas() {
     const wrap = document.getElementById("listaCobrancas");
     if (!wrap) return;
-    wrap.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:0.85rem;">Carregando...</div>`;
+    if (!this._cacheGet("cobrancas")) wrap.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--texto-suave);font-size:0.85rem;">Carregando...</div>`;
     try {
-      const dados = await ApiService.fetchData("/api/dashboard/cobrancas");
+      const dados = this._cacheGet("cobrancas") ?? await ApiService.fetchData("/api/dashboard/cobrancas").then((r) => { this._cacheSet("cobrancas", r); return r; });
       if (!dados) return;
 
       const totalEl = document.getElementById("totalAtraso");
@@ -23,6 +44,7 @@ Object.assign(RanchoApp, {
         qtdEl.textContent = `${qtd} cliente${qtd !== 1 ? "s" : ""}`;
         qtdEl.className = `kpi-trend ${qtd > 0 ? "dn" : "up"}`;
       }
+      this._plReceita = dados.receitaMes || 0;
       if (recEl) recEl.textContent = dados.receitaMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       if (pctEl && dados.pctReceita !== null) {
         pctEl.textContent = `${dados.pctReceita > 0 ? "+" : ""}${dados.pctReceita}% vs mês ant.`;
@@ -143,6 +165,7 @@ Object.assign(RanchoApp, {
     }
 
     const total = itens.reduce((s, c) => s + parseFloat(c.valor), 0);
+    this._plDespesas = total;
     const totalEl = document.getElementById("totalRanchoMesDisplay");
     if (totalEl) totalEl.textContent = total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -241,10 +264,12 @@ Object.assign(RanchoApp, {
     };
     try {
       await ApiService.postData("/api/gestao/custos", body);
+      this._cacheClear("cobrancas", "kpis");
       this.mostrarNotificacao("Adicionado!");
       document.getElementById("formCustoRancho").reset();
       this.categoriaFiltroRancho = "";
       await this.carregarDespesasRancho();
+      this._atualizarPL();
     } catch (err) {
       this.mostrarNotificacao("Erro", "erro");
     } finally {
@@ -256,7 +281,9 @@ Object.assign(RanchoApp, {
     this.abrirConfirmacao("Excluir", "Apagar despesa?", async () => {
       try {
         await ApiService.deleteData(`/api/gestao/custos/${id}`);
+        this._cacheClear("cobrancas", "kpis");
         await this.carregarDespesasRancho();
+        this._atualizarPL();
         this.mostrarNotificacao("Apagado!");
       } catch (e) { this.mostrarNotificacao("Erro", "erro"); }
     });
@@ -316,6 +343,7 @@ Object.assign(RanchoApp, {
       if (cav) body.proprietario_id = cav.proprietario_id;
       if (isEdit) { await ApiService.putData(`/api/gestao/custos/${custoId}`, body); this.mostrarNotificacao("Atualizado!"); }
       else { await ApiService.postData("/api/gestao/custos", body); this.mostrarNotificacao("Adicionado!"); }
+      this._cacheClear("cobrancas", "kpis", "ocupacao", "alertas");
       document.getElementById("formCusto").reset();
       document.getElementById("custoIdEdit").value = "";
       document.getElementById("btnSalvarCusto").classList.replace("btn-warning", "btn-success");
@@ -373,6 +401,7 @@ Object.assign(RanchoApp, {
     this.abrirConfirmacao("Excluir", "Apagar custo?", async () => {
       try {
         await ApiService.deleteData(`/api/gestao/custos/${id}`);
+        this._cacheClear("cobrancas", "kpis", "ocupacao", "alertas");
         this.carregarListaCustos(cavaloId);
         this.carregarTabelaCavalos();
         this.mostrarNotificacao("Apagado!");
@@ -444,6 +473,7 @@ Object.assign(RanchoApp, {
     };
     try {
       await ApiService.postData("/api/gestao/mensalidades", body);
+      this._cacheClear("cobrancas", "kpis", "alertas");
       this.mostrarNotificacao("Mensalidade adicionada!");
       this.carregarMensalidades(body.cavalo_id);
     } catch (err) {
@@ -524,6 +554,7 @@ Object.assign(RanchoApp, {
     if (isNaN(valor) || valor <= 0) { this.mostrarNotificacao("Valor inválido.", "erro"); return; }
     try {
       await ApiService.putData(`/api/gestao/mensalidades/${id}`, { valor });
+      this._cacheClear("cobrancas", "kpis", "alertas");
       this.mostrarNotificacao("Mensalidade atualizada!");
       this.carregarMensalidades(cavaloId);
     } catch (e) { this.mostrarNotificacao("Erro ao salvar.", "erro"); }
@@ -533,6 +564,7 @@ Object.assign(RanchoApp, {
     this.abrirConfirmacao("Excluir", "Remover cobrança?", async () => {
       try {
         await ApiService.deleteData(`/api/gestao/mensalidades/${id}`);
+        this._cacheClear("cobrancas", "kpis", "alertas");
         this.carregarMensalidades(cavaloId);
         this.mostrarNotificacao("Removido.");
       } catch (e) { this.mostrarNotificacao("Erro", "erro"); }

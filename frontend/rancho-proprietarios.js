@@ -3,9 +3,9 @@ Object.assign(RanchoApp, {
   async carregarTabelaProprietarios() {
     const wrap = document.getElementById("listaProprietariosMainBody");
     if (!wrap) return;
-    wrap.innerHTML = `<div style="padding:0 14px;">${this.skeletonRows(3)}</div>`;
+    if (!this._cacheGet("proprietarios")) wrap.innerHTML = `<div style="padding:0 14px;">${this.skeletonRows(3)}</div>`;
     try {
-      const props = await ApiService.fetchData("/api/gestao/proprietarios");
+      const props = this._cacheGet("proprietarios") ?? await ApiService.fetchData("/api/gestao/proprietarios").then((r) => { this._cacheSet("proprietarios", r); return r; });
       wrap.innerHTML = "";
       if (!props || !props.length) {
         wrap.innerHTML = `
@@ -115,6 +115,7 @@ Object.assign(RanchoApp, {
     try {
       if (id) await ApiService.putData(`/api/gestao/proprietarios/${id}`, body);
       else await ApiService.postData("/api/gestao/proprietarios", body);
+      this._cacheClear("proprietarios", "kpis", "cobrancas", "alertas");
       this.bsModalProp.hide();
       this.carregarTabelaProprietarios();
       this.carregarProprietariosSelect();
@@ -131,6 +132,7 @@ Object.assign(RanchoApp, {
     if (id)
       this.abrirConfirmacao("Excluir", "Apagar cliente?", async () => {
         await ApiService.deleteData(`/api/gestao/proprietarios/${id}`);
+        this._cacheClear("proprietarios", "kpis", "cobrancas", "alertas");
         this.bsModalProp.hide();
         this.carregarTabelaProprietarios();
         this.carregarProprietariosSelect();

@@ -1,5 +1,6 @@
 const RanchoApp = {
   // ── Estado ──
+  _cache: {},
   bsModalProp: null,
   bsModalCavalo: null,
   bsModalFin: null,
@@ -40,6 +41,7 @@ const RanchoApp = {
 
     this.initDarkMode();
     this.setupPullToRefresh();
+    this._setupSwipeTabs();
     this.setupPWA();
     this.setupListeners();
     this.setupBuscaGlobal();
@@ -388,6 +390,45 @@ const RanchoApp = {
 
   skeletonRows(n) {
     return Array(n).fill(`<div class="animal-card mb-0" style="margin:0 0 10px!important;"><div style="display:flex;gap:12px;"><div class="skeleton skeleton-avatar"></div><div style="flex:1;"><div class="skeleton skeleton-text medium"></div><div class="skeleton skeleton-text short" style="margin-top:6px;"></div></div></div></div>`).join("");
+  },
+
+  // ── Cache client-side (TTL 30s) ──
+  _cacheGet(key) {
+    const entry = this._cache[key];
+    if (!entry || Date.now() - entry.ts > 30000) { delete this._cache[key]; return null; }
+    return entry.data;
+  },
+  _cacheSet(key, data) { this._cache[key] = { data, ts: Date.now() }; },
+  _cacheClear(...prefixes) {
+    if (!prefixes.length) { this._cache = {}; return; }
+    Object.keys(this._cache).forEach((k) => { if (prefixes.some((p) => k.startsWith(p))) delete this._cache[k]; });
+  },
+
+  // ── Swipe entre abas (horizontal) ──
+  _setupSwipeTabs() {
+    const abas = ["home", "cavalos", "proprietarios", "financas"];
+    let startX = 0, startY = 0, active = false;
+    const main = document.querySelector("main");
+    if (!main) return;
+
+    main.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      active = true;
+    }, { passive: true });
+
+    main.addEventListener("touchend", (e) => {
+      if (!active) return;
+      active = false;
+      if (document.querySelector(".modal.show")) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = Math.abs(e.changedTouches[0].clientY - startY);
+      if (Math.abs(dx) < 60 || dy > Math.abs(dx) * 0.75) return;
+      const idx = abas.indexOf(this.abaAtual);
+      if (dx < 0 && idx < abas.length - 1) this.mudarAba(abas[idx + 1]);
+      else if (dx > 0 && idx > 0) this.mudarAba(abas[idx - 1]);
+    }, { passive: true });
   },
 
   // ── Utilitários ──

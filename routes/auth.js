@@ -13,8 +13,16 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const cadastroLimiter = rateLimit({
+  windowMs: 30 * 60 * 1000,
+  max: 5,
+  message: { message: "Muitas tentativas de cadastro. Tente novamente em 30 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Cadastro de novos usuários (Agora inclui Username)
-router.post("/cadastro", async (req, res) => {
+router.post("/cadastro", cadastroLimiter, async (req, res) => {
   try {
     // Recebe username além de nome e email
     const { nome, email, username, senha } = req.body;
