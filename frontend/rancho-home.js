@@ -7,6 +7,7 @@ Object.assign(RanchoApp, {
       this.carregarAlertas(),
       this.carregarMiniMapa(),
     ]);
+    this.carregarGraficoTendencia();
   },
 
   setDataHoje() {
@@ -88,6 +89,19 @@ Object.assign(RanchoApp, {
       }
 
       this.atualizarBadge(qtdPendentes);
+
+      // Atualiza atalho de cobranças
+      const subEl = document.getElementById("atalhoCobrancasSub");
+      const badgeEl = document.getElementById("atalhoBadgeQtd");
+      if (subEl && qtdPendentes > 0) {
+        subEl.textContent = `${qtdPendentes} cliente${qtdPendentes !== 1 ? "s" : ""} em atraso`;
+        subEl.style.display = "block";
+        subEl.style.color = "var(--vermelho)";
+      }
+      if (badgeEl && qtdPendentes > 0) {
+        badgeEl.textContent = qtdPendentes;
+        badgeEl.style.display = "block";
+      }
     } catch (e) {}
   },
 
@@ -96,33 +110,165 @@ Object.assign(RanchoApp, {
     if (!wrap) return;
     try {
       const dados = this._cacheGet("alertas") ?? await ApiService.fetchData("/api/dashboard/alertas").then((r) => { this._cacheSet("alertas", r); return r; });
+
+      const badge = document.getElementById("badgeAlertas");
       if (!dados || !dados.length) {
+        if (badge) badge.style.display = "none";
         wrap.innerHTML = `
-          <div style="margin:0 14px 8px;background:rgba(61,122,94,0.07);border:0.5px solid rgba(61,122,94,0.2);border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
-            <i class="fa-solid fa-circle-check" style="color:var(--verde);font-size:1.1rem;flex-shrink:0;"></i>
+          <div style="margin:0 14px 8px;background:rgba(61,122,94,0.07);border:0.5px solid rgba(61,122,94,0.2);border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:11px;">
+            <div style="width:34px;height:34px;border-radius:10px;background:rgba(61,122,94,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fa-solid fa-circle-check" style="color:var(--verde);font-size:1rem;"></i>
+            </div>
             <div>
-              <div style="font-size:0.85rem;font-weight:600;color:var(--verde);">Tudo em dia!</div>
-              <div style="font-size:0.75rem;color:var(--texto-suave);margin-top:1px;">Nenhuma pendência no momento.</div>
+              <div style="font-size:0.88rem;font-weight:600;color:var(--verde);">Tudo em dia!</div>
+              <div style="font-size:0.75rem;color:var(--texto-suave);margin-top:2px;">Nenhuma pendência ou procedimento vencendo.</div>
             </div>
           </div>`;
         return;
       }
-      wrap.innerHTML = dados.slice(0, 5).map((a) => {
-        const cores = { vencido: "var(--vermelho)", pago: "var(--verde)", atencao: "var(--dourado)" };
-        const cor = cores[a.tipo] || "var(--texto-suave)";
-        const valF = a.valor ? ` · ${parseFloat(a.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "";
+
+      const criticos = dados.filter((a) => a.tipo === "vencido");
+      const atencao = dados.filter((a) => a.tipo === "atencao");
+
+      if (badge) {
+        if (criticos.length > 0) {
+          badge.textContent = criticos.length;
+          badge.style.display = "inline-block";
+        } else {
+          badge.style.display = "none";
+        }
+      }
+
+      const renderCard = (a, tier) => {
+        const valF = a.valor ? a.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : null;
+        const icone = tier === "critico" ? "fa-circle-exclamation" : "fa-clock";
+        const destino = tier === "critico" ? "RanchoApp.mudarAba('financas')" : "RanchoApp.mudarAba('cavalos')";
         return `
-          <div class="alerta-item" style="cursor:default;">
-            <div class="alerta-dot ${a.tipo}" style="background:${cor};${a.tipo === "vencido" ? "box-shadow:0 0 5px rgba(229,57,53,0.35);" : ""}"></div>
-            <div style="flex:1;min-width:0;">
-              <div class="alerta-titulo">${a.titulo}</div>
-              <div class="alerta-sub">${a.sub}${valF}</div>
+          <div class="alerta-${tier}" onclick="${destino}">
+            <div class="alerta-tier-icon ${tier}"><i class="fa-solid ${icone}"></i></div>
+            <div class="alerta-tier-body">
+              <div class="alerta-tier-titulo">${a.titulo}</div>
+              <div class="alerta-tier-sub">${a.sub}</div>
+              ${valF ? `<div class="alerta-tier-valor ${tier}">${valF}</div>` : ""}
             </div>
-            <span class="alerta-tempo">${a.tempo}</span>
+            <div class="alerta-tier-tempo ${tier}">${a.tempo}</div>
           </div>`;
-      }).join("");
+      };
+
+      let html = "";
+
+      if (criticos.length) {
+        html += `<div class="alerta-tier-label critico"><i class="fa-solid fa-circle-exclamation" style="font-size:0.7rem;"></i> Crítico (${criticos.length})</div>`;
+        html += criticos.map((a) => renderCard(a, "critico")).join("");
+      }
+
+      if (atencao.length) {
+        html += `<div class="alerta-tier-label atencao" style="margin-top:${criticos.length ? "10px" : "0"};"><i class="fa-solid fa-clock" style="font-size:0.7rem;"></i> Atenção (${atencao.length})</div>`;
+        html += atencao.map((a) => renderCard(a, "atencao")).join("");
+      }
+
+      wrap.innerHTML = html;
     } catch (e) {
       wrap.innerHTML = `<div style="padding:0 14px;color:var(--texto-suave);font-size:0.82rem;">Erro ao carregar alertas.</div>`;
+    }
+  },
+
+  async carregarGraficoTendencia() {
+    const card = document.getElementById("cardTendenciaHome");
+    const placeholder = document.getElementById("tendenciaPlaceholder");
+    const canvas = document.getElementById("graficoTendenciaHome");
+    if (!canvas) return;
+    try {
+      const dados = this._cacheGet("historico") ?? await ApiService.fetchData("/api/dashboard/historico").then((r) => { this._cacheSet("historico", r); return r; });
+      if (!dados || !dados.length) return;
+
+      const temDados = dados.some((d) => d.receita > 0 || d.despesas > 0);
+      if (!temDados) {
+        if (placeholder) placeholder.innerHTML = `
+          <div style="font-size:2rem;color:var(--bege-borda);margin-bottom:8px;"><i class="fa-solid fa-chart-line"></i></div>
+          <div style="font-size:0.82rem;color:var(--texto-suave);">Sem dados ainda para exibir tendência.</div>`;
+        return;
+      }
+
+      if (placeholder) placeholder.style.display = "none";
+      if (card) card.style.display = "block";
+
+      if (this.chartTendencia) this.chartTendencia.destroy();
+
+      this.chartTendencia = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: dados.map((d) => d.label),
+          datasets: [
+            {
+              label: "Receita",
+              data: dados.map((d) => d.receita),
+              borderColor: "#3D7A5E",
+              backgroundColor: "rgba(61,122,94,0.08)",
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              borderWidth: 2,
+            },
+            {
+              label: "Despesas",
+              data: dados.map((d) => d.despesas),
+              borderColor: "#A83232",
+              backgroundColor: "rgba(168,50,50,0.05)",
+              fill: true,
+              tension: 0.4,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              borderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: {
+              position: "top",
+              align: "end",
+              labels: {
+                boxWidth: 8,
+                boxHeight: 8,
+                usePointStyle: true,
+                font: { size: 10, family: "'DM Sans',sans-serif" },
+                color: "#8A6840",
+              },
+            },
+            tooltip: {
+              backgroundColor: "rgba(61,30,10,0.92)",
+              titleFont: { family: "'Lora',serif", size: 11 },
+              bodyFont: { family: "'DM Sans',sans-serif", size: 10 },
+              padding: 10,
+              callbacks: {
+                label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 10, family: "'DM Sans',sans-serif" }, color: "#8A6840" },
+            },
+            y: {
+              grid: { color: "rgba(196,154,74,0.07)", drawBorder: false },
+              ticks: {
+                font: { size: 9, family: "'DM Sans',sans-serif" },
+                color: "#8A6840",
+                callback: (v) => v === 0 ? "R$ 0" : v >= 1000 ? `R$ ${(v / 1000).toFixed(0)}k` : `R$ ${v}`,
+              },
+            },
+          },
+        },
+      });
+    } catch (e) {
+      if (placeholder) placeholder.innerHTML = `
+        <div style="font-size:0.82rem;color:var(--texto-suave);">Erro ao carregar tendência.</div>`;
     }
   },
 

@@ -282,98 +282,37 @@
             </div>
           </div>
 
-          <!-- Atalhos logo após KPIs -->
-          <div style="display: flex; gap: 8px; padding: 10px 14px 4px">
-            <div
-              onclick="RanchoApp.abrirModalNovoCavalo()"
-              style="
-                flex: 1;
-                background: var(--bege-card);
-                border: 0.5px solid var(--bege-borda);
-                border-radius: 13px;
-                padding: 9px 12px;
-                display: flex;
-                align-items: center;
-                gap: 9px;
-                cursor: pointer;
-                box-shadow: var(--sombra);
-              "
-            >
-              <div
-                style="
-                  width: 30px;
-                  height: 30px;
-                  border-radius: 9px;
-                  background: rgba(61, 30, 10, 0.07);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  flex-shrink: 0;
-                "
-              >
-                <i
-                  class="fa-solid fa-horse-head"
-                  style="color: var(--marrom-claro); font-size: 0.88rem"
-                ></i>
+          <!-- Atalhos rápidos 2×2 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px 4px;">
+            <button class="atalho-card" onclick="RanchoApp.abrirModalNovoCavalo()">
+              <div class="atalho-icon"><i class="fa-solid fa-horse-head"></i></div>
+              <div><div class="atalho-label">Novo animal</div></div>
+            </button>
+            <button class="atalho-card" onclick="RanchoApp.abrirModalGerenciarProprietarios()">
+              <div class="atalho-icon"><i class="fa-solid fa-user-plus"></i></div>
+              <div><div class="atalho-label">Novo cliente</div></div>
+            </button>
+            <button class="atalho-card" id="atalhoCobrancas" onclick="RanchoApp.mudarAba('financas')">
+              <div class="atalho-icon" style="color:var(--vermelho);background:rgba(168,50,50,0.08);"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+              <div>
+                <div class="atalho-label">Cobranças</div>
+                <div class="atalho-sub" id="atalhoCobrancasSub" style="display:none;"></div>
               </div>
-              <span
-                style="
-                  font-size: 0.8rem;
-                  font-weight: 600;
-                  color: var(--texto-titulo);
-                "
-                >Novo animal</span
-              >
-            </div>
-            <div
-              onclick="RanchoApp.abrirModalGerenciarProprietarios()"
-              style="
-                flex: 1;
-                background: var(--bege-card);
-                border: 0.5px solid var(--bege-borda);
-                border-radius: 13px;
-                padding: 9px 12px;
-                display: flex;
-                align-items: center;
-                gap: 9px;
-                cursor: pointer;
-                box-shadow: var(--sombra);
-              "
-            >
-              <div
-                style="
-                  width: 30px;
-                  height: 30px;
-                  border-radius: 9px;
-                  background: rgba(61, 30, 10, 0.07);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  flex-shrink: 0;
-                "
-              >
-                <i
-                  class="fa-solid fa-user-plus"
-                  style="color: var(--marrom-claro); font-size: 0.88rem"
-                ></i>
-              </div>
-              <span
-                style="
-                  font-size: 0.8rem;
-                  font-weight: 600;
-                  color: var(--texto-titulo);
-                "
-                >Novo cliente</span
-              >
-            </div>
+              <span class="atalho-badge" id="atalhoBadgeQtd" style="display:none;"></span>
+            </button>
+            <button class="atalho-card" onclick="RanchoApp.mudarAba('financas')">
+              <div class="atalho-icon" style="color:var(--verde);background:rgba(61,122,94,0.08);"><i class="fa-solid fa-chart-line"></i></div>
+              <div><div class="atalho-label">Financeiro</div></div>
+            </button>
           </div>
 
           <!-- Alertas -->
           <div class="section-header">
-            <span class="section-title">Alertas</span>
-            <span class="section-link" onclick="RanchoApp.mudarAba('financas')"
-              >Ver todos</span
-            >
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="section-title">Alertas</span>
+              <span id="badgeAlertas" style="display:none;background:var(--vermelho);color:white;font-size:0.62rem;font-weight:700;border-radius:10px;padding:1px 7px;line-height:1.6;">0</span>
+            </div>
+            <span class="section-link" onclick="RanchoApp.mudarAba('financas')">Ver todos</span>
           </div>
           <div id="listaAlertas">
             <div
@@ -453,6 +392,21 @@
               ></div>
             </div>
             <div id="miniMapaGrid" style="margin-top: 4px"></div>
+          </div>
+
+          <!-- Gráfico tendência -->
+          <div class="section-header">
+            <span class="section-title">Tendência</span>
+            <span style="font-size:0.72rem;color:var(--texto-suave);">Últimos 6 meses</span>
+          </div>
+          <div class="card-v2" id="cardTendenciaHome" style="margin-bottom:16px;display:none;">
+            <div class="tendencia-chart-wrap">
+              <canvas id="graficoTendenciaHome" role="img" aria-label="Evolução de receita e despesas nos últimos 6 meses"></canvas>
+            </div>
+          </div>
+          <div id="tendenciaPlaceholder" style="margin:0 14px 16px;background:var(--bege-card);border:0.5px solid var(--bege-borda);border-radius:var(--radius-lg);padding:2rem;text-align:center;">
+            <div style="font-size:2rem;color:var(--bege-borda);margin-bottom:8px;"><i class="fa-solid fa-chart-line"></i></div>
+            <div style="font-size:0.82rem;color:var(--texto-suave);">Carregando tendência...</div>
           </div>
         </div>
 

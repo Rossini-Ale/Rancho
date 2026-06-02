@@ -16,6 +16,7 @@ const RanchoApp = {
   chartHistorico: null,
   chartFinanceiro: null,
   chartRancho: null,
+  chartTendencia: null,
   dataFiltro: new Date(),
   dataFiltroProp: new Date(),
   dataFiltroRancho: new Date(),
