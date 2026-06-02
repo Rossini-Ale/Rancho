@@ -52,10 +52,19 @@ Object.assign(RanchoApp, {
               <div style="display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;">
                 <span style="font-size:0.72rem;color:var(--marrom-claro);font-weight:600;"><i class="fa-solid fa-horse-head" style="font-size:0.62rem;"></i> ${p.txtAnimais}</span>
                 ${p.telefone ? `<span style="font-size:0.7rem;color:var(--texto-suave);"><i class="fa-solid fa-phone" style="font-size:0.62rem;"></i> ${p.telefone}</span>` : ""}
+                ${p.email ? `<span style="font-size:0.7rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;"><i class="fa-solid fa-envelope" style="font-size:0.6rem;"></i> ${p.email}</span>` : ""}
               </div>
+              ${p.observacoes ? `<div style="font-size:0.68rem;color:var(--texto-suave);font-style:italic;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">"${p.observacoes}"</div>` : ""}
             </div>
             <span style="background:${badgeBg};color:${badgeClr};border-radius:9px;padding:4px 10px;font-size:0.78rem;font-weight:700;white-space:nowrap;flex-shrink:0;">${p.txtValor}</span>
           </div>
+          ${p.temPendencia ? `
+          <div style="padding:6px 12px;border-top:0.5px solid var(--bege-borda);">
+            <button onclick="RanchoApp.receberRapido(${p.id},'${nomeS}','${telS}')"
+              style="width:100%;background:rgba(61,122,94,0.08);border:0.5px solid rgba(61,122,94,0.25);border-radius:10px;padding:7px 12px;font-size:0.78rem;font-weight:600;color:#1B5E20;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <i class="fa-solid fa-circle-check" style="font-size:0.85rem;"></i> Confirmar recebimento do mês atual
+            </button>
+          </div>` : ""}
           <div style="display:flex;border-top:0.5px solid var(--bege-borda);">
             <button onclick="RanchoApp.proprietarioAtualId=${p.id};RanchoApp.abrirModalLoteMensalidade()"
               style="flex:1;padding:9px 4px;font-size:0.75rem;font-weight:600;color:var(--marrom-escuro);background:none;border:none;border-right:0.5px solid var(--bege-borda);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:background 0.15s;"
@@ -95,12 +104,18 @@ Object.assign(RanchoApp, {
     this.vibrar();
     document.getElementById("formProprietario").reset();
     if (id) {
+      const cached = this._cacheGet("proprietarios") || [];
+      const prop = cached.find((p) => p.id == id);
       document.getElementById("propId").value = id;
       document.getElementById("propNome").value = n;
       document.getElementById("propTelefone").value = t;
+      document.getElementById("propEmail").value = prop?.email || "";
+      document.getElementById("propObs").value = prop?.observacoes || "";
       document.getElementById("btnExcluirProp").classList.remove("d-none");
     } else {
       document.getElementById("propId").value = "";
+      document.getElementById("propEmail").value = "";
+      document.getElementById("propObs").value = "";
       document.getElementById("btnExcluirProp").classList.add("d-none");
     }
     this.bsModalProp.show();
@@ -111,7 +126,12 @@ Object.assign(RanchoApp, {
     const b = e.submitter;
     this.setLoading(b, true, "Salvar");
     const id = document.getElementById("propId").value;
-    const body = { nome: document.getElementById("propNome").value, telefone: document.getElementById("propTelefone").value };
+    const body = {
+      nome: document.getElementById("propNome").value,
+      telefone: document.getElementById("propTelefone").value,
+      email: document.getElementById("propEmail").value.trim() || null,
+      observacoes: document.getElementById("propObs").value.trim() || null,
+    };
     try {
       if (id) await ApiService.putData(`/api/gestao/proprietarios/${id}`, body);
       else await ApiService.postData("/api/gestao/proprietarios", body);
@@ -137,6 +157,53 @@ Object.assign(RanchoApp, {
         this.carregarTabelaProprietarios();
         this.carregarProprietariosSelect();
       });
+  },
+
+  receberRapido(propId, nome, tel) {
+    this.vibrar();
+    const hoje = new Date();
+    const mes = hoje.getMonth() + 1;
+    const ano = hoje.getFullYear();
+    const nomesMeses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    this.abrirConfirmacao(
+      "Confirmar recebimento",
+      `Marcar fatura de ${nome} — ${nomesMeses[mes - 1]}/${ano} como paga?`,
+      async () => {
+        try {
+          await ApiService.putData("/api/gestao/custos/baixar-mes", { proprietario_id: propId, mes, ano });
+          this._cacheClear("proprietarios", "cobrancas", "kpis", "alertas");
+          await this.carregarTabelaProprietarios();
+          this.mostrarNotificacao("Pagamento confirmado!");
+          if (tel && tel !== "Sem telefone") {
+            const telLimpo = tel.replace(/\D/g, "");
+            setTimeout(() => {
+              this.abrirConfirmacao("Enviar confirmação?", `Avisar ${nome} via WhatsApp?`, () => {
+                const msg = `Olá *${nome}*! ✅\n\nConfirmamos o recebimento de *${nomesMeses[mes - 1]}/${ano}*.\n\nObrigado pela pontualidade! 🤝\n\n${this.nomeRancho || "HF Controll"}`;
+                window.open(`https://wa.me/55${telLimpo}?text=${encodeURIComponent(msg)}`, "_blank");
+              });
+            }, 400);
+          }
+        } catch (e) {
+          this.mostrarNotificacao("Erro ao confirmar.", "erro");
+        }
+      }
+    );
+  },
+
+  aplicarReajuste() {
+    const pct = parseFloat(document.getElementById("loteReajuste").value) || 0;
+    if (!pct) { this.mostrarNotificacao("Informe um percentual.", "erro"); return; }
+    const fator = 1 + pct / 100;
+    let count = 0;
+    document.querySelectorAll(".lote-valor-individual").forEach((inp) => {
+      const v = parseFloat(inp.value.replace(",", "."));
+      if (!isNaN(v) && v > 0) {
+        inp.value = (v * fator).toFixed(2).replace(".", ",");
+        count++;
+      }
+    });
+    if (!count) { this.mostrarNotificacao("Copie o mês anterior antes de reajustar.", "erro"); return; }
+    this.mostrarNotificacao(`${pct > 0 ? "+" : ""}${pct}% aplicado em ${count} animal${count !== 1 ? "is" : ""}!`);
   },
 
   async abrirDetalhesProprietario(id, n, t) {
@@ -436,6 +503,41 @@ Object.assign(RanchoApp, {
       document.getElementById("statEmDia").textContent = dados.stats.mesesEmDia;
       document.getElementById("statAtrasados").textContent = dados.stats.mesesAtrasados;
       document.getElementById("statPontualidade").textContent = `${dados.stats.taxaPagamento}%`;
+
+      // Gráfico de barras empilhadas (pago × pendente)
+      const comDados = dados.historico.filter((h) => h.totalMes > 0);
+      const wrapGraf = document.getElementById("wrapGraficoHistorico");
+      const canvasGraf = document.getElementById("graficoHistoricoCliente");
+      if (wrapGraf && canvasGraf && comDados.length > 0) {
+        wrapGraf.classList.remove("d-none");
+        if (this.chartHistoricoCliente) this.chartHistoricoCliente.destroy();
+        const nomes3 = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+        const labels = comDados.map((h) => `${nomes3[h.mes - 1]}/${String(h.ano).slice(2)}`);
+        this.chartHistoricoCliente = new Chart(canvasGraf, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              { label: "Pago", data: comDados.map((h) => h.totalPago), backgroundColor: "rgba(61,122,94,0.75)", borderRadius: 4, stack: "s" },
+              { label: "Pendente", data: comDados.map((h) => Math.max(0, h.totalMes - h.totalPago)), backgroundColor: "rgba(168,50,50,0.65)", borderRadius: 4, stack: "s" },
+            ],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: { position: "top", align: "end", labels: { boxWidth: 8, boxHeight: 8, usePointStyle: true, font: { size: 10, family: "'DM Sans',sans-serif" }, color: "#8A6840" } },
+              tooltip: { backgroundColor: "rgba(61,30,10,0.92)", bodyFont: { size: 10, family: "'DM Sans',sans-serif" }, padding: 8,
+                callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` } },
+            },
+            scales: {
+              x: { stacked: true, grid: { display: false }, ticks: { font: { size: 9 }, color: "#8A6840" } },
+              y: { stacked: true, grid: { color: "rgba(196,154,74,0.07)" }, ticks: { font: { size: 9 }, color: "#8A6840", callback: (v) => v >= 1000 ? `R$${(v/1000).toFixed(0)}k` : `R$${v}` } },
+            },
+          },
+        });
+      }
+
       const nomesMeses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
       const lista = document.getElementById("listaHistoricoCliente");
       lista.innerHTML = dados.historico.filter((h) => h.totalMes > 0).reverse().map((h) => {
@@ -487,16 +589,29 @@ Object.assign(RanchoApp, {
   _renderLoteAnimais(valoresPreenchidos = {}) {
     const lista = document.getElementById("loteAnimaisLista");
     if (!this._loteAnimais?.length) { lista.innerHTML = `<div class="text-muted small">Nenhum animal cadastrado.</div>`; return; }
-    lista.innerHTML = this._loteAnimais.map((c) => `
+    lista.innerHTML = this._loteAnimais.map((c) => {
+      const valorCopiar = valoresPreenchidos[c.id];
+      const valorPadrao = c.valor_mensalidade_padrao ? parseFloat(c.valor_mensalidade_padrao) : null;
+      const valorFinal = valorCopiar != null
+        ? valorCopiar.toString().replace(".", ",")
+        : valorPadrao != null
+          ? valorPadrao.toFixed(2).replace(".", ",")
+          : "";
+      const temPadrao = valorCopiar == null && valorPadrao != null;
+      return `
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--bege-borda);">
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="avatar-circle avatar-cavalo" style="width:28px;height:28px;font-size:11px;">${c.nome.charAt(0)}</div>
-          <span style="font-size:0.85rem;font-weight:600;color:var(--texto-titulo);">${c.nome}</span>
+          <div>
+            <span style="font-size:0.85rem;font-weight:600;color:var(--texto-titulo);">${c.nome}</span>
+            ${temPadrao ? `<div style="font-size:0.65rem;color:var(--texto-suave);">valor padrão</div>` : ""}
+          </div>
         </div>
         <input type="text" inputmode="decimal" placeholder="R$ valor" data-cavalo="${c.id}"
-          value="${valoresPreenchidos[c.id] ? valoresPreenchidos[c.id].toString().replace(".", ",") : ""}"
+          value="${valorFinal}"
           style="width:100px;border:0.5px solid var(--bege-borda);border-radius:10px;padding:5px 8px;font-size:0.8rem;text-align:right;background:var(--bege-fundo);" class="lote-valor-individual"/>
-      </div>`).join("");
+      </div>`;
+    }).join("");
   },
 
   async copiarMesAnterior() {

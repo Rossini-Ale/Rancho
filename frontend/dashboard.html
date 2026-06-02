@@ -1258,6 +1258,7 @@
                   padding: 12px 14px 8px;
                 "
               >
+
                 <div
                   style="
                     background: var(--bege-card);
@@ -1326,6 +1327,13 @@
                   >
                     0%
                   </div>
+                </div>
+              </div>
+
+              <!-- Gráfico histórico de pagamentos -->
+              <div style="padding:8px 14px 4px;" id="wrapGraficoHistorico" class="d-none">
+                <div style="height:110px;position:relative;">
+                  <canvas id="graficoHistoricoCliente" role="img" aria-label="Histórico de pagamentos por mês"></canvas>
                 </div>
               </div>
 
@@ -1776,6 +1784,19 @@
                   anteriormente.</small
                 >
               </div>
+              <!-- Reajuste % -->
+              <div class="mb-3">
+                <label class="small-label mb-1">Reajuste sobre mês anterior (%)</label>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <input type="number" class="form-control" id="loteReajuste" placeholder="0" min="-50" max="300" style="width:80px;" />
+                  <small class="text-muted flex-1">Ex: 5 = aumento de 5%</small>
+                  <button type="button" onclick="RanchoApp.aplicarReajuste()"
+                    style="background:rgba(139,82,48,0.08);border:0.5px solid rgba(139,82,48,0.2);border-radius:10px;font-size:0.78rem;font-weight:600;color:var(--marrom-claro);padding:6px 12px;white-space:nowrap;cursor:pointer;">
+                    <i class="fa-solid fa-percent me-1"></i>Aplicar
+                  </button>
+                </div>
+              </div>
+
               <!-- Botão copiar mês anterior -->
               <button
                 type="button"
@@ -2230,6 +2251,14 @@
                     placeholder="(99) 99999-9999"
                     maxlength="15"
                   />
+                </div>
+                <div class="mb-3">
+                  <label class="small-label mb-1">E-mail</label>
+                  <input type="email" class="form-control" id="propEmail" placeholder="email@exemplo.com" />
+                </div>
+                <div class="mb-4">
+                  <label class="small-label mb-1">Observações</label>
+                  <textarea class="form-control" id="propObs" rows="2" placeholder="Ex: paga todo dia 5, animais em tratamento..."></textarea>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
                   <button

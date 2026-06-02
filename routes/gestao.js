@@ -249,9 +249,10 @@ router.get("/proprietarios", async (req, res) => {
 
 router.post("/proprietarios", async (req, res) => {
   try {
+    const { nome, telefone, email, observacoes } = req.body;
     await pool.query(
-      "INSERT INTO Proprietarios (nome, telefone, usuario_id) VALUES (?,?,?)",
-      [req.body.nome, req.body.telefone, req.user.id],
+      "INSERT INTO Proprietarios (nome, telefone, email, observacoes, usuario_id) VALUES (?,?,?,?,?)",
+      [nome, telefone, email || null, observacoes || null, req.user.id],
     );
     res.status(201).json({ message: "Salvo" });
   } catch (err) {
@@ -262,14 +263,13 @@ router.post("/proprietarios", async (req, res) => {
 
 router.put("/proprietarios/:id", async (req, res) => {
   try {
+    const { nome, telefone, email, observacoes } = req.body;
     const [result] = await pool.query(
-      "UPDATE Proprietarios SET nome=?,telefone=? WHERE id=? AND usuario_id=?",
-      [req.body.nome, req.body.telefone, req.params.id, req.user.id],
+      "UPDATE Proprietarios SET nome=?,telefone=?,email=?,observacoes=? WHERE id=? AND usuario_id=?",
+      [nome, telefone, email || null, observacoes || null, req.params.id, req.user.id],
     );
     if (result.affectedRows === 0)
-      return res
-        .status(404)
-        .json({ message: "Não encontrado ou sem permissão." });
+      return res.status(404).json({ message: "Não encontrado ou sem permissão." });
     res.json({ message: "Ok" });
   } catch (err) {
     console.error("Erro PUT /proprietarios:", err);

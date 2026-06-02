@@ -35,23 +35,25 @@ process.on("unhandledRejection", (reason, promise) =>
 async function runMigrations() {
   const pool = require("./config/db");
   const novaCols = [
-    ["raca", "VARCHAR(120) NULL"],
-    ["pelagem", "VARCHAR(100) NULL"],
-    ["data_entrada", "DATE NULL"],
-    ["valor_mensalidade_padrao", "DECIMAL(10,2) NULL"],
+    ["Cavalos", "raca", "VARCHAR(120) NULL"],
+    ["Cavalos", "pelagem", "VARCHAR(100) NULL"],
+    ["Cavalos", "data_entrada", "DATE NULL"],
+    ["Cavalos", "valor_mensalidade_padrao", "DECIMAL(10,2) NULL"],
+    ["Proprietarios", "email", "VARCHAR(200) NULL"],
+    ["Proprietarios", "observacoes", "TEXT NULL"],
   ];
-  for (const [col, def] of novaCols) {
+  for (const [tabela, col, def] of novaCols) {
     try {
       const [[{ cnt }]] = await pool.query(
-        "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='Cavalos' AND COLUMN_NAME=?",
-        [col],
+        "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?",
+        [tabela, col],
       );
       if (!cnt) {
-        await pool.query(`ALTER TABLE Cavalos ADD COLUMN \`${col}\` ${def}`);
-        console.log(`Migração: coluna '${col}' criada.`);
+        await pool.query(`ALTER TABLE \`${tabela}\` ADD COLUMN \`${col}\` ${def}`);
+        console.log(`Migração: ${tabela}.${col} criada.`);
       }
     } catch (e) {
-      console.error(`Migração (${col}):`, e.message);
+      console.error(`Migração (${tabela}.${col}):`, e.message);
     }
   }
 }
