@@ -51,9 +51,15 @@ Object.assign(RanchoApp, {
       );
     }
 
+    const statusFiltro = this.statusFiltroAnimais || "";
+    if (statusFiltro === "pendente") todosAnimais = todosAnimais.filter((a) => a.tem_pendente);
+    else if (statusFiltro === "sem-local") todosAnimais = todosAnimais.filter((a) => !a._local);
+    else if (statusFiltro === "em-dia") todosAnimais = todosAnimais.filter((a) => a._local && !a.tem_pendente);
+
     todosAnimais.sort((a, b) => {
       if (ordem === "local") return (a._local || "zzz").localeCompare(b._local || "zzz");
       if (ordem === "proprietario") return (a.proprietario || "zzz").localeCompare(b.proprietario || "zzz");
+      if (ordem === "pendente") return (b.tem_pendente ? 1 : 0) - (a.tem_pendente ? 1 : 0) || a.nome.localeCompare(b.nome);
       return a.nome.localeCompare(b.nome);
     });
 
@@ -125,6 +131,14 @@ Object.assign(RanchoApp, {
 
   filtrarAnimais() { this._renderAnimais(); },
 
+  filtrarStatusAnimais(status, el) {
+    this.vibrar(10);
+    this.statusFiltroAnimais = status;
+    document.querySelectorAll("#chipsStatusAnimais .chip").forEach((c) => c.classList.remove("active"));
+    if (el) el.classList.add("active");
+    this._renderAnimais();
+  },
+
   _cardOcupado(slot) {
     const animal = slot.animais[0];
     const ns = animal.nome.replace(/'/g, "\\'");
@@ -145,6 +159,7 @@ Object.assign(RanchoApp, {
           <div style="font-size:0.7rem;color:#3D7A5E;font-weight:600;margin-bottom:1px;">${slot.nome}</div>
           <div style="font-size:0.88rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
           <div style="font-size:0.75rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem proprietário"}</div>
+          ${animal.raca ? `<div style="font-size:0.68rem;color:var(--texto-suave);opacity:0.8;margin-top:1px;">${animal.raca}${animal.pelagem ? ` · ${animal.pelagem}` : ""}</div>` : ""}
           <div style="font-size:0.72rem;font-weight:600;color:${statusClr};margin-top:2px;">${statusTxt}</div>
         </div>
         <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--bege-borda);flex-shrink:0;"></i>
@@ -218,6 +233,7 @@ Object.assign(RanchoApp, {
     document.getElementById("formCavalo").reset();
     document.getElementById("cavaloId").value = "";
     document.getElementById("tituloModalCavalo").textContent = "Novo Animal";
+    document.getElementById("btnExcluirCavalo")?.classList.add("d-none");
     if (lugarPreenchido) document.getElementById("cavaloLugar").value = lugarPreenchido;
     this.carregarSugestoesLocais();
     this.bsModalCavalo.show();
@@ -225,12 +241,28 @@ Object.assign(RanchoApp, {
 
   abrirModalEditar(id, n, l, p, o) {
     this.vibrar();
+    // Busca dados completos do animal em _dadosAnimais (inclui novos campos)
+    const todos = [];
+    if (this._dadosAnimais) {
+      this._dadosAnimais.grupos.forEach((g) => g.slots.forEach((s) => s.animais.forEach((a) => todos.push(a))));
+      this._dadosAnimais.semLocal?.forEach((a) => todos.push(a));
+    }
+    const animal = todos.find((a) => a.id == id);
+
     document.getElementById("cavaloId").value = id;
     document.getElementById("cavaloNome").value = n;
     document.getElementById("cavaloLugar").value = l;
     document.getElementById("cavaloProprietario").value = p;
     document.getElementById("cavaloObs").value = o;
+    document.getElementById("cavaloRaca").value = animal?.raca || "";
+    document.getElementById("cavaloPelagem").value = animal?.pelagem || "";
+    document.getElementById("cavaloDataEntrada").value = animal?.data_entrada
+      ? new Date(animal.data_entrada).toISOString().split("T")[0] : "";
+    const mv = animal?.valor_mensalidade_padrao;
+    document.getElementById("cavaloValorMensalidade").value = mv
+      ? parseFloat(mv).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "";
     document.getElementById("tituloModalCavalo").textContent = "Editar Animal";
+    document.getElementById("btnExcluirCavalo")?.classList.remove("d-none");
     this.bsModalCavalo.show();
   },
 
@@ -254,6 +286,10 @@ Object.assign(RanchoApp, {
       lugar,
       proprietario_id: document.getElementById("cavaloProprietario").value,
       observacoes: document.getElementById("cavaloObs").value,
+      raca: document.getElementById("cavaloRaca").value.trim() || null,
+      pelagem: document.getElementById("cavaloPelagem").value.trim() || null,
+      data_entrada: document.getElementById("cavaloDataEntrada").value || null,
+      valor_mensalidade_padrao: this.limparMoeda(document.getElementById("cavaloValorMensalidade").value) || null,
     };
     try {
       if (id) await ApiService.putData(`/api/gestao/cavalos/${id}`, body);
@@ -299,6 +335,17 @@ Object.assign(RanchoApp, {
       if (!dl || !locais) return;
       dl.innerHTML = locais.map((l) => `<option value="${l}">`).join("");
     } catch (e) {}
+  },
+
+  sugerirProximaDataVet(tipo) {
+    const intervalos = { Ferradura: 45, Vacina: 365, Vermifugação: 90, Consulta: 180 };
+    const dias = intervalos[tipo];
+    const input = document.getElementById("vetProximaData");
+    if (!input) return;
+    if (!dias) { input.value = ""; return; }
+    const proxima = new Date();
+    proxima.setDate(proxima.getDate() + dias);
+    input.value = proxima.toISOString().split("T")[0];
   },
 
   // ── Ficha Veterinária ──

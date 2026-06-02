@@ -32,6 +32,20 @@ process.on("unhandledRejection", (reason, promise) =>
   console.error("Rejeição não tratada:", promise, reason),
 );
 
+async function runMigrations() {
+  const pool = require("./config/db");
+  const cols = [
+    "ALTER TABLE Cavalos ADD COLUMN IF NOT EXISTS raca VARCHAR(120) NULL",
+    "ALTER TABLE Cavalos ADD COLUMN IF NOT EXISTS pelagem VARCHAR(100) NULL",
+    "ALTER TABLE Cavalos ADD COLUMN IF NOT EXISTS data_entrada DATE NULL",
+    "ALTER TABLE Cavalos ADD COLUMN IF NOT EXISTS valor_mensalidade_padrao DECIMAL(10,2) NULL",
+  ];
+  for (const sql of cols) {
+    try { await pool.query(sql); } catch (e) { console.error("Migração:", e.message); }
+  }
+}
+runMigrations();
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () =>
   console.log(`Servidor HF Controll v2 rodando em: http://localhost:${PORT}`),

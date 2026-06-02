@@ -513,8 +513,24 @@
               <option value="nome">Nome A-Z</option>
               <option value="local">Local</option>
               <option value="proprietario">Proprietário</option>
+              <option value="pendente">Pendente primeiro</option>
             </select>
           </div>
+
+          <!-- Chips de filtro por status -->
+          <div class="filter-chips" style="padding:0 14px 8px;" id="chipsStatusAnimais">
+            <div class="chip active" onclick="RanchoApp.filtrarStatusAnimais('',this)">Todos</div>
+            <div class="chip" onclick="RanchoApp.filtrarStatusAnimais('pendente',this)">
+              <i class="fa-solid fa-clock" style="font-size:0.7rem;margin-right:3px;"></i>Pendentes
+            </div>
+            <div class="chip" onclick="RanchoApp.filtrarStatusAnimais('sem-local',this)">
+              <i class="fa-solid fa-triangle-exclamation" style="font-size:0.7rem;margin-right:3px;"></i>Sem local
+            </div>
+            <div class="chip" onclick="RanchoApp.filtrarStatusAnimais('em-dia',this)">
+              <i class="fa-solid fa-circle-check" style="font-size:0.7rem;margin-right:3px;"></i>Em dia
+            </div>
+          </div>
+
           <div
             style="
               display: grid;
@@ -1843,7 +1859,7 @@
                 <div class="small-label mb-2">Novo registro</div>
                 <div class="row g-2 mb-2">
                   <div class="col-6">
-                    <select class="form-select" id="vetTipo">
+                    <select class="form-select" id="vetTipo" onchange="RanchoApp.sugerirProximaDataVet(this.value)">
                       <option value="">Tipo...</option>
                       <option>Ferradura</option>
                       <option>Vacina</option>
@@ -2281,6 +2297,26 @@
                       id="cavaloProprietario"
                       required
                     ></select>
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-6">
+                    <label class="small-label mb-1">Raça</label>
+                    <input type="text" class="form-control" id="cavaloRaca" placeholder="Ex: Quarto de Milha" />
+                  </div>
+                  <div class="col-6">
+                    <label class="small-label mb-1">Pelagem</label>
+                    <input type="text" class="form-control" id="cavaloPelagem" placeholder="Ex: Alazão" />
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-6">
+                    <label class="small-label mb-1">Entrada no rancho</label>
+                    <input type="date" class="form-control" id="cavaloDataEntrada" />
+                  </div>
+                  <div class="col-6">
+                    <label class="small-label mb-1">Mensalidade padrão</label>
+                    <input type="text" inputmode="decimal" class="form-control" id="cavaloValorMensalidade" placeholder="R$ 0,00" />
                   </div>
                 </div>
                 <div class="mb-4">

@@ -23,6 +23,7 @@ const RanchoApp = {
   abaAtual: "home",
   proprietarioAtualId: null,
   categoriaFiltroRancho: "",
+  statusFiltroAnimais: "",
   chavePixCache: "",
 
   // ── Init ──
@@ -258,7 +259,7 @@ const RanchoApp = {
   // ── Listeners ──
   setupListeners() {
     document.getElementById("propTelefone")?.addEventListener("input", (e) => this.mascaraTelefone(e));
-    ["custoValor","mensalidadeValor","custoPropValor","ranchoValor"].forEach((id) => {
+    ["custoValor","mensalidadeValor","custoPropValor","ranchoValor","cavaloValorMensalidade"].forEach((id) => {
       document.getElementById(id)?.addEventListener("input", (e) => this.mascaraMoeda(e));
     });
     document.getElementById("formProprietario")?.addEventListener("submit", (e) => this.salvarProprietario(e));

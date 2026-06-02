@@ -653,6 +653,7 @@ router.get("/ocupacao", async (req, res) => {
     const [animais] = await pool.query(
       `SELECT
          c.id, c.nome, c.lugar, c.proprietario_id, c.observacoes,
+         c.raca, c.pelagem, c.data_entrada, c.valor_mensalidade_padrao,
          p.nome AS nome_proprietario, p.telefone,
          COALESCE(
            (SELECT SUM(cu.valor) FROM Custos cu
@@ -720,6 +721,10 @@ router.get("/ocupacao", async (req, res) => {
           total_mes: parseFloat(a.total_mes || 0),
           tem_pendente: a.tem_pendente == 1,
           observacoes: a.observacoes,
+          raca: a.raca || null,
+          pelagem: a.pelagem || null,
+          data_entrada: a.data_entrada || null,
+          valor_mensalidade_padrao: a.valor_mensalidade_padrao ? parseFloat(a.valor_mensalidade_padrao) : null,
         })),
       }));
 
@@ -757,6 +762,10 @@ router.get("/ocupacao", async (req, res) => {
         tem_pendente: a.tem_pendente == 1,
         observacoes: a.observacoes,
         lugar: a.lugar,
+        raca: a.raca || null,
+        pelagem: a.pelagem || null,
+        data_entrada: a.data_entrada || null,
+        valor_mensalidade_padrao: a.valor_mensalidade_padrao ? parseFloat(a.valor_mensalidade_padrao) : null,
       })),
       stats: {
         totalAnimais,

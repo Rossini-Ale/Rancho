@@ -84,7 +84,7 @@ router.get("/cavalos", async (req, res) => {
 
 router.post("/cavalos", async (req, res) => {
   try {
-    const { nome, lugar, proprietario_id, observacoes } = req.body;
+    const { nome, lugar, proprietario_id, observacoes, raca, pelagem, data_entrada, valor_mensalidade_padrao } = req.body;
     const uid = req.user.id;
     const propId =
       !proprietario_id || proprietario_id === "null" ? null : proprietario_id;
@@ -105,8 +105,8 @@ router.post("/cavalos", async (req, res) => {
     }
 
     await pool.query(
-      "INSERT INTO Cavalos (nome, lugar, proprietario_id, observacoes, usuario_id) VALUES (?,?,?,?,?)",
-      [nome, lugar?.trim() || null, propId, observacoes, uid],
+      "INSERT INTO Cavalos (nome, lugar, proprietario_id, observacoes, raca, pelagem, data_entrada, valor_mensalidade_padrao, usuario_id) VALUES (?,?,?,?,?,?,?,?,?)",
+      [nome, lugar?.trim() || null, propId, observacoes, raca || null, pelagem || null, data_entrada || null, valor_mensalidade_padrao || null, uid],
     );
     res.status(201).json({ message: "Cavalo criado!" });
   } catch (err) {
@@ -117,7 +117,7 @@ router.post("/cavalos", async (req, res) => {
 
 router.put("/cavalos/:id", async (req, res) => {
   try {
-    const { nome, lugar, proprietario_id, observacoes } = req.body;
+    const { nome, lugar, proprietario_id, observacoes, raca, pelagem, data_entrada, valor_mensalidade_padrao } = req.body;
     const uid = req.user.id;
     const propId =
       !proprietario_id || proprietario_id === "null" ? null : proprietario_id;
@@ -138,8 +138,8 @@ router.put("/cavalos/:id", async (req, res) => {
     }
 
     const [result] = await pool.query(
-      "UPDATE Cavalos SET nome=?,lugar=?,proprietario_id=?,observacoes=? WHERE id=? AND usuario_id=?",
-      [nome, lugar?.trim() || null, propId, observacoes, req.params.id, uid],
+      "UPDATE Cavalos SET nome=?,lugar=?,proprietario_id=?,observacoes=?,raca=?,pelagem=?,data_entrada=?,valor_mensalidade_padrao=? WHERE id=? AND usuario_id=?",
+      [nome, lugar?.trim() || null, propId, observacoes, raca || null, pelagem || null, data_entrada || null, valor_mensalidade_padrao || null, req.params.id, uid],
     );
     if (result.affectedRows === 0)
       return res
