@@ -652,8 +652,7 @@ router.get("/ocupacao", async (req, res) => {
     // Busca todos os animais com total do mês já calculado
     const [animais] = await pool.query(
       `SELECT
-         c.id, c.nome, c.lugar, c.proprietario_id, c.observacoes,
-         c.raca, c.pelagem, c.data_entrada, c.valor_mensalidade_padrao,
+         c.*,
          p.nome AS nome_proprietario, p.telefone,
          COALESCE(
            (SELECT SUM(cu.valor) FROM Custos cu

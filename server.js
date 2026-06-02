@@ -34,19 +34,31 @@ process.on("unhandledRejection", (reason, promise) =>
 
 async function runMigrations() {
   const pool = require("./config/db");
-  const cols = [
-    "ALTER TABLE Cavalos ADD COLUMN IF NOT EXISTS raca VARCHAR(120) NULL",
-    "ALTER TABLE Cavalos ADD COLUMN IF NOT EXISTS pelagem VARCHAR(100) NULL",
-    "ALTER TABLE Cavalos ADD COLUMN IF NOT EXISTS data_entrada DATE NULL",
-    "ALTER TABLE Cavalos ADD COLUMN IF NOT EXISTS valor_mensalidade_padrao DECIMAL(10,2) NULL",
+  const novaCols = [
+    ["raca", "VARCHAR(120) NULL"],
+    ["pelagem", "VARCHAR(100) NULL"],
+    ["data_entrada", "DATE NULL"],
+    ["valor_mensalidade_padrao", "DECIMAL(10,2) NULL"],
   ];
-  for (const sql of cols) {
-    try { await pool.query(sql); } catch (e) { console.error("Migração:", e.message); }
+  for (const [col, def] of novaCols) {
+    try {
+      const [[{ cnt }]] = await pool.query(
+        "SELECT COUNT(*) AS cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='Cavalos' AND COLUMN_NAME=?",
+        [col],
+      );
+      if (!cnt) {
+        await pool.query(`ALTER TABLE Cavalos ADD COLUMN \`${col}\` ${def}`);
+        console.log(`Migração: coluna '${col}' criada.`);
+      }
+    } catch (e) {
+      console.error(`Migração (${col}):`, e.message);
+    }
   }
 }
-runMigrations();
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, "0.0.0.0", () =>
-  console.log(`Servidor HF Controll v2 rodando em: http://localhost:${PORT}`),
-);
+runMigrations().then(() => {
+  app.listen(PORT, "0.0.0.0", () =>
+    console.log(`Servidor HF Controll v2 rodando em: http://localhost:${PORT}`),
+  );
+});
