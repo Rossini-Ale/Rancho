@@ -1,6 +1,10 @@
 // ── Finanças / Cobranças / Mensalidades / Custos / Config ─────
 Object.assign(RanchoApp, {
   async carregarFinancas() {
+    const hoje = new Date().toISOString().split("T")[0];
+    const dataInput = document.getElementById("ranchoData");
+    if (dataInput && !dataInput.value) dataInput.value = hoje;
+    this._carregarCategoriasLocais();
     await Promise.all([this.carregarCobrancas(), this.carregarDespesasRancho()]);
     this._atualizarPL();
   },
@@ -62,7 +66,11 @@ Object.assign(RanchoApp, {
 
   _renderCobrancas(todos, wrap) {
     if (!wrap) return;
+
+    const badge = document.getElementById("badgeCobrancas");
+
     if (!todos.length) {
+      if (badge) badge.style.display = "none";
       wrap.innerHTML = `
         <div style="text-align:center;padding:3rem 1rem;">
           <div style="font-size:3rem;color:var(--bege-borda);margin-bottom:12px;"><i class="fa-solid fa-circle-check"></i></div>
@@ -71,33 +79,129 @@ Object.assign(RanchoApp, {
         </div>`;
       return;
     }
+
+    // Agrupa por (proprietario_id, mes, ano)
+    const grupos = {};
     const nomesMeses = ["","Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
-    wrap.innerHTML = todos.map((item) => {
-      const diasCor = item.dias_atraso > 30 ? "var(--vermelho)" : item.dias_atraso > 7 ? "var(--dourado)" : "var(--texto-suave)";
-      const diasBg = item.dias_atraso > 30 ? "rgba(168,50,50,0.09)" : item.dias_atraso > 7 ? "rgba(196,154,74,0.12)" : "rgba(138,104,64,0.08)";
-      const borderClr = item.dias_atraso > 30 ? "var(--vermelho)" : item.dias_atraso > 7 ? "var(--dourado)" : "var(--bege-borda)";
-      const valF = item.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      const descricao = item.tipo === "mensalidade" ? `${item.cavalo} · ${item.itens || "Mensalidade"}` : item.descricao;
-      const periodo = item.tipo === "mensalidade" ? `${nomesMeses[item.mes]}/${item.ano}` : new Date(item.data_despesa).toLocaleDateString("pt-BR");
+    todos.forEach((item) => {
+      const mes = item.tipo === "mensalidade" ? item.mes : new Date(item.data_despesa + "T12:00:00").getMonth() + 1;
+      const ano = item.tipo === "mensalidade" ? item.ano : new Date(item.data_despesa + "T12:00:00").getFullYear();
+      const key = `${item.proprietario_id}_${mes}_${ano}`;
+      if (!grupos[key]) grupos[key] = { proprietario_id: item.proprietario_id, proprietario: item.proprietario || "Sem cliente", telefone: item.telefone, mes, ano, itens: [], total: 0, maxDias: 0 };
+      grupos[key].itens.push(item);
+      grupos[key].total += item.valor;
+      grupos[key].maxDias = Math.max(grupos[key].maxDias, item.dias_atraso || 0);
+    });
+
+    const gruposSorted = Object.values(grupos).sort((a, b) => b.maxDias - a.maxDias);
+
+    if (badge) { badge.textContent = gruposSorted.length; badge.style.display = "inline-block"; }
+
+    wrap.innerHTML = gruposSorted.map((g) => {
+      const totalF = g.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const borderClr = g.maxDias > 30 ? "var(--vermelho)" : g.maxDias > 7 ? "var(--dourado)" : "var(--bege-borda)";
+      const diasCor = g.maxDias > 30 ? "var(--vermelho)" : g.maxDias > 7 ? "var(--dourado)" : "var(--texto-suave)";
+      const diasBg = g.maxDias > 30 ? "rgba(168,50,50,0.09)" : g.maxDias > 7 ? "rgba(196,154,74,0.12)" : "rgba(138,104,64,0.08)";
+      const periodo = `${nomesMeses[g.mes]}/${g.ano}`;
+      const propS = g.proprietario.replace(/'/g, "\\'");
+      const telS = (g.telefone || "").replace(/'/g, "\\'");
+
+      const itensHtml = g.itens.length > 1
+        ? g.itens.map((it) => {
+            const desc = it.tipo === "mensalidade" ? `${it.cavalo} — Mensalidade` : it.descricao;
+            const vF = it.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-top:0.5px solid var(--bege-borda);">
+              <span style="font-size:0.73rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${desc}</span>
+              <span style="font-size:0.73rem;font-weight:600;color:var(--vermelho);flex-shrink:0;margin-left:8px;">${vF}</span>
+            </div>`;
+          }).join("")
+        : (() => {
+            const it = g.itens[0];
+            return `<div style="font-size:0.75rem;color:var(--texto-suave);margin-top:2px;">${it.tipo === "mensalidade" ? `${it.cavalo} — ${it.itens || "Mensalidade"}` : it.descricao} · ${periodo}</div>`;
+          })();
+
       return `
         <div style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-left:3px solid ${borderClr};border-radius:16px;padding:13px 14px;margin-bottom:10px;box-shadow:var(--sombra);">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
             <div style="flex:1;min-width:0;">
-              <div style="font-family:'Lora',serif;font-size:0.95rem;font-weight:600;color:var(--texto-titulo);">${item.proprietario || "Sem cliente"}</div>
-              <div style="font-size:0.75rem;color:var(--texto-suave);margin-top:3px;">${descricao} · ${periodo}</div>
+              <div style="font-family:'Lora',serif;font-size:0.95rem;font-weight:600;color:var(--texto-titulo);">${g.proprietario}</div>
+              ${g.itens.length === 1 ? itensHtml : `<div style="font-size:0.72rem;color:var(--texto-suave);margin-top:2px;">${periodo} · ${g.itens.length} itens</div>`}
             </div>
             <div style="text-align:right;flex-shrink:0;">
-              <div style="font-weight:700;color:var(--vermelho);font-size:0.95rem;">${valF}</div>
-              <div style="background:${diasBg};color:${diasCor};border-radius:8px;padding:2px 8px;font-size:0.7rem;font-weight:600;margin-top:3px;">${item.dias_atraso} dias</div>
+              <div style="font-weight:700;color:var(--vermelho);font-size:0.98rem;">${totalF}</div>
+              <div style="background:${diasBg};color:${diasCor};border-radius:8px;padding:2px 8px;font-size:0.7rem;font-weight:600;margin-top:3px;">${g.maxDias}d atraso</div>
             </div>
           </div>
-          ${item.telefone ? `
-          <button onclick="RanchoApp.cobrarWhatsApp('${item.proprietario}','${item.telefone}','${valF}','${descricao}','${periodo}')"
-            style="margin-top:10px;background:#25D366;color:white;border:none;border-radius:10px;padding:7px 14px;font-size:0.78rem;font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">
-            <i class="fa-brands fa-whatsapp" style="font-size:0.9rem;"></i> Cobrar via WhatsApp
-          </button>` : ""}
+          ${g.itens.length > 1 ? `<div style="margin-top:8px;">${itensHtml}</div>` : ""}
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            ${g.telefone ? `<button onclick="RanchoApp.cobrarWhatsApp('${propS}','${g.telefone}','${totalF}','${g.itens.length} item(s)','${periodo}')"
+              style="flex:1;background:#25D366;color:white;border:none;border-radius:10px;padding:7px 10px;font-size:0.75rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;">
+              <i class="fa-brands fa-whatsapp"></i> Cobrar
+            </button>` : ""}
+            <button onclick="RanchoApp.receberCobranca(${g.proprietario_id},'${propS}',${g.mes},${g.ano},'${telS}')"
+              style="flex:1;background:rgba(61,122,94,0.09);color:#1B5E20;border:0.5px solid rgba(61,122,94,0.25);border-radius:10px;padding:7px 10px;font-size:0.75rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer;">
+              <i class="fa-solid fa-circle-check"></i> Receber
+            </button>
+          </div>
         </div>`;
     }).join("");
+  },
+
+  receberCobranca(propId, propNome, mes, ano, tel) {
+    this.vibrar();
+    const nomesMeses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    this.abrirConfirmacao(
+      "Confirmar recebimento",
+      `Marcar fatura de ${propNome} — ${nomesMeses[mes - 1]}/${ano} como paga?`,
+      async () => {
+        try {
+          await ApiService.putData("/api/gestao/custos/baixar-mes", { proprietario_id: propId, mes, ano });
+          this._cacheClear("cobrancas", "kpis", "alertas", "proprietarios");
+          await this.carregarCobrancas();
+          this._atualizarPL();
+          this.mostrarNotificacao("Pagamento confirmado!");
+          if (tel) {
+            const telLimpo = tel.replace(/\D/g, "");
+            setTimeout(() => {
+              this.abrirConfirmacao("Enviar confirmação?", `Avisar ${propNome} via WhatsApp?`, () => {
+                const msg = `Olá *${propNome}*! ✅\nConfirmamos o recebimento de *${nomesMeses[mes - 1]}/${ano}*.\nObrigado! 🤝\n${this.nomeRancho || "HF Controll"}`;
+                window.open(`https://wa.me/55${telLimpo}?text=${encodeURIComponent(msg)}`, "_blank");
+              });
+            }, 400);
+          }
+        } catch (e) {
+          this.mostrarNotificacao("Erro ao confirmar.", "erro");
+        }
+      }
+    );
+  },
+
+  _carregarCategoriasLocais() {
+    try {
+      const local = JSON.parse(localStorage.getItem("rancho_categorias_custom") || "[]");
+      const dl = document.getElementById("sugestoesCategorias");
+      if (!dl || !local.length) return;
+      const existentes = [...dl.options].map((o) => o.value.toLowerCase());
+      local.forEach((cat) => {
+        if (!existentes.includes(cat.toLowerCase())) {
+          const opt = document.createElement("option");
+          opt.value = cat;
+          dl.appendChild(opt);
+        }
+      });
+    } catch (e) {}
+  },
+
+  _salvarCategoriaLocal(cat) {
+    try {
+      const padrao = ["Alimentação","Manutenção","Funcionários","Energia","Combustível","Geral"];
+      if (padrao.includes(cat)) return;
+      const saved = JSON.parse(localStorage.getItem("rancho_categorias_custom") || "[]");
+      if (!saved.includes(cat)) {
+        saved.push(cat);
+        localStorage.setItem("rancho_categorias_custom", JSON.stringify(saved.slice(-30)));
+      }
+    } catch (e) {}
   },
 
   filtrarFinancas() {
@@ -106,11 +210,15 @@ Object.assign(RanchoApp, {
     const lista = document.getElementById("listaCobrancas");
     if (!lista || !this._dadosCobrancas) return;
     let itens = [...this._dadosCobrancas];
-    if (busca) itens = itens.filter((i) => i.nome?.toLowerCase().includes(busca));
+    if (busca) itens = itens.filter((i) =>
+      i.proprietario?.toLowerCase().includes(busca) ||
+      i.cavalo?.toLowerCase().includes(busca) ||
+      i.descricao?.toLowerCase().includes(busca),
+    );
     itens.sort((a, b) => {
-      if (ordem === "valor") return (b.total_pendente || 0) - (a.total_pendente || 0);
-      if (ordem === "status") return (b.tem_pendencia ? 1 : 0) - (a.tem_pendencia ? 1 : 0);
-      return a.nome.localeCompare(b.nome);
+      if (ordem === "valor") return (b.valor || 0) - (a.valor || 0);
+      if (ordem === "status") return (b.dias_atraso || 0) - (a.dias_atraso || 0);
+      return (a.proprietario || "").localeCompare(b.proprietario || "");
     });
     this._renderCobrancas(itens, lista);
   },
@@ -136,7 +244,12 @@ Object.assign(RanchoApp, {
   _atualizarChipsDespesas(custos) {
     const wrap = document.getElementById("chipsCategoriaRancho");
     if (!wrap) return;
-    const cats = [...new Set(custos.map((c) => c.categoria).filter(Boolean))].sort();
+    const cats = [...new Set(custos.map((c) => c.categoria).filter(Boolean))];
+    try {
+      const local = JSON.parse(localStorage.getItem("rancho_categorias_custom") || "[]");
+      local.forEach((cat) => { if (!cats.includes(cat)) cats.push(cat); });
+    } catch (e) {}
+    cats.sort();
     const catAtual = this.categoriaFiltroRancho || "";
     wrap.innerHTML = `<div class="chip ${catAtual === "" ? "active" : ""}" onclick="RanchoApp.filtrarCategoriaRancho('',this)">Todas</div>`;
     cats.forEach((cat) => {
@@ -255,18 +368,21 @@ Object.assign(RanchoApp, {
     let cat = document.getElementById("ranchoCat").value.trim();
     if (cat) cat = cat.charAt(0).toUpperCase() + cat.slice(1);
     else cat = "Geral";
+    const dataInput = document.getElementById("ranchoData");
     const body = {
       proprietario_id: null, cavalo_id: null,
       descricao: document.getElementById("ranchoDesc").value,
       valor: this.limparMoeda(document.getElementById("ranchoValor").value),
-      data_despesa: new Date().toISOString().split("T")[0],
+      data_despesa: dataInput?.value || new Date().toISOString().split("T")[0],
       categoria: cat,
     };
     try {
       await ApiService.postData("/api/gestao/custos", body);
       this._cacheClear("cobrancas", "kpis");
+      this._salvarCategoriaLocal(cat);
       this.mostrarNotificacao("Adicionado!");
       document.getElementById("formCustoRancho").reset();
+      if (dataInput) dataInput.value = new Date().toISOString().split("T")[0];
       this.categoriaFiltroRancho = "";
       await this.carregarDespesasRancho();
       this._atualizarPL();

@@ -916,7 +916,13 @@
           </div>
 
           <!-- Cobranças Pendentes -->
-          <div style="padding: 8px 14px 4px">
+          <div class="section-header">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="section-title">Cobranças pendentes</span>
+              <span id="badgeCobrancas" style="display:none;background:var(--vermelho);color:white;font-size:0.62rem;font-weight:700;border-radius:10px;padding:1px 7px;line-height:1.6;">0</span>
+            </div>
+          </div>
+          <div style="padding: 0 14px 4px">
             <div
               style="
                 display: flex;
@@ -1105,7 +1111,7 @@
                     required
                   />
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center">
+                <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center">
                   <input
                     type="text"
                     class="form-control"
@@ -1114,6 +1120,15 @@
                     required
                     style="flex: 1"
                   />
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="ranchoData"
+                    style="width: 130px; flex-shrink: 0;"
+                    title="Data da despesa"
+                  />
+                </div>
+                <div style="display:flex;justify-content:flex-end;">
                   <button
                     type="submit"
                     class="btn btn-success"
@@ -1121,7 +1136,6 @@
                       width: 42px;
                       height: 42px;
                       padding: 0;
-                      flex-shrink: 0;
                       border-radius: 12px !important;
                     "
                   >
