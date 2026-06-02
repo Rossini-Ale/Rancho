@@ -297,17 +297,19 @@ Object.assign(RanchoApp, {
       const cat = c.categoria || "Geral";
       const cor = cores[cat] || { bg: "rgba(138,104,64,0.1)", cor: "var(--texto-suave)" };
       const ico = icones[cat] || "fa-tag";
-      const data = new Date(c.data_despesa);
+      const data = new Date(c.data_despesa + "T12:00:00");
       const dataF = data.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      const descEsc = this.escapeHtml(c.descricao);
+      const catEsc = this.escapeHtml(cat);
       return `
         <div style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:11px;box-shadow:var(--sombra);">
           <div style="width:38px;height:38px;border-radius:11px;background:${cor.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <i class="fa-solid ${ico}" style="color:${cor.cor};font-size:0.9rem;"></i>
           </div>
           <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;color:var(--texto-titulo);font-size:0.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.descricao}</div>
+            <div style="font-weight:600;color:var(--texto-titulo);font-size:0.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${descEsc}</div>
             <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-              <span style="background:${cor.bg};color:${cor.cor};border-radius:6px;padding:1px 7px;font-size:0.68rem;font-weight:600;">${cat}</span>
+              <span style="background:${cor.bg};color:${cor.cor};border-radius:6px;padding:1px 7px;font-size:0.68rem;font-weight:600;">${catEsc}</span>
               <span style="font-size:0.7rem;color:var(--texto-suave);">${dataF}</span>
             </div>
           </div>

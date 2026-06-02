@@ -131,6 +131,28 @@ Object.assign(RanchoApp, {
 
   filtrarAnimais() { this._renderAnimais(); },
 
+  exportarAnimaisCSV() {
+    const dados = this._dadosAnimais;
+    if (!dados) { this.mostrarNotificacao("Carregue os animais primeiro.", "erro"); return; }
+    const todos = [];
+    dados.grupos.forEach((g) => g.slots.forEach((s) => s.animais.forEach((a) => todos.push({ ...a, _local: s.nome }))));
+    dados.semLocal?.forEach((a) => todos.push({ ...a, _local: "" }));
+    todos.sort((a, b) => a.nome.localeCompare(b.nome));
+    const cabecalho = ["Nome", "Raça", "Pelagem", "Local", "Proprietário", "Status Financeiro", "Total Mês", "Mensalidade Padrão", "Data Entrada"];
+    const linhas = todos.map((a) => [
+      a.nome,
+      a.raca || "",
+      a.pelagem || "",
+      a._local || "Sem local",
+      a.proprietario || "",
+      a.tem_pendente ? "Pendente" : "Em dia",
+      a.total_mes > 0 ? a.total_mes.toFixed(2).replace(".", ",") : "",
+      a.valor_mensalidade_padrao ? parseFloat(a.valor_mensalidade_padrao).toFixed(2).replace(".", ",") : "",
+      a.data_entrada ? new Date(a.data_entrada).toLocaleDateString("pt-BR") : "",
+    ]);
+    this.exportarCSV(`Animais_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.csv`, cabecalho, linhas);
+  },
+
   filtrarStatusAnimais(status, el) {
     this.vibrar(10);
     this.statusFiltroAnimais = status;
@@ -150,16 +172,21 @@ Object.assign(RanchoApp, {
     const bordaClr = pend ? "#E53935" : "#3D7A5E";
     const statusTxt = pend && totalF ? `${totalF} pendente` : pend ? "Pendente" : "Em dia";
     const statusClr = pend ? "#A83232" : "#3D7A5E";
+    const nomeEsc = this.escapeHtml(animal.nome);
+    const localEsc = this.escapeHtml(slot.nome);
+    const propEsc = this.escapeHtml(animal.proprietario || "Sem proprietário");
+    const racaEsc = this.escapeHtml(animal.raca);
+    const pelagemEsc = this.escapeHtml(animal.pelagem);
     return `
       <div onclick="RanchoApp.abrirAcoesAnimal(${animal.id},'${ns}','${ls}','${pid}','${os}')"
         style="background:var(--bege-card);border:0.5px solid var(--bege-borda);border-radius:13px;padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:7px;position:relative;overflow:hidden;box-shadow:var(--sombra);">
         <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${bordaClr};border-radius:3px 0 0 3px;"></div>
-        <div style="width:38px;height:38px;border-radius:11px;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:600;flex-shrink:0;margin-left:4px;">${animal.nome.charAt(0).toUpperCase()}</div>
+        <div style="width:38px;height:38px;border-radius:11px;background:#3D7A5E;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;font-weight:600;flex-shrink:0;margin-left:4px;">${nomeEsc.charAt(0).toUpperCase()}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:0.7rem;color:#3D7A5E;font-weight:600;margin-bottom:1px;">${slot.nome}</div>
-          <div style="font-size:0.88rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.nome}</div>
-          <div style="font-size:0.75rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${animal.proprietario || "Sem proprietário"}</div>
-          ${animal.raca ? `<div style="font-size:0.68rem;color:var(--texto-suave);opacity:0.8;margin-top:1px;">${animal.raca}${animal.pelagem ? ` · ${animal.pelagem}` : ""}</div>` : ""}
+          <div style="font-size:0.7rem;color:#3D7A5E;font-weight:600;margin-bottom:1px;">${localEsc}</div>
+          <div style="font-size:0.88rem;font-weight:600;color:var(--texto-titulo);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nomeEsc}</div>
+          <div style="font-size:0.75rem;color:var(--texto-suave);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${propEsc}</div>
+          ${racaEsc ? `<div style="font-size:0.68rem;color:var(--texto-suave);opacity:0.8;margin-top:1px;">${racaEsc}${pelagemEsc ? ` · ${pelagemEsc}` : ""}</div>` : ""}
           <div style="font-size:0.72rem;font-weight:600;color:${statusClr};margin-top:2px;">${statusTxt}</div>
         </div>
         <i class="fa-solid fa-chevron-right" style="font-size:0.65rem;color:var(--bege-borda);flex-shrink:0;"></i>

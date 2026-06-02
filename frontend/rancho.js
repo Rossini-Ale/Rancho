@@ -437,6 +437,36 @@ const RanchoApp = {
   // ── Utilitários ──
   vibrar(ms = 50) { if (navigator.vibrate) navigator.vibrate(ms); },
 
+  exportarCSV(nomeArquivo, cabecalho, linhas) {
+    const csvEscape = (v) => {
+      if (v == null) return "";
+      const s = String(v);
+      return s.includes(",") || s.includes('"') || s.includes("\n")
+        ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const conteudo = [cabecalho, ...linhas]
+      .map((row) => row.map(csvEscape).join(","))
+      .join("\n");
+    const blob = new Blob(["﻿" + conteudo], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = nomeArquivo;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.mostrarNotificacao("CSV exportado!");
+  },
+
+  escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  },
+
   mascaraTelefone(e) {
     e.target.value = e.target.value.replace(/\D/g, "").replace(/^(\d{2})(\d)/g, "($1) $2").replace(/(\d)(\d{4})$/, "$1-$2");
   },

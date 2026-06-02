@@ -324,25 +324,46 @@ router.get("/relatorio", async (req, res) => {
        ORDER BY total DESC LIMIT 5`,
       [mes, ano, uid, mes, ano, uid, uid],
     );
-    const historico = [];
+    // Calcula o intervalo dos 6 meses anteriores ao mês do relatório
+    const meses6 = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(ano, mes - 1 - i, 1);
-      const m = d.getMonth() + 1;
-      const a = d.getFullYear();
-      const [[{ rec }]] = await pool.query(
-        "SELECT COALESCE(SUM(valor),0) AS rec FROM Mensalidades WHERE usuario_id=? AND mes=? AND ano=? AND pago=1",
-        [uid, m, a],
-      );
-      const [[{ desp }]] = await pool.query(
-        "SELECT COALESCE(SUM(valor),0) AS desp FROM Custos WHERE usuario_id=? AND MONTH(data_despesa)=? AND YEAR(data_despesa)=? AND cavalo_id IS NULL AND proprietario_id IS NULL",
-        [uid, m, a],
-      );
-      historico.push({
-        label: nomesMeses[m - 1].substring(0, 3),
-        receita: parseFloat(rec),
-        despesas: parseFloat(desp),
-      });
+      meses6.push({ mes: d.getMonth() + 1, ano: d.getFullYear() });
     }
+    const { mes: mesMin6, ano: anoMin6 } = meses6[0];
+    const { mes: mesMax6, ano: anoMax6 } = meses6[meses6.length - 1];
+
+    // 2 queries batch em vez de 12 queries sequenciais
+    const [receitasHist] = await pool.query(
+      `SELECT mes, ano, COALESCE(SUM(valor),0) AS receita
+       FROM Mensalidades
+       WHERE usuario_id=? AND pago=1
+         AND (ano * 12 + mes) >= (? * 12 + ?)
+         AND (ano * 12 + mes) <= (? * 12 + ?)
+       GROUP BY ano, mes`,
+      [uid, anoMin6, mesMin6, anoMax6, mesMax6],
+    );
+    const [despesasHist] = await pool.query(
+      `SELECT MONTH(data_despesa) AS mes, YEAR(data_despesa) AS ano,
+         COALESCE(SUM(valor),0) AS despesas
+       FROM Custos
+       WHERE usuario_id=? AND cavalo_id IS NULL AND proprietario_id IS NULL
+         AND (YEAR(data_despesa) * 12 + MONTH(data_despesa)) >= (? * 12 + ?)
+         AND (YEAR(data_despesa) * 12 + MONTH(data_despesa)) <= (? * 12 + ?)
+       GROUP BY YEAR(data_despesa), MONTH(data_despesa)`,
+      [uid, anoMin6, mesMin6, anoMax6, mesMax6],
+    );
+
+    const recMap = {};
+    receitasHist.forEach((r) => { recMap[`${r.ano}-${r.mes}`] = parseFloat(r.receita); });
+    const despMap = {};
+    despesasHist.forEach((d) => { despMap[`${d.ano}-${d.mes}`] = parseFloat(d.despesas); });
+
+    const historico = meses6.map(({ mes: m, ano: a }) => ({
+      label: nomesMeses[m - 1].substring(0, 3),
+      receita: recMap[`${a}-${m}`] || 0,
+      despesas: despMap[`${a}-${m}`] || 0,
+    }));
 
     const recF = parseFloat(receitaMes);
     const despF = parseFloat(despesasMes);

@@ -93,6 +93,21 @@ Object.assign(RanchoApp, {
     } catch (e) {}
   },
 
+  exportarClientesCSV() {
+    const cached = this._cacheGet("proprietarios");
+    if (!cached) { this.mostrarNotificacao("Carregue os clientes primeiro.", "erro"); return; }
+    const cabecalho = ["Nome", "WhatsApp", "Email", "Animais", "Dívida Atual (R$)", "Observações"];
+    const linhas = cached.map((p) => [
+      p.nome,
+      p.telefone || "",
+      p.email || "",
+      p.total_animais || 0,
+      parseFloat(p.total_divida || 0).toFixed(2).replace(".", ","),
+      p.observacoes || "",
+    ]);
+    this.exportarCSV(`Clientes_${new Date().toLocaleDateString("pt-BR").replace(/\//g, "-")}.csv`, cabecalho, linhas);
+  },
+
   filtrarClientes() {
     const busca = (document.getElementById("buscaClientes")?.value || "").toLowerCase().trim();
     document.querySelectorAll("#listaProprietariosMainBody > div").forEach((el) => {

@@ -306,27 +306,24 @@
             </button>
           </div>
 
-          <!-- Alertas -->
-          <div class="section-header">
-            <div style="display:flex;align-items:center;gap:7px;">
-              <span class="section-title">Alertas</span>
-              <span id="badgeAlertas" style="display:none;background:var(--vermelho);color:white;font-size:0.62rem;font-weight:700;border-radius:10px;padding:1px 7px;line-height:1.6;">0</span>
+          <div id="homeGrid">
+            <!-- Coluna 1: Alertas -->
+            <div>
+              <div class="section-header">
+                <div style="display:flex;align-items:center;gap:7px;">
+                  <span class="section-title">Alertas</span>
+                  <span id="badgeAlertas" style="display:none;background:var(--vermelho);color:white;font-size:0.62rem;font-weight:700;border-radius:10px;padding:1px 7px;line-height:1.6;">0</span>
+                </div>
+                <span class="section-link" onclick="RanchoApp.mudarAba('financas')">Ver todos</span>
+              </div>
+              <div id="listaAlertas">
+                <div style="padding: 0 14px;color: var(--texto-suave);font-size: 0.82rem;">Carregando...</div>
+              </div>
             </div>
-            <span class="section-link" onclick="RanchoApp.mudarAba('financas')">Ver todos</span>
-          </div>
-          <div id="listaAlertas">
-            <div
-              style="
-                padding: 0 14px;
-                color: var(--texto-suave);
-                font-size: 0.82rem;
-              "
-            >
-              Carregando...
-            </div>
-          </div>
 
-          <!-- Mini mapa melhorado -->
+            <!-- Coluna 2: Ocupação + Tendência -->
+            <div>
+              <!-- Mini mapa melhorado -->
           <div class="section-header">
             <span class="section-title">Ocupação</span>
             <span class="section-link" onclick="RanchoApp.mudarAba('cavalos')"
@@ -408,6 +405,8 @@
             <div style="font-size:2rem;color:var(--bege-borda);margin-bottom:8px;"><i class="fa-solid fa-chart-line"></i></div>
             <div style="font-size:0.82rem;color:var(--texto-suave);">Carregando tendência...</div>
           </div>
+            </div><!-- /coluna 2 -->
+          </div><!-- /homeGrid -->
         </div>
 
         <!-- ── ABA ANIMAIS / MAPA DE OCUPAÇÃO ── -->
@@ -430,26 +429,31 @@
             >
               Animais
             </div>
-            <button
-              id="btnNovoAnimalAba"
-              onclick="RanchoApp.abrirModalNovoCavalo()"
-              style="
-                display: none;
-                background: var(--marrom-escuro);
-                color: var(--dourado-claro);
-                border: none;
-                border-radius: 10px;
-                padding: 7px 14px;
-                font-size: 0.8rem;
-                font-weight: 600;
-                align-items: center;
-                gap: 6px;
-                cursor: pointer;
-              "
-            >
-              <i class="fa-solid fa-plus" style="font-size: 0.75rem"></i> Novo
-              animal
-            </button>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button onclick="RanchoApp.exportarAnimaisCSV()"
+                style="background:rgba(61,122,94,0.08);border:0.5px solid rgba(61,122,94,0.22);border-radius:9px;padding:6px 10px;font-size:0.75rem;font-weight:600;color:#1B5E20;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                <i class="fa-solid fa-file-csv" style="font-size:0.75rem;"></i> CSV
+              </button>
+              <button
+                id="btnNovoAnimalAba"
+                onclick="RanchoApp.abrirModalNovoCavalo()"
+                style="
+                  display: none;
+                  background: var(--marrom-escuro);
+                  color: var(--dourado-claro);
+                  border: none;
+                  border-radius: 10px;
+                  padding: 7px 14px;
+                  font-size: 0.8rem;
+                  font-weight: 600;
+                  align-items: center;
+                  gap: 6px;
+                  cursor: pointer;
+                "
+              >
+                <i class="fa-solid fa-plus" style="font-size: 0.75rem"></i> Novo animal
+              </button>
+            </div>
           </div>
           <div
             style="
@@ -664,26 +668,31 @@
             >
               Clientes
             </div>
-            <button
-              id="btnNovoClienteAba"
-              onclick="RanchoApp.abrirModalGerenciarProprietarios()"
-              style="
-                display: none;
-                background: var(--marrom-escuro);
-                color: var(--dourado-claro);
-                border: none;
-                border-radius: 10px;
-                padding: 7px 14px;
-                font-size: 0.8rem;
-                font-weight: 600;
-                align-items: center;
-                gap: 6px;
-                cursor: pointer;
-              "
-            >
-              <i class="fa-solid fa-plus" style="font-size: 0.75rem"></i> Novo
-              cliente
-            </button>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <button onclick="RanchoApp.exportarClientesCSV()"
+                style="background:rgba(61,122,94,0.08);border:0.5px solid rgba(61,122,94,0.22);border-radius:9px;padding:6px 10px;font-size:0.75rem;font-weight:600;color:#1B5E20;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                <i class="fa-solid fa-file-csv" style="font-size:0.75rem;"></i> CSV
+              </button>
+              <button
+                id="btnNovoClienteAba"
+                onclick="RanchoApp.abrirModalGerenciarProprietarios()"
+                style="
+                  display: none;
+                  background: var(--marrom-escuro);
+                  color: var(--dourado-claro);
+                  border: none;
+                  border-radius: 10px;
+                  padding: 7px 14px;
+                  font-size: 0.8rem;
+                  font-weight: 600;
+                  align-items: center;
+                  gap: 6px;
+                  cursor: pointer;
+                "
+              >
+                <i class="fa-solid fa-plus" style="font-size: 0.75rem"></i> Novo cliente
+              </button>
+            </div>
           </div>
           <div style="padding: 0 14px 10px">
             <div
